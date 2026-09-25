@@ -1,10 +1,29 @@
 """Constants lifted from the notebook (code/Copy of EskulSPK2026_SMART_Final.ipynb)."""
+import os
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent.parent
 DATA_PATH = APP_DIR / "data" / "dataset.csv"
+SAMPLE_GFORM_PATH = APP_DIR / "data" / "sample_gform.csv"      # SYNTHETIC demo export
+PRIVATE_DATA_DIR = APP_DIR / "data" / "private"                  # real exports, gitignored
+PRIVATE_REPORT_DIR = APP_DIR / "reports" / "private"             # reports with examples, gitignored
+
+# Base model: pretrained on the Kaggle sample (the notebook's model).
 MODEL_PATH = APP_DIR / "models" / "rf_anxiety_model.joblib"
 METADATA_PATH = APP_DIR / "models" / "rf_anxiety_model_metadata.json"
+# Real model: base model retrained on the Google Form answers (scripts/train.py --stage real).
+REAL_MODEL_PATH = APP_DIR / "models" / "rf_real_model.joblib"
+REAL_METADATA_PATH = APP_DIR / "models" / "rf_real_model_metadata.json"
+REAL_SUMMARY_PATH = APP_DIR / "models" / "real_summary.json"     # aggregates only, no rows
+MODEL_COMPARISON_PATH = APP_DIR / "models" / "model_comparison.json"
+
+
+def active_model_paths():
+    """SPK_MODEL=auto (default) uses the real model when it exists; base|real force one."""
+    choice = os.environ.get("SPK_MODEL", "auto")
+    if choice == "real" or (choice == "auto" and REAL_MODEL_PATH.exists()):
+        return REAL_MODEL_PATH, REAL_METADATA_PATH
+    return MODEL_PATH, METADATA_PATH
 
 KAGGLE_DATASET = "sharmajicoder/student-mental-health-and-burnout"
 KAGGLE_FILE = "student_mental_health_burnout_1M.csv"
@@ -60,8 +79,15 @@ PRIORITY_WEIGHTS = {c: 1 / len(CRITERIA) for c in CRITERIA}
 
 ALTERNATIVES = ["Sleep", "Exercise", "Study", "Counseling", "Relaxation"]
 
-# Weight A: domain-weighted
-WEIGHTS_A = {
+def normalize(weights_dict: dict) -> dict:
+    """Scale each alternative's weights to sum to 1 (a SMART requirement)."""
+    return {alt: {c: v / sum(w.values()) for c, v in w.items()} for alt, w in weights_dict.items()}
+
+
+# Weight A: domain-weighted, exactly as in the notebook (cell 68).
+# Note: the notebook's Exercise weights sum to 1.05, which inflates Exercise scores by 5%.
+# The app uses the normalized version WEIGHTS_A below.
+WEIGHTS_A_NOTEBOOK = {
     "Sleep": {
         "rf_anxiety_score": 0.15, "study_hours_per_day": 0.10, "academic_performance": 0.10,
         "sleep_hours": 0.40, "physical_activity": 0.05, "financial_stress": 0.05,
@@ -88,6 +114,8 @@ WEIGHTS_A = {
         "family_expectation": 0.15, "burnout_score": 0.10,
     },
 }
+
+WEIGHTS_A = normalize(WEIGHTS_A_NOTEBOOK)
 
 # Weight B: nearly balanced
 WEIGHTS_B = {
@@ -140,4 +168,19 @@ INPUT_RANGES = {
     "financial_stress": (0.0, 10.0, 5.0),
     "family_expectation": (0.0, 10.0, 6.0),
     "burnout_score": (0.0, 10.0, 1.8),
+}
+
+# ---- Retraining on real questionnaire data ----
+REAL_RF_OVERRIDES = dict(min_samples_leaf=3)   # small data: bigger leaves, less memorization
+REAL_MIN_ROWS_FOR_BOUNDS = 50                   # below this, keep Kaggle SMART bounds
+SUPPRESS_BELOW = 5                              # aggregate cells with fewer rows are hidden
+
+# ---- Ethics / safety ----
+# Predicted anxiety at or above this percentile of the reference population always
+# shows Counseling and a referral note, whatever the SMART ranking says.
+SAFETY_PERCENTILE = 90
+# Fill in before deployment (school counselor / campus psychologist / local service).
+REFERRAL_CONTACT = {
+    "id": "Guru BK sekolah atau psikolog/layanan kesehatan jiwa terdekat",
+    "en": "The school counselor (guru BK) or the nearest psychologist / mental-health service",
 }

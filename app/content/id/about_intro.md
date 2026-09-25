@@ -1,0 +1,1 @@
+**Tujuan.** Membantu sekolah beralih dari penanganan kecemasan yang reaktif ke skrining dini yang terukur: memprediksi tingkat kecemasan siswa, menentukan urutan prioritas, dan merekomendasikan bentuk penanganan yang paling sesuai beserta alasannya. Proyek mengikuti metodologi **CRISP-DM**.

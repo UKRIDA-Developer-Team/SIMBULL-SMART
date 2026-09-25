@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 .ipynb_checkpoints/
 .DS_Store
+
+# Confidential questionnaire data and reports that contain answer examples
+app/data/private/
+app/reports/private/
+.pytest_cache/
