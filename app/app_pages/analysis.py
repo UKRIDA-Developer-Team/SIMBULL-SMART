@@ -6,6 +6,10 @@ import ui
 from spk import config, i18n, model, plots, smart
 
 L = ui.lang()
+METRIC_NAMES = {"cv_mae": "MAE CV", "cv_mae_std": "SD MAE CV", "cv_rmse": "RMSE CV", "cv_r2": "R² CV",
+                "test_mae": "MAE uji" if L == "id" else "Test MAE", "test_r2": "R² uji" if L == "id" else "Test R²",
+                "holdout_mae": "MAE holdout", "holdout_mse": "MSE holdout", "holdout_rmse": "RMSE holdout",
+                "holdout_r2": "R² holdout"}
 rf, meta = ui.load_active()
 base, base_meta = ui.load_base()
 reference = ui.load_reference()
@@ -38,7 +42,7 @@ with tab_data:
     crit["rf_anxiety_score"] = ui.predict_frame(reference[config.FEATURES])
     ui.show(plots.criteria_histograms(crit, L))
     gender = reference["gender"].value_counts()
-    st.dataframe(gender.rename(ui.T("count")).to_frame().T, width="stretch")
+    st.table(gender.rename(ui.T("count")).to_frame().T)
 
     st.subheader(ui.T("an_real_title"))
     if not summary:
@@ -59,8 +63,8 @@ with tab_data:
             target_corr.index = [i18n.feature(c, L) if c in i18n.FEATURES else c.removeprefix("x_")
                                  for c in target_corr.index]
             ui.show(plots.matrix_heatmap(target_corr.to_frame(i18n.feature(config.TARGET, L)),
-                                         "r (Pearson)", cmap="coolwarm", center=0))
-        st.dataframe(pd.Series(summary["gender_counts"], name=ui.T("count")).to_frame().T, width="stretch")
+                                         "r (Pearson)", cmap="coolwarm", center=0), compact=True)
+        st.table(pd.Series(summary["gender_counts"], name=ui.T("count")).to_frame().T)
 
 # ---------------------------------------------------------------- model
 with tab_model:
@@ -79,21 +83,21 @@ with tab_model:
         ui.show(plots.actual_vs_predicted(y_test, pred, L))
     with c2:
         ui.show(plots.residuals(y_test, pred, L))
-    ui.show(plots.feature_importance(rf, meta["features"], L))
+    ui.show(plots.feature_importance(rf, meta["features"], L), compact=True)
 
     comparison = ui.model_comparison()
     if comparison:
         st.subheader(ui.T("an_compare"))
         table = pd.DataFrame(comparison).T[["cv_mae", "cv_rmse", "cv_r2", "test_mae", "test_r2"]]
-        st.dataframe(table.round(4), width="stretch")
-        ui.show(plots.metric_bars(table["cv_mae"].to_dict(), "algo", "Random Forest (deployed)", L))
+        st.table(table.round(4).rename(columns=METRIC_NAMES))
+        ui.show(plots.metric_bars(table["cv_mae"].to_dict(), "algo", "Random Forest (deployed)", L), compact=True)
         st.caption(ui.T("an_compare_note"))
 
     if summary:
         st.subheader(ui.T("an_strategies"))
         strat = pd.DataFrame(summary["strategies"]).T
-        st.dataframe(strat.round(4), width="stretch")
-        ui.show(plots.metric_bars(strat["cv_mae"].to_dict(), "strategies", summary["selected"], L))
+        st.table(strat.round(4).rename(columns=METRIC_NAMES))
+        ui.show(plots.metric_bars(strat["cv_mae"].to_dict(), "strategies", summary["selected"], L), compact=True)
 
     with st.expander("Hyperparameters / metadata"):
         st.json({k: v for k, v in meta.items() if k not in ("smart_bounds", "reference_quantiles", "impute_medians")})
@@ -107,8 +111,8 @@ with tab_smart:
         "max": [meta["smart_bounds"][c]["max"] for c in config.CRITERIA],
         "w (priority)": [config.PRIORITY_WEIGHTS[c] for c in config.CRITERIA],
     })
-    st.dataframe(crit_table.round(3), hide_index=True, width="stretch")
-    ui.show(plots.weights_heatmap(ui.weights(), L))
+    st.table(crit_table.round(3).set_index(ui.T("criterion")))
+    ui.show(plots.weights_heatmap(ui.weights(), L), compact=True)
     if profile == "A":
         st.caption(ui.T("an_weights_note"))
 
@@ -118,7 +122,7 @@ with tab_smart:
     with c2:
         ui.show(plots.utility_radar(result, utility, lang=L))
     ui.show(plots.recommendation_by_alternative(result, L, f" ({ui.profile_label()})"))
-    ui.show(plots.frequency_vs_utility(result, result, L))
+    ui.show(plots.frequency_vs_utility(result, result, L), compact=True)
     c3, c4 = st.columns(2)
     with c3:
         ui.show(plots.top_heatmap(result, lang=L))
@@ -135,13 +139,13 @@ with tab_sens:
         a.metric(ui.T("an_top1"), f"{s['top1_unchanged']:.1%}")
         b.metric(ui.T("an_top3"), f"{s['top3_unchanged']:.1%}")
         c.metric(ui.T("an_top1_min"), f"{s['top1_min']:.1%}")
-    ui.show(plots.population_sensitivity(smart.population_sensitivity(utility, weights), L))
+    ui.show(plots.population_sensitivity(smart.population_sensitivity(utility, weights), L), compact=True)
 
     st.subheader(ui.T("an_profiles"))
     all_results = {ui.profile_label(k): ui.score(reference[config.FEATURES], k, True)[0] for k in ui.PROFILES}
     fig, table = plots.model_comparison(all_results, L)
     ui.show(fig)
-    st.dataframe(table, width="stretch")
+    st.table(table)
     st.caption(ui.T("profile_c_warning"))
 
 # ---------------------------------------------------------------- fairness
@@ -153,12 +157,12 @@ with tab_fair:
                                      mean_pred=("pred", "mean"), mean_actual=("actual", "mean"))
     c1, c2 = st.columns(2)
     with c1:
-        ui.show(plots.fairness_mae(fair, L))
+        ui.show(plots.fairness_mae(fair, L), compact=True)
     with c2:
-        st.dataframe(fair.round(3), width="stretch")
+        st.table(fair.round(3))
     ui.show(plots.recommendation_mix_by_group(result, reference.loc[result.index, "gender"], L))
     if summary and summary.get("fairness_holdout"):
         st.markdown("**" + ("Data riil (holdout)" if L == "id" else "Real data (holdout)") + "**")
-        st.dataframe(pd.DataFrame(summary["fairness_holdout"]).T, width="stretch")
+        st.table(pd.DataFrame(summary["fairness_holdout"]).T)
 
 ui.footer()

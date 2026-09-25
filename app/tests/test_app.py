@@ -31,9 +31,9 @@ def test_analysis_other_profiles(profile):
     assert not at.exception, [e.value for e in at.exception]
 
 
-HIGH_RISK = {"age": 17, "gender": "Female", "study_hours_per_day": 9.0, "academic_performance": 55.0,
-             "exam_pressure": 10.0, "stress_level": 9.5, "sleep_hours": 4.0, "physical_activity": 0.0,
-             "financial_stress": 9.0, "family_expectation": 9.5, "burnout_score": 9.5}
+from spk import config
+
+HIGH_RISK = config.EXAMPLE_PROFILES["high"]
 
 
 @pytest.mark.parametrize("lang", ["id", "en"])
@@ -48,6 +48,15 @@ def test_single_assessment_result(lang):
 
 
 def test_batch_synthetic_gform():
-    at = run("app_pages/recommendation.py", "id", batch_demo="gform")
+    at = run("app_pages/recommendation.py", "id", batch_demo_choice="gform")
     assert not at.exception, [e.value for e in at.exception]
     assert any("Google Form" in i.value for i in at.info)
+
+
+def test_language_switch_keeps_input_mode():
+    at = run("app_pages/recommendation.py", "id", input_mode_choice="adv")
+    at.session_state["lang"] = "EN"
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert at.session_state["input_mode_choice"] == "adv"
+    assert any(s.label == "Sleep hours" for s in at.slider)
