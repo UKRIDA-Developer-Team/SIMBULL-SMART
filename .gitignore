@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.DS_Store
+
+# Confidential questionnaire data and reports that contain answer examples
+app/data/private/
+app/reports/private/
+.pytest_cache/
+
+# Deliverable build tooling
+deliverables/build/node_modules/

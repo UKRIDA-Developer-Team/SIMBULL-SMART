@@ -1,0 +1,73 @@
+{
+  "model_type": "RandomForestRegressor",
+  "target": "anxiety_score",
+  "features": [
+    "age",
+    "gender",
+    "study_hours_per_day",
+    "academic_performance",
+    "exam_pressure",
+    "stress_level",
+    "sleep_hours",
+    "physical_activity",
+    "financial_stress",
+    "family_expectation",
+    "burnout_score"
+  ],
+  "gender_map": {
+    "Female": 0,
+    "Male": 1,
+    "Other": 2
+  },
+  "sklearn_version": "1.9.1",
+  "hyperparameters": {
+    "n_estimators": 200,
+    "min_samples_split": 2,
+    "min_samples_leaf": 2,
+    "max_features": "sqrt",
+    "max_depth": 10,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "metrics": {
+    "mae": 0.7667788502385423,
+    "mse": 0.9112285623486327,
+    "rmse": 0.9545829258627208,
+    "r2": 0.613622034076458
+  },
+  "smart_bounds": {
+    "rf_anxiety_score": {
+      "min": 0.36695553548331766,
+      "max": 7.091249383126152
+    },
+    "study_hours_per_day": {
+      "min": 0.0,
+      "max": 13.2274332022389
+    },
+    "academic_performance": {
+      "min": 47.564975384036146,
+      "max": 92.89366997522322
+    },
+    "sleep_hours": {
+      "min": 3.0,
+      "max": 10.0
+    },
+    "physical_activity": {
+      "min": 0.0,
+      "max": 7.0
+    },
+    "financial_stress": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "family_expectation": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "burnout_score": {
+      "min": 0.0,
+      "max": 9.854597899553744
+    }
+  },
+  "n_rows": 20000
+}

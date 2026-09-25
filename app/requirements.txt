@@ -1,0 +1,10 @@
+# Runtime deps for Streamlit Community Cloud.
+# scikit-learn must match the version that produced models/*.joblib (see metadata sklearn_version).
+streamlit==1.64.0
+pandas==3.0.6
+numpy==2.5.3
+scikit-learn==1.9.1
+joblib==1.6.0
+matplotlib==3.11.2
+seaborn==0.13.2
+openpyxl==3.1.5

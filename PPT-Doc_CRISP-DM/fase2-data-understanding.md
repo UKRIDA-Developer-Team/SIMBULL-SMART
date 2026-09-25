@@ -1,247 +1,108 @@
 # Fase 2 — Data Understanding
 
-**Proyek:** Sistem Rekomendasi Penanganan Kecemasan Siswa SMA Menggunakan Metode *Simple Multi-Attribute Rating Technique* (SMART)
+**Proyek:** SPK Rekomendasi Penanganan Kecemasan Siswa (Random Forest + SMART)
 **Metodologi:** CRISP-DM — Fase 2 dari 6
 
 ---
 
-## 1. Tujuan Fase
+## 1. Sumber Data
 
-Fase ini bertujuan mengumpulkan data awal dan mengenali karakteristiknya sebelum masuk ke tahap persiapan. Empat aktivitas baku CRISP-DM dijalankan:
+Proyek memakai dua sumber data dengan peran berbeda.
 
-| Aktivitas | Sasaran pada proyek ini |
-|---|---|
-| *Collect Initial Data* | Menghimpun respons kuesioner siswa SMA melalui Google Form |
-| *Describe Data* | Menyusun kamus data: jumlah baris/kolom, tipe, skala, dan rentang tiap atribut |
-| *Explore Data* | Statistik deskriptif, distribusi, dan korelasi antaratribut untuk menemukan pola awal |
-| *Verify Data Quality* | Menilai completeness, consistency, accuracy, serta pola missing data |
-
-**Keluaran fase:** laporan deskripsi data, kamus data, laporan eksplorasi (EDA), dan laporan kualitas data yang menjadi masukan langsung bagi Fase 3.
-
----
-
-## 2. Pengumpulan Data Awal
-
-| Aspek | Keterangan |
-|---|---|
-| Sumber | Kuesioner daring (Google Form) yang disebarkan melalui sekolah, media sosial, dan jaringan pertemanan |
-| Unit observasi | Satu baris = satu siswa SMA responden |
-| Target volume | Minimal 200 responden valid (memadai untuk clustering dan klasifikasi tiga kelas) |
-| Periode | Satu gelombang pengumpulan; tanggal pengisian tercatat otomatis (timestamp) |
-| Jumlah atribut mentah | ± 45 kolom, terbagi ke dalam 8 domain faktor + 1 domain indikator psikologis + identitas |
-| Format | Ekspor CSV/XLSX dari Google Form |
-| Persetujuan | Pengantar kuesioner memuat penjelasan tujuan, jaminan anonimitas, dan izin sekolah/orang tua |
-
-Kolom `Sumber Informasi Kuesioner` dan `Nama teman pemberi informasi` bersifat administratif (pelacakan penyebaran), bukan variabel analisis.
-
----
-
-## 3. Deskripsi Data (Kamus Data)
-
-Atribut dikelompokkan menurut domain agar mudah dirujuk pada fase berikutnya. Kode variabel di bawah ini dipakai konsisten sampai fase Deployment.
-
-### 3.1 Identitas dan Demografi
-
-| Kode | Atribut | Tipe Data | Skala / Rentang |
-|---|---|---|---|
-| D01 | jenis_kelamin | Kategorikal (nominal) | Laki-laki / Perempuan |
-| D02 | tanggal_lahir | Datetime | dd-mm-yyyy → diturunkan menjadi `usia` |
-| D03 | nama_sekolah | Teks | Bebas (nominal, kardinalitas tinggi) |
-| D04 | sumber_informasi | Kategorikal (nominal) | 4 kategori (administratif) |
-
-### 3.2 F1 — Beban dan Tekanan Akademik
-
-| Kode | Atribut | Tipe Data | Skala |
-|---|---|---|---|
-| F1.1 | jam_belajar_harian | Numerik (kontinu, dari ordinal) | < 0,5 – 11,5 jam |
-| F1.2 | frek_belajar_larut_malam | Kategorikal (ordinal) | 1–4 (tidak pernah → 4–5 kali) |
-| F1.3 | waktu_belajar_tidak_cukup | Kategorikal (ordinal) | 1–4 (tidak pernah → sering) |
-| F1.4 | jumlah_tugas_terlambat | Kategorikal (ordinal) | 1–4 (tidak pernah → 4–5) |
-| F1.5 | beban_tugas_bersamaan | Kategorikal (ordinal) | 1–5 (tidak pernah → sangat sering) |
-| F1.6 | tertekan_ujian_nilai | Kategorikal (ordinal) | 1–5 |
-
-### 3.3 F2 — Pola Tidur
-
-| Kode | Atribut | Tipe Data | Skala |
-|---|---|---|---|
-| F2.1 | durasi_tidur | Numerik (kontinu) | 4 – 12 jam |
-| F2.2 | jam_mulai_tidur | Kategorikal (ordinal) | 5 kategori (< 21.00 → ≥ 00.00) |
-| F2.3 | frek_kurang_tidur | Kategorikal (ordinal) | 1–5 |
-| F2.4 | frek_mengantuk_di_kelas | Kategorikal (ordinal) | 1–5 |
-
-### 3.4 F3 — Penggunaan Media Sosial
-
-| Kode | Atribut | Tipe Data | Skala |
-|---|---|---|---|
-| F3.1 | durasi_medsos_harian | Kategorikal (ordinal) | 5 kategori (< 1 jam → > 4 jam) |
-| F3.2 | medsos_saat_belajar | Kategorikal (ordinal) | 1–5 |
-| F3.3 | medsos_sebelum_tidur | Kategorikal (ordinal) | 1–5 |
-
-### 3.5 F4 — Tekanan Keluarga dan Ekspektasi
-
-| Kode | Atribut | Tipe Data | Skala |
-|---|---|---|---|
-| F4.1 | takut_kecewakan_ortu | Kategorikal (ordinal) | 1–5 |
-| F4.2 | tuntutan_nilai_keluarga | Kategorikal (ordinal) | 1–5 |
-
-### 3.6 F5 — Lingkungan Pertemanan
-
-| Kode | Atribut | Tipe Data | Skala | Arah |
-|---|---|---|---|---|
-| F5.1 | merasa_diterima_teman | Ordinal | 1–5 | Positif (perlu *reverse coding*) |
-| F5.2 | punya_teman_dipercaya | Ordinal | 1–5 | Positif |
-| F5.3 | dukungan_teman | Ordinal | 1–5 | Positif |
-| F5.4 | tekanan_konformitas | Ordinal | 1–5 | Negatif |
-| F5.5 | konflik_ganggu_konsentrasi | Ordinal | 1–5 | Negatif |
-
-### 3.7 F6 — Aktivitas Fisik
-
-| Kode | Atribut | Tipe Data | Skala |
-|---|---|---|---|
-| F6.1 | hari_olahraga_per_minggu | Ordinal | 0 / 1–2 / 3–4 / 5–6 / 7 hari |
-| F6.2 | menit_olahraga_per_sesi | Numerik (kontinu) | Isian bebas (menit) |
-| F6.3 | aktivitas_fisik_ringan | Ordinal | 1–5 |
-| F6.4 | olahraga_untuk_stres | Ordinal | 1–5 |
-
-### 3.8 F7 — Beban Non-Akademik dan Kelelahan
-
-| Kode | Atribut | Tipe Data | Skala | Arah |
-|---|---|---|---|---|
-| F7.1 | jumlah_ekskul | Numerik (diskrit) | 0–3+ | Netral |
-| F7.2 | jam_kegiatan_per_minggu | Numerik (kontinu) | Isian bebas | Netral |
-| F7.3 | frek_lomba_setahun | Ordinal | 4 kategori | Netral |
-| F7.4 | sulit_bagi_waktu | Ordinal | 1–5 | Negatif |
-| F7.5 | kelelahan_kegiatan | Ordinal | 1–5 | Negatif |
-| F7.6 | kegiatan_beri_percaya_diri | Ordinal | 1–5 | Positif (*reverse*) |
-| F7.7 | kehilangan_minat_belajar | Ordinal | 1–5 | Negatif |
-
-### 3.9 F8 — Pola Makan, Jajan, dan Kafein
-
-| Kode | Atribut | Tipe Data | Skala |
-|---|---|---|---|
-| F8.1 | uang_saku_cukup | Ordinal | 1–5 |
-| F8.2 | beli_makanan_di_sekolah | Ordinal | 1–5 |
-| F8.3 | beli_makanan_manis | Ordinal | 1–5 |
-| F8.4 | beli_minuman_berkafein | Ordinal | 1–5 |
-| F8.5 | makan_saat_tertekan | Ordinal | 1–5 |
-| F8.6 | tenang_setelah_makan | Ordinal | 1–5 |
-| F8.7 | melewatkan_waktu_makan | Ordinal | 1–5 |
-
-### 3.10 Indikator Hasil dan Indikator Psikologis (Calon Label)
-
-| Kode | Atribut | Tipe Data | Skala | Peran |
-|---|---|---|---|---|
-| H01 | nilai_rapor_terakhir | Numerik (kontinu) | 0–100 | Variabel dampak |
-| H02 | persentase_kehadiran | Ordinal | 5 kategori | Variabel dampak |
-| P01 | gugup_cemas_gelisah | Ordinal | 1–5 | Pembentuk label |
-| P02 | sulit_kendalikan_khawatir | Ordinal | 1–5 | Pembentuk label |
-| P03 | konsentrasi_saat_pelajaran | Ordinal | 1–5 | Pembentuk label (*reverse*) |
-| P04 | pikiran_terganggu_masalah | Ordinal | 1–5 | Pembentuk label |
-| P05 | sulit_selesaikan_tugas | Ordinal | 1–5 | Pembentuk label |
-
-> **Catatan penting.** P01–P05 **tidak** boleh masuk ke himpunan fitur prediktor karena akan dipakai membentuk label tingkat kecemasan. Menyertakannya menyebabkan *label leakage* dan akurasi model menjadi semu.
-
-### 3.11 Peran Atribut
-
-| Istilah | Definisi pada proyek ini | Contoh |
+| Aspek | Data pralatih (Kaggle) | Data riil (kuesioner) |
 |---|---|---|
-| **Attribute** | Seluruh kolom hasil kuesioner apa adanya | `durasi_tidur`, `nama_sekolah` |
-| **Feature** | Atribut yang dipakai sebagai input model, termasuk hasil rekayasa | `indeks_defisit_tidur`, `rasio_belajar_tidur` |
-| **Target/Label** | Tingkat indikasi kecemasan (Rendah/Sedang/Tinggi) hasil skor komposit P01–P05 | `level_kecemasan` |
+| Sumber | Kaggle `sharmajicoder/student-mental-health-and-burnout`, berkas `student_mental_health_burnout_1M.csv` | Google Form yang disebarkan tim ke siswa SMA |
+| Ukuran asli | 1.000.000 baris × 20 kolom | ⟦ISI: jumlah respons⟧ baris × ±50 kolom |
+| Yang dipakai | Sampel acak 2% = **20.000 baris** (`random_state=42`) | Seluruh respons valid setelah pembersihan |
+| Populasi | Mahasiswa, usia 17–29 | Siswa SMA, usia ±15–18 |
+| Peran | Pralatih model; populasi referensi SPK | Pelatihan ulang dan pengujian model |
+| Kerahasiaan | Publik | **Rahasia**: tidak masuk repositori |
 
----
+Alasan dua sumber: data Kaggle besar dan lengkap sehingga cocok untuk membangun model awal, tetapi populasinya bukan siswa SMA. Data kuesioner sesuai populasi sasaran, tetapi jumlahnya kecil. Model dilatih lebih dulu pada Kaggle, lalu disesuaikan dengan data kuesioner.
 
-## 4. Verifikasi Kualitas Data
+## 2. Deskripsi Data Kaggle (20.000 baris)
 
-### 4.1 Dimensi yang Diperiksa
+Tidak ada nilai hilang dan tidak ada baris duplikat pada sampel.
 
-| Dimensi | Yang diperiksa | Risiko khas pada kuesioner ini |
-|---|---|---|
-| **Completeness** | Persentase sel terisi per kolom dan per baris | Isian bebas (`menit_olahraga_per_sesi`, `jam_kegiatan_per_minggu`) rawan kosong |
-| **Consistency** | Keseragaman format dan penulisan | `nama_sekolah` ditulis beragam ("SMAN 1", "sman 1", "SMA Negeri 1"); format tanggal berbeda |
-| **Accuracy** | Kewajaran nilai terhadap rentang logis | `nilai_rapor` > 100 atau < 40; `menit_olahraga` = 600; `jam_belajar` melebihi 24 jam bila digabung dengan tidur |
-| **Validitas respons** | Kesungguhan pengisian | *Straight-lining* (semua Likert dijawab sama), durasi pengisian sangat singkat |
-| **Missing data** | Pola kehilangan nilai | Perlu diklasifikasikan sebagai MCAR / MAR / MNAR |
+| Atribut | Tipe | Rata-rata | Std | Min | Median | Maks | Peran |
+|---|---|---|---|---|---|---|---|
+| age | numerik | 23,01 | 3,75 | 17 | 23 | 29 | fitur |
+| gender | kategorikal | Female 9.632 · Male 9.561 · Other 807 | | | | | fitur |
+| academic_year | ordinal | 2,51 | 1,12 | 1 | 3 | 4 | tidak dipakai |
+| study_hours_per_day | numerik | 5,03 | 1,97 | 0,00 | 5,01 | 13,23 | fitur + kriteria |
+| exam_pressure | numerik | 6,01 | 1,55 | 1,00 | 6,02 | 10,00 | fitur |
+| academic_performance | numerik | 71,10 | 5,66 | 47,56 | 71,10 | 92,89 | fitur + kriteria |
+| stress_level | numerik | 4,27 | 1,67 | 0,00 | 4,27 | 10,00 | fitur |
+| **anxiety_score** | numerik | 3,01 | 1,52 | 0,00 | 2,98 | 9,11 | **target** |
+| depression_score | numerik | 1,28 | 1,22 | 0,00 | 1,05 | 7,86 | tidak dipakai (hasil) |
+| sleep_hours | numerik | 6,50 | 1,49 | 3,00 | 6,50 | 10,00 | fitur + kriteria |
+| physical_activity | numerik | 3,02 | 1,47 | 0,00 | 3,00 | 7,00 | fitur + kriteria |
+| social_support | numerik | 5,01 | 1,98 | 0,00 | 5,00 | 10,00 | tidak dipakai |
+| screen_time | numerik | 5,04 | 1,95 | 1,00 | 5,02 | 12,00 | tidak dipakai |
+| internet_usage | numerik | 5,06 | 2,14 | 1,00 | 5,04 | 13,70 | tidak dipakai |
+| financial_stress | numerik | 5,00 | 1,99 | 0,00 | 4,99 | 10,00 | fitur + kriteria |
+| family_expectation | numerik | 6,00 | 1,94 | 0,00 | 6,02 | 10,00 | fitur + kriteria |
+| burnout_score | numerik | 1,79 | 1,67 | 0,00 | 1,51 | 9,85 | fitur + kriteria |
+| mental_health_index | numerik | 7,01 | 1,31 | 2,02 | 7,06 | 10,00 | tidak dipakai (hasil) |
+| risk_level | kategorikal | Low 15.321 · Medium 4.376 · High 303 | | | | | tidak dipakai (hasil) |
+| dropout_risk | numerik | 1,33 | 1,35 | 0,00 | 1,00 | 8,56 | tidak dipakai (hasil) |
 
-### 4.2 Klasifikasi Pola Missing Data
+### 2.1 Korelasi dengan skor kecemasan
 
-| Jenis | Arti | Contoh yang mungkin terjadi | Implikasi penanganan |
+| Atribut | r (Pearson) | Atribut | r (Pearson) |
 |---|---|---|---|
-| **MCAR** | Hilang murni acak | Kegagalan submit pada satu butir | Boleh dihapus bila proporsinya kecil |
-| **MAR** | Hilang berkaitan dengan variabel lain yang tercatat | Siswa yang tidak ikut ekskul melewati pertanyaan jam kegiatan | Imputasi bersyarat (median per kelompok) |
-| **MNAR** | Hilang berkaitan dengan nilai itu sendiri | Siswa dengan nilai rapor rendah enggan mengisi `nilai_rapor` | Tidak boleh diimputasi begitu saja; ditandai dengan flag `nilai_tidak_diisi` |
+| stress_level | 0,761 | study_hours_per_day | 0,272 |
+| burnout_score | 0,674 | family_expectation | 0,260 |
+| depression_score | 0,474 | academic_performance | 0,056 |
+| dropout_risk | 0,470 | physical_activity | −0,122 |
+| financial_stress | 0,360 | sleep_hours | −0,205 |
+| exam_pressure | 0,351 | mental_health_index | −0,869 |
 
-### 4.3 Ambang Penerimaan
+Temuan penting:
 
-- Kolom dengan missing > 30% dipertimbangkan untuk dibuang, kecuali secara teoretis krusial.
-- Baris dengan missing > 20% pada atribut inti dikeluarkan dari analisis.
-- Target akhir: seluruh atribut inti memiliki completeness ≥ 95% sebelum masuk Fase 3.
-- Reliabilitas tiap konstruk (F1–F8, P) diuji dengan Cronbach's Alpha, target ≥ 0,70.
+- `stress_level` dan `burnout_score` paling kuat berhubungan dengan kecemasan.
+- `mental_health_index`, `depression_score`, `dropout_risk`, dan `risk_level` adalah **variabel hasil** yang sangat terkait dengan target. Memakainya sebagai fitur menimbulkan *label leakage*, jadi keempatnya dikeluarkan.
+- `social_support`, `screen_time`, dan `internet_usage` hampir tidak berkorelasi (|r| < 0,01) sehingga tidak dipakai.
+- `academic_year` tidak berlaku untuk siswa SMA dan juga tidak berkorelasi.
 
----
+## 3. Deskripsi Data Kuesioner
 
-## 5. Rencana Eksplorasi Data (EDA)
+Kuesioner (lampiran `context.pdf`) terdiri atas bagian berikut. Bentuk jawaban: pilihan rentang, skala Likert 5 titik, atau isian angka.
 
-### 5.1 Statistik Deskriptif
-
-| Ukuran | Diterapkan pada | Kegunaan |
+| Bagian | Contoh butir | Dipakai untuk |
 |---|---|---|
-| Mean, median, modus | `durasi_tidur`, `jam_belajar_harian`, `nilai_rapor`, seluruh butir Likert | Gambaran umum kondisi responden |
-| Range, standar deviasi, IQR | Atribut numerik | Melihat keragaman antar-siswa |
-| Ringkasan lima angka + boxplot | `nilai_rapor`, `durasi_tidur`, `jam_kegiatan_per_minggu` | Deteksi outlier dengan aturan [Q1 − 1,5×IQR, Q3 + 1,5×IQR] |
-| Frekuensi dan proporsi | Seluruh atribut kategorikal | Melihat kelas mayoritas dan kategori langka |
+| Identitas | jenis kelamin, tanggal lahir, nama sekolah, sumber informasi, nama teman | gender dan usia; sisanya **data pribadi yang dibuang** |
+| Kebiasaan belajar | jam belajar per hari, belajar larut malam, waktu tidak cukup, tugas terlambat | jam belajar, tingkat stres |
+| Tidur | durasi tidur, jam mulai tidur, kurang tidur, mengantuk di kelas | jam tidur (+ ekstra) |
+| Akademik | nilai rata-rata rapor, persentase kehadiran | nilai rapor (+ ekstra) |
+| Media sosial | durasi harian, saat belajar, sebelum tidur | ekstra |
+| Tuntutan dan tekanan | tugas bersamaan, tertekan ujian, takut mengecewakan orang tua, tuntutan nilai keluarga | tekanan ujian, stres, ekspektasi keluarga |
+| Aktivitas fisik | hari olahraga per minggu, menit per sesi, aktivitas ringan | aktivitas fisik (+ ekstra) |
+| Kegiatan di luar sekolah | jumlah ekskul, jam per minggu, lomba | ekstra |
+| Kelelahan | sulit membagi waktu, kelelahan, kehilangan minat, rasa percaya diri | *burnout* |
+| Pertemanan | diterima, teman dipercaya, dukungan, tekanan konformitas, konflik | ekstra |
+| **Psikologis** | gugup/cemas, sulit mengendalikan khawatir, konsentrasi (dibalik), pikiran terganggu, sulit menyelesaikan tugas | **target skor kecemasan** |
+| Pola makan | uang saku cukup, jajan, minuman manis/berkafein, makan saat tertekan, melewatkan makan | tekanan finansial (+ ekstra) |
 
-### 5.2 Analisis Distribusi
+"Ekstra" berarti butir disimpan untuk analisis korelasi dan satu eksperimen model yang diperluas. Butir ini tidak dipakai model yang dideploy, karena model harus tetap sejajar dengan 11 fitur Kaggle.
 
-- **Histogram** untuk `durasi_tidur`, `jam_belajar_harian`, `nilai_rapor`, dan skor komposit kecemasan.
-- Bentuk distribusi yang diantisipasi: `jam_kegiatan_per_minggu` cenderung *right-skewed* (mayoritas siswa sedikit kegiatan, sebagian kecil sangat banyak); `nilai_rapor` cenderung *left-skewed*.
-- **Bar chart** untuk distribusi respons tiap butir Likert, guna mendeteksi butir dengan variasi jawaban sangat rendah (kandidat dibuang karena tidak informatif).
-- **Distribusi label** `level_kecemasan` diperiksa untuk mengukur derajat ketidakseimbangan kelas.
+### 3.1 Statistik data kuesioner
 
-### 5.3 Analisis Hubungan
+⟦ISI dari `app/models/real_summary.json` dan `app/reports/private/real_data_report.md` setelah pipeline dijalankan: jumlah respons, jumlah baris bersih, duplikat, *straight-lining*, sebaran gender, statistik tiap fitur, korelasi fitur dan butir ekstra dengan skor kecemasan.⟧
 
-| Pasangan variabel | Metode | Alasan |
+## 4. Kualitas Data
+
+| Dimensi | Kaggle | Kuesioner (pemeriksaan otomatis `spk/gform.py`) |
 |---|---|---|
-| Antar butir Likert / skor domain vs skor kecemasan | Korelasi **Spearman** | Data ordinal, hubungan belum tentu linear |
-| Atribut numerik (durasi tidur, nilai rapor, jam belajar) | Korelasi **Pearson** + scatter plot | Data kontinu |
-| Kategorikal vs label kecemasan | Uji **Chi-Square** dan *cross-tab* | Menguji keterkaitan kategori dengan tingkat kecemasan |
-| Seluruh skor domain | **Heatmap korelasi** | Mendeteksi multikolinearitas antar-indeks domain |
+| Kelengkapan | 0 nilai hilang | nilai hilang per fitur dilaporkan; diisi median data latih |
+| Duplikat | 0 | baris jawaban identik dibuang |
+| Validitas | rentang wajar | nilai di luar rentang (mis. rapor > 100) dikosongkan; jawaban yang tidak dikenali dilaporkan |
+| Kesungguhan | – | *straight-lining* (semua Likert sama) dihitung |
+| Privasi | tidak ada data pribadi | kolom pribadi dibuang segera setelah usia dihitung |
 
-Korelasi kuat antar dua indeks domain (|r| > 0,8) menjadi sinyal agar salah satunya digabung atau dibuang di Fase 3.
+## 5. Keterbatasan
 
-### 5.4 Dugaan Awal yang Akan Diuji
-
-Dugaan berikut disusun dari kerangka teoretis pada Fase 1 dan akan dikonfirmasi atau ditolak oleh data:
-
-1. Durasi tidur pendek dan jam tidur larut berasosiasi positif dengan skor kecemasan.
-2. Penggunaan media sosial sebelum tidur berkaitan dengan durasi tidur yang lebih pendek — jalur tidak langsung menuju kecemasan.
-3. Tekanan ekspektasi keluarga memberikan kontribusi mandiri, terpisah dari beban tugas sekolah.
-4. Dukungan pertemanan berperan sebagai penyangga: pada beban akademik yang sama, siswa dengan dukungan tinggi memiliki skor kecemasan lebih rendah.
-5. Konsumsi kafein/gula dan kebiasaan melewatkan makan lebih tinggi pada kelompok skor kecemasan tinggi.
-
-> Dugaan ini adalah hipotesis kerja, bukan temuan. Semua pernyataan pada laporan akhir harus disertai angka hasil pengolahan data yang sebenarnya.
-
----
-
-## 6. Keterbatasan Data yang Sudah Terlihat
-
-| Keterbatasan | Dampak | Mitigasi |
-|---|---|---|
-| Seluruh data bersifat *self-report* | Rawan *social desirability bias* | Anonimitas ditegaskan; hasil dibaca sebagai indikasi, bukan diagnosis |
-| Sampel tidak acak (penyebaran via media sosial dan sekolah) | Generalisasi terbatas | Cakupan sampel dilaporkan apa adanya pada laporan akhir |
-| Potensi kelas "indikasi tinggi" berjumlah sedikit | Model bias ke kelas mayoritas | *Resampling* pada data latih dan pelaporan metrik per kelas |
-| Kuesioner satu gelombang (*cross-sectional*) | Tidak dapat menyimpulkan sebab-akibat | Semua temuan dinyatakan sebagai hubungan, bukan kausalitas |
-| Responden adalah anak di bawah umur | Kewajiban perlindungan data | Anonimisasi sejak ekspor; identitas sekolah dan nama tidak dibawa ke dataset analisis |
-
----
-
-## 7. Keluaran Fase dan Transisi ke Fase 3
-
-| Dokumen | Isi |
-|---|---|
-| `laporan_deskripsi_data.md` | Jumlah baris/kolom, kamus data lengkap (bagian 3) |
-| `laporan_eksplorasi_data.ipynb` | Statistik deskriptif, histogram, boxplot, heatmap korelasi |
-| `laporan_kualitas_data.md` | Tabel missing per kolom, daftar inkonsistensi, daftar outlier dengan keputusannya |
-| `daftar_masalah_data.csv` | Antrean pekerjaan yang harus diselesaikan pada Fase 3 |
-
-Temuan kualitas data menentukan langkah pembersihan; temuan korelasi menentukan kandidat fitur dan indeks domain; distribusi label menentukan strategi penyeimbangan kelas. Ketiganya menjadi masukan langsung Fase 3 — Data Preparation.
+- Dataset Kaggle kemungkinan besar sintetis dan berasal dari mahasiswa, bukan siswa SMA. Karena itu model dilatih ulang dengan data riil.
+- Tingkat stres dan tekanan finansial pada kuesioner adalah **proksi**, sehingga maknanya tidak identik dengan kolom Kaggle.
+- Data kuesioner bersifat *self-report* dan *cross-sectional*: rawan bias sosial dan tidak menunjukkan sebab-akibat.
+- Sampel kuesioner tidak acak (disebar lewat sekolah, media sosial, dan teman), sehingga generalisasinya terbatas.
