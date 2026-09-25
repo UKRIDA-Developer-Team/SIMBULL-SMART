@@ -93,7 +93,7 @@ Fitur yang kosong diisi median data kuesioner. Untuk gender, dipakai modus. Nila
 
 ### 3.6 Pembagian data
 
-- **80% pengembangan / 20% *holdout*** (`random_state=42`) bila respons ≥ 30.
+- **80% pengembangan dan 20% holdout** (`random_state=42`) bila respons ≥ 30.
 - Pada data pengembangan dijalankan ***repeated k-fold cross-validation*** (5 lipatan × 2 ulangan) untuk memilih strategi pelatihan ulang (Fase 4).
 - Model akhir dilatih ulang pada seluruh respons dengan strategi terpilih.
 
