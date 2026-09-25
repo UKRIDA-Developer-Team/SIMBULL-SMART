@@ -16,12 +16,26 @@ st.write(ui.T("reco_intro"))
 tab_one, tab_many = st.tabs([ui.T("tab_single"), ui.T("tab_batch")])
 
 
+def stable_radio(label, options, state, fmt, **kw):
+    """Radio whose choice survives a language switch.
+
+    Widgets with a format_func lose their selection when the labels change, so the
+    widget key includes the language and the choice itself lives in `state`.
+    """
+    current = st.session_state.get(state)
+    if current not in options:
+        current = options[0]
+    value = st.radio(label, options, index=options.index(current), key=f"{state}_{L}", format_func=fmt, **kw)
+    st.session_state[state] = value
+    return value
+
+
 # ---------------------------------------------------------------- one student
 def scale_input(field: str, scale: str, default: int, container=st):
     options = SCALES[scale]
     return container.select_slider(
         i18n.question(field, L), options=list(range(1, len(options) + 1)), value=default,
-        format_func=lambda i: i18n.option_label(scale, i - 1, options[i - 1], L), key=f"q_{field}")
+        format_func=lambda i: i18n.option_label(scale, i - 1, options[i - 1], L), key=f"q_{field}_{L}")
 
 
 def questionnaire_form():
@@ -31,16 +45,16 @@ def questionnaire_form():
     with st.form("questionnaire"):
         st.markdown(f"**{ui.T('sec_q_identity')}**")
         c1, c2 = st.columns(2)
-        gender = c1.radio(i18n.question("gender", L), ["Male", "Female"], horizontal=True, key="q_gender",
+        gender = c1.radio(i18n.question("gender", L), ["Male", "Female"], horizontal=True, key=f"q_gender_{L}",
                           format_func=lambda g: {"Male": "Laki-laki", "Female": "Perempuan"}[g] if L == "id" else g)
-        age = c2.number_input(ui.T("age_q"), 12, 30, 16, key="q_age")
+        age = c2.number_input(ui.T("age_q"), 12, 30, 16, key=f"q_age_{L}")
 
         st.markdown(f"**{ui.T('sec_q_study')}**")
         c1, c2 = st.columns(2)
         f = {"gender": gender, "age": age}
-        f["study_hours"] = c1.select_slider(i18n.question("study_hours", L), hours, value=2.0, key="q_study",
+        f["study_hours"] = c1.select_slider(i18n.question("study_hours", L), hours, value=2.0, key=f"q_study_{L}",
                                             format_func=lambda h: i18n.hours_label(h, L))
-        f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, 82.0, 0.5, key="q_grade")
+        f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, 82.0, 0.5, key=f"q_grade_{L}")
         f["late_night"] = scale_input("late_night", "late_night4", 2, c1)
         f["time_insufficient"] = scale_input("time_insufficient", "insufficient4", 2, c2)
         f["late_tasks"] = scale_input("late_tasks", "late_tasks4", 1, c1)
@@ -54,11 +68,11 @@ def questionnaire_form():
 
         st.markdown(f"**{ui.T('sec_q_life')}**")
         c1, c2 = st.columns(2)
-        f["sleep_duration"] = c1.select_slider(i18n.question("sleep_duration", L), sleep, value=7.0, key="q_sleep",
+        f["sleep_duration"] = c1.select_slider(i18n.question("sleep_duration", L), sleep, value=7.0, key=f"q_sleep_{L}",
                                                format_func=lambda h: i18n.hours_label(h, L))
         day_labels = list(days)
         pick = c2.select_slider(i18n.question("exercise_days", L), list(range(len(day_labels))), value=1,
-                                key="q_days",
+                                key=f"q_days_{L}",
                                 format_func=lambda i: i18n.option_label("exercise_days", i, day_labels[i], L))
         f["exercise_days"] = days[day_labels[pick]]
         f["pocket_money"] = scale_input("pocket_money", "jajan5", 4, c1)
@@ -126,7 +140,7 @@ def render_result(features: dict):
             ui.T("type"): [ui.T(config.CRITERIA_TYPE[c]) for c in config.CRITERIA],
             ui.T("utility"): [round(float(a.utility[c]), 3) for c in config.CRITERIA],
         })
-        st.dataframe(table, hide_index=True, width="stretch")
+        st.table(table.set_index(ui.T("criterion")))
         other = {i18n.feature(k, L): v for k, v in a.features.items() if k not in config.CRITERIA}
         st.caption(", ".join(f"{k}: {v:.2f}" if isinstance(v, float) else f"{k}: {v}" for k, v in other.items()))
 
@@ -139,8 +153,8 @@ def render_result(features: dict):
         grid.index = [i18n.feature(c, L) for c in grid.index]
         grid.columns = [f"{d:+.0%}" for d in grid.columns]
         changed.index, changed.columns = grid.index, grid.columns
-        st.dataframe(grid.style.apply(lambda _: changed.map(
-            lambda c: "background-color: #f8d7da" if c else "").to_numpy(), axis=None), width="stretch")
+        st.table(grid.style.apply(lambda _: changed.map(
+            lambda c: "background-color: #f8d7da" if c else "").to_numpy(), axis=None))
         k = int(sens["changed"].sum())
         if k == 0:
             st.success(ui.T("res_sens_stable", k=len(sens), n=len(sens)))
@@ -150,8 +164,13 @@ def render_result(features: dict):
 
 
 with tab_one:
-    mode = st.radio(ui.T("mode"), ["q", "adv"], horizontal=True, key="input_mode",
-                    format_func=lambda m: ui.T("mode_q" if m == "q" else "mode_adv"), help=ui.T("mode_help"))
+    mode = stable_radio(ui.T("mode"), ["q", "adv"], "input_mode_choice",
+                        lambda m: ui.T("mode_q" if m == "q" else "mode_adv"), horizontal=True, help=ui.T("mode_help"))
+    ex = st.columns([2, 1, 1, 4])
+    ex[0].markdown(f"<div style='padding-top:0.45rem'>{ui.T('examples')}</div>", unsafe_allow_html=True)
+    for col, key in zip(ex[1:3], ("high", "low")):
+        if col.button(ui.T(f"example_{key}"), key=f"example_{key}", width="stretch"):
+            st.session_state["assess_features"] = dict(config.EXAMPLE_PROFILES[key])
     if mode == "q":
         questionnaire_form()
     else:
@@ -165,8 +184,8 @@ with tab_one:
 def load_batch(upload):
     """Returns (frame with FEATURES [+ target], info message) or raises ValueError with a user message."""
     if upload is None:
-        choice = st.radio(ui.T("batch_default"), ["kaggle", "gform"], horizontal=True, key="batch_demo",
-                          format_func=lambda k: ui.T(f"batch_demo_{k}"))
+        choice = stable_radio(ui.T("batch_default"), ["kaggle", "gform"], "batch_demo_choice",
+                              lambda k: ui.T(f"batch_demo_{k}"), horizontal=True)
         if choice == "kaggle":
             return ui.load_reference()[config.FEATURES], None
         raw = gform.read_export(config.SAMPLE_GFORM_PATH)
@@ -242,9 +261,16 @@ with tab_many:
         rf, meta = ui.load_active()
         base, _ = ui.load_base()
         rows = {}
-        for name, m in {"active": rf, "base (Kaggle)": base}.items():
-            rows[name] = model.metrics(labeled[config.TARGET], model.predict(m, labeled[config.FEATURES]))
-        st.dataframe(pd.DataFrame(rows).T[["mae", "rmse", "r2"]].round(4), width="stretch")
-        ui.show(plots.actual_vs_predicted(labeled[config.TARGET], model.predict(rf, labeled[config.FEATURES]), L))
+        names = {"active": "Model aktif" if L == "id" else "Active model",
+                 "base": "Model dasar (Kaggle)" if L == "id" else "Base model (Kaggle)"}
+        for key, m in {"active": rf, "base": base}.items():
+            rows[names[key]] = model.metrics(labeled[config.TARGET], model.predict(m, labeled[config.FEATURES]))
+        c1, c2 = st.columns([3, 2])
+        with c1:
+            st.table(pd.DataFrame(rows).T[["mae", "rmse", "r2"]].rename(
+                columns={"mae": "MAE", "rmse": "RMSE", "r2": "R²"}).round(4))
+            st.caption(f"n = {len(labeled)}")
+        with c2:
+            ui.show(plots.actual_vs_predicted(labeled[config.TARGET], model.predict(rf, labeled[config.FEATURES]), L))
 
 ui.footer()

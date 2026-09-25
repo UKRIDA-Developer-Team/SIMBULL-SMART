@@ -38,12 +38,12 @@ digraph {
 st.markdown(ui.content("about_method"))
 
 st.subheader("Kriteria & jenis" if L == "id" else "Criteria & types")
-st.dataframe(pd.DataFrame({
+st.table(pd.DataFrame({
     ui.T("criterion"): [i18n.feature(c, L) for c in config.CRITERIA],
     ui.T("type"): [ui.T(config.CRITERIA_TYPE[c]) for c in config.CRITERIA],
     "Profil A · " + i18n.alt("Sleep", L): [config.WEIGHTS_A["Sleep"][c] for c in config.CRITERIA],
     "Profil A · " + i18n.alt("Counseling", L): [config.WEIGHTS_A["Counseling"][c] for c in config.CRITERIA],
-}), hide_index=True, width="stretch")
+}).set_index(ui.T("criterion")))
 
 st.subheader("Alternatif" if L == "id" else "Alternatives")
 for a in config.ALTERNATIVES:

@@ -28,8 +28,8 @@ S: dict[str, dict[str, str]] = {
     "privacy_note": {
         "id": "🔒 Data yang Anda masukkan atau unggah hanya diproses di memori selama sesi ini dan tidak disimpan.",
         "en": "🔒 Data you enter or upload is processed in memory for this session only and is not stored."},
-    "model_badge": {"id": "Model aktif: {source} · {n} baris data · strategi {strategy}",
-                    "en": "Active model: {source} · {n} data rows · strategy {strategy}"},
+    "model_badge": {"id": "Model aktif: {source} · {n} baris data{strategy}",
+                    "en": "Active model: {source} · {n} data rows{strategy}"},
     "src_kaggle": {"id": "Kaggle (pralatih)", "en": "Kaggle (pretrained)"},
     "src_real": {"id": "Kaggle → data kuesioner riil", "en": "Kaggle → real questionnaire data"},
     "src_gform": {"id": "Data kuesioner riil", "en": "Real questionnaire data"},
@@ -49,6 +49,9 @@ S: dict[str, dict[str, str]] = {
     "mode_help": {
         "id": "Mode kuesioner memakai pertanyaan yang sama dengan Google Form, lalu mengubah jawaban menjadi fitur model dengan rumus yang sama seperti saat pelatihan.",
         "en": "Questionnaire mode uses the Google Form questions and converts answers to model features with the same formulas used in training."},
+    "examples": {"id": "Coba contoh profil:", "en": "Try an example profile:"},
+    "example_high": {"id": "Risiko tinggi", "en": "High risk"},
+    "example_low": {"id": "Risiko rendah", "en": "Low risk"},
     "submit": {"id": "Proses rekomendasi", "en": "Get recommendation"},
     "sec_q_identity": {"id": "Identitas (tidak disimpan)", "en": "Identity (not stored)"},
     "sec_q_study": {"id": "Kebiasaan belajar & akademik", "en": "Study habits & academics"},
