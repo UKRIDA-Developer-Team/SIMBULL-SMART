@@ -1,3 +1,19 @@
+# SPK SMART Kecemasan Siswa
+
+Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random Forest predicts a student's anxiety score from 11 lifestyle and academic factors. SMART then ranks students by priority and recommends one of five interventions (Sleep, Exercise, Study, Counseling, Relaxation), with explanations, sensitivity analysis, and a safety rule. The model is pretrained on a Kaggle sample. It can be retrained on the team's confidential Google Form answers.
+
+| Path | Contents |
+|---|---|
+| `app/` | Streamlit app (bilingual ID/EN), training and retraining scripts, tests. See [app/README.md](app/README.md) |
+| `code/` | Original Google Colab notebook |
+| `PPT-Doc_CRISP-DM/` | CRISP-DM phase documents (phases 1-6) matching the built system; weekly decks; `_rancangan-awal/` keeps the first design |
+| `deliverables/laporan-dm/` | Laporan Teknis Data Mining (.docx) |
+| `deliverables/user-manual/` | User Manual (.docx) with annotated screenshots |
+| `deliverables/ppt/` | Final presentation (.pptx, about 15 minutes, speaker notes included) |
+| `deliverables/build/` | Scripts that rebuild the documents: `node build_laporan.js`, `node build_manual.js`, `node build_ppt.js` (after `npm install`) |
+
+Quick start: `cd app && pip install -r requirements.txt && streamlit run streamlit_app.py`.
+
 ## Meet the member Kelompok 1- Anxiety Detection SMART Method
 
 <table>

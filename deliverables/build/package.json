@@ -1,0 +1,9 @@
+{
+  "name": "spk-deliverables-build",
+  "private": true,
+  "description": "Builds the .docx/.pptx deliverables from the markdown sources and app screenshots.",
+  "dependencies": {
+    "docx": "^9.7.2",
+    "pptxgenjs": "^4.0.1"
+  }
+}

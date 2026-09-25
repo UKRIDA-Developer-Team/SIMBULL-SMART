@@ -45,7 +45,7 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 | `app/app_pages/about.py` | metode, arsitektur, keterbatasan, etika |
 | `app/spk/*.py` | logika murni tanpa Streamlit, diuji dengan `pytest` |
 | `app/scripts/*.py` | pelatihan, inspeksi kuesioner, evaluasi, data sintetis |
-| `app/tests/` | 38 uji otomatis: *parsing* kuesioner, kesamaan dengan notebook, pelatihan ulang, setiap halaman di kedua bahasa |
+| `app/tests/` | 39 uji otomatis: *parsing* kuesioner, kesamaan dengan notebook, pelatihan ulang, setiap halaman di kedua bahasa |
 
 ## 4. Fitur Aplikasi
 
