@@ -12,36 +12,42 @@ from . import config
 from .data import encode_gender
 
 
-def train(df: pd.DataFrame):
-    """Train the RF exactly like the notebook. Returns (model, metrics, X_test, y_test)."""
-    rf_df = df.sample(frac=config.TRAIN_FRAC, random_state=config.RANDOM_STATE)
-    X = encode_gender(rf_df[config.FEATURES])
-    y = rf_df[config.TARGET]
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=config.RANDOM_STATE
-    )
-    model = RandomForestRegressor(**config.RF_PARAMS)
-    model.fit(X_train, y_train)
-
-    y_pred = model.predict(X_test)
-    mse = mean_squared_error(y_test, y_pred)
-    metrics = {
-        "mae": float(mean_absolute_error(y_test, y_pred)),
+def metrics(y_true, y_pred) -> dict:
+    mse = mean_squared_error(y_true, y_pred)
+    return {
+        "mae": float(mean_absolute_error(y_true, y_pred)),
         "mse": float(mse),
         "rmse": float(np.sqrt(mse)),
-        "r2": float(r2_score(y_test, y_pred)),
+        "r2": float(r2_score(y_true, y_pred)) if len(y_true) > 1 else float("nan"),
     }
-    return model, metrics, X_test, y_test
+
+
+def split(df: pd.DataFrame):
+    """The notebook's split: 50% sample of the 20k rows, then 80/20 train/test.
+
+    Returns (X_train, X_test, y_train, y_test) with gender still as text.
+    """
+    rf_df = df.sample(frac=config.TRAIN_FRAC, random_state=config.RANDOM_STATE)
+    return train_test_split(
+        rf_df[config.FEATURES], rf_df[config.TARGET], test_size=0.2, random_state=config.RANDOM_STATE
+    )
+
+
+def train(df: pd.DataFrame):
+    """Train the RF exactly like the notebook. Returns (model, metrics, X_test, y_test)."""
+    X_train, X_test, y_train, y_test = split(df)
+    model = RandomForestRegressor(**config.RF_PARAMS)
+    model.fit(encode_gender(X_train), y_train)
+    return model, metrics(y_test, predict(model, X_test)), X_test, y_test
 
 
 def predict(model, df: pd.DataFrame) -> np.ndarray:
     return model.predict(encode_gender(df[config.FEATURES]))
 
 
-def save(model, metadata: dict):
-    config.MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(model, config.MODEL_PATH, compress=3)
+def save(model, metadata: dict, model_path=config.MODEL_PATH, metadata_path=config.METADATA_PATH):
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(model, model_path, compress=3)
     metadata = {
         "model_type": "RandomForestRegressor",
         "target": config.TARGET,
@@ -51,10 +57,18 @@ def save(model, metadata: dict):
         "hyperparameters": {k: v for k, v in config.RF_PARAMS.items()},
         **metadata,
     }
-    config.METADATA_PATH.write_text(json.dumps(metadata, indent=2))
+    metadata_path.write_text(json.dumps(metadata, indent=2))
 
 
-def load():
-    model = joblib.load(config.MODEL_PATH)
-    metadata = json.loads(config.METADATA_PATH.read_text())
+def load(model_path=None, metadata_path=None):
+    """Load the active model (real if present, else base) unless paths are given."""
+    if model_path is None:
+        model_path, metadata_path = config.active_model_paths()
+    model = joblib.load(model_path)
+    metadata = json.loads(metadata_path.read_text())
+    metadata.setdefault("data_source", "kaggle")
     return model, metadata
+
+
+def load_base():
+    return load(config.MODEL_PATH, config.METADATA_PATH)
