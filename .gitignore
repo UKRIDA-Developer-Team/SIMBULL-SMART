@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .ipynb_checkpoints/
 .DS_Store
+.claude/
 
 # Confidential questionnaire data and reports that contain answer examples
 app/data/private/
