@@ -10,7 +10,8 @@ Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random
 | `deliverables/laporan-dm/` | Laporan Teknis Data Mining (.docx) |
 | `deliverables/user-manual/` | User Manual (.docx) with annotated screenshots |
 | `deliverables/ppt/` | Final presentation (.pptx, about 15 minutes, speaker notes included) |
-| `deliverables/build/` | Scripts that rebuild the documents: `node build_laporan.js`, `node build_manual.js`, `node build_ppt.js` (after `npm install`) |
+| `deliverables/pkm/` | Proposal PKM-KC (.docx) in the 2026 format, plus the simbelmawa form values |
+| `deliverables/build/` | Scripts that rebuild the documents: `node build_laporan.js`, `node build_manual.js`, `node build_ppt.js`, `node build_pkm.js` (after `npm install`) |
 
 Quick start: `cd app && pip install -r requirements.txt && streamlit run streamlit_app.py`.
 
