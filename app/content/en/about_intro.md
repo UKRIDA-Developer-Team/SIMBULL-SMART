@@ -1,0 +1,1 @@
+**Objective.** Help schools move from reactive anxiety handling to measurable early screening: predict each student's anxiety level, set a priority order, and recommend the most suitable intervention with its reasons. The project follows the **CRISP-DM** methodology.
