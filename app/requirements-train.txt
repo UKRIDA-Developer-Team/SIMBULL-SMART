@@ -1,3 +1,4 @@
 # Offline training only (scripts/train.py). Not installed on Streamlit Cloud.
 -r requirements.txt
 kagglehub>=0.3
+pytest>=8
