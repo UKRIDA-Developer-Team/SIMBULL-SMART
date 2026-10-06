@@ -156,14 +156,15 @@ WEIGHT_PROFILES = {
     "C - Equal (control)": WEIGHTS_C,
 }
 
-# Input ranges for the single-student form (from file.describe() on the 20k sample).
+# (min, max, default) for the advanced form and CSV validation. Covers the Kaggle sample
+# (ages 17-29) and the questionnaire population (SMA students, sleep up to 12 h).
 INPUT_RANGES = {
-    "age": (17, 29, 23),
+    "age": (12, 30, 17),
     "study_hours_per_day": (0.0, 14.0, 5.0),
-    "academic_performance": (40.0, 100.0, 71.0),
+    "academic_performance": (0.0, 100.0, 75.0),
     "exam_pressure": (1.0, 10.0, 6.0),
     "stress_level": (0.0, 10.0, 4.3),
-    "sleep_hours": (3.0, 10.0, 6.5),
+    "sleep_hours": (3.0, 12.0, 7.0),
     "physical_activity": (0.0, 7.0, 3.0),
     "financial_stress": (0.0, 10.0, 5.0),
     "family_expectation": (0.0, 10.0, 6.0),
@@ -183,4 +184,14 @@ SAFETY_PERCENTILE = 90
 REFERRAL_CONTACT = {
     "id": "Guru BK sekolah atau psikolog/layanan kesehatan jiwa terdekat",
     "en": "The school counselor (guru BK) or the nearest psychologist / mental-health service",
+}
+
+# Example profiles for demos and user testing (Recommendation page buttons).
+EXAMPLE_PROFILES = {
+    "high": {"age": 17, "gender": "Female", "study_hours_per_day": 9.0, "academic_performance": 58.0,
+             "exam_pressure": 9.5, "stress_level": 8.5, "sleep_hours": 4.5, "physical_activity": 0.5,
+             "financial_stress": 8.0, "family_expectation": 9.0, "burnout_score": 8.0},
+    "low": {"age": 16, "gender": "Male", "study_hours_per_day": 3.0, "academic_performance": 85.0,
+            "exam_pressure": 3.0, "stress_level": 2.0, "sleep_hours": 8.0, "physical_activity": 5.0,
+            "financial_stress": 2.0, "family_expectation": 4.0, "burnout_score": 1.0},
 }
