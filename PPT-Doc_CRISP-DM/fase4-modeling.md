@@ -1,213 +1,181 @@
 # Fase 4 — Modeling
 
-**Proyek:** Sistem Rekomendasi Penanganan Kecemasan Siswa SMA Menggunakan Metode SMART
+**Proyek:** SPK Rekomendasi Penanganan Kecemasan Siswa (Random Forest + SMART)
 **Metodologi:** CRISP-DM — Fase 4 dari 6
 
 ---
 
-## 1. Tujuan Fase
+## 1. Gambaran Umum
 
-Menerapkan teknik data mining pada dataset hasil Fase 3, lalu menyambungkan keluarannya ke modul pengambilan keputusan SMART. Fase ini terdiri atas empat modul pemodelan dan satu modul keputusan.
+| Modul | Teknik | Masukan | Keluaran |
+|---|---|---|---|
+| M1 — Prediksi (Data Mining) | Random Forest Regressor | 11 fitur siswa | `rf_anxiety_score` (0–10) |
+| M2 — Faktor dominan | *Gini feature importance* | model M1 | peringkat faktor |
+| M3 — Pelatihan ulang | 7 strategi transfer Kaggle → data riil | model M1 + data kuesioner | model aktif |
+| M4 — Keputusan (SPK) | SMART | 7 fitur + `rf_anxiety_score` | skor prioritas, peringkat 5 alternatif |
 
-| Modul | Teknik | Keluaran |
+Alur: **fitur siswa → RF → prediksi kecemasan → SMART → prioritas + rekomendasi**. Prediksi RF menjadi salah satu kriteria SMART. Di titik inilah Data Mining dan SPK terintegrasi.
+
+## 2. M1 — Random Forest Regressor
+
+### 2.1 Alasan pemilihan
+
+Target (`anxiety_score`) kontinu, jadi masalahnya adalah **regresi**. Random Forest dipilih karena:
+
+- Menangkap hubungan non-linear dan interaksi antarfaktor tanpa asumsi bentuk hubungan.
+- Tahan terhadap *outlier* dan skala fitur yang berbeda, tanpa normalisasi.
+- Menyediakan *feature importance* untuk penjelasan.
+- Cocok untuk jawaban kuesioner ordinal dan data berukuran kecil, dengan *bagging* yang mengurangi *overfitting*.
+
+### 2.2 Konfigurasi parameter
+
+| Parameter | Nilai | Alasan |
 |---|---|---|
-| M1 — Segmentasi | K-Means (pembanding: K-Medoids, Agglomerative) | Profil cluster siswa |
-| M2 — Klasifikasi | Naïve Bayes, Decision Tree (C4.5), Random Forest, k-NN | Model prediksi level kecemasan |
-| M3 — Pola asosiatif | FP-Growth / Apriori | Aturan kombinasi kebiasaan |
-| M4 — Kepentingan fitur | Information Gain, *Gini importance* | Peringkat faktor → bobot kriteria |
-| M5 — Keputusan | SMART | Peringkat alternatif penanganan |
+| `n_estimators` | 200 | cukup banyak pohon agar prediksi stabil; waktu latih ±0,3 detik |
+| `max_depth` | 10 | membatasi kedalaman agar tidak menghafal data latih |
+| `min_samples_split` | 2 | bawaan scikit-learn |
+| `min_samples_leaf` | 2 (3 untuk data riil) | daun minimal 2–3 sampel: mengurangi *overfitting* dan hafalan data pribadi |
+| `max_features` | `"sqrt"` | tiap pemisahan hanya melihat √11 ≈ 3 fitur, sehingga pohon lebih beragam |
+| `random_state` | 42 | hasil dapat direproduksi |
+| `n_jobs` | −1 | memakai semua inti CPU |
 
----
+Model dilatih pada 8.000 baris latih Kaggle (Fase 3) dan disimpan sebagai `app/models/rf_anxiety_model.joblib`, dengan metadata di `rf_anxiety_model_metadata.json`.
 
-## 2. Modul M1 — Segmentasi Siswa (Clustering)
+### 2.3 Perbandingan dengan algoritma lain
 
-### 2.1 Rancangan
+Semua algoritma dilatih pada data latih yang sama dengan validasi silang 5-fold, lalu diuji pada data uji yang sama (`scripts/train.py --stage compare`).
 
-| Aspek | Keputusan |
-|---|---|
-| Algoritma utama | K-Means (cepat, mudah ditafsirkan, cocok untuk fitur numerik hasil normalisasi) |
-| Pembanding | K-Medoids (lebih tahan outlier), Agglomerative Hierarchical (untuk memeriksa struktur alami) |
-| Fitur masukan | 8 indeks domain hasil Fase 3, seluruhnya berskala 0–1 |
-| Penentuan *k* | Elbow Method (WCSS) dan Silhouette Score untuk *k* = 2 sampai 6 |
-| Inisialisasi | `k-means++`, `n_init = 20`, `random_state` tetap |
-| Validasi | Silhouette Score, Davies-Bouldin Index, dan kebermaknaan profil menurut guru BK |
-
-### 2.2 Cara Membaca Hasil
-
-Setiap cluster dideskripsikan dengan rata-rata kedelapan indeksnya, lalu diberi nama kerja yang menggambarkan karakter dominannya — misalnya *segmen beban akademik tinggi*, *segmen defisit tidur dan digital*, *segmen tekanan ekspektasi keluarga*, dan *segmen relatif stabil*.
-
-Sebuah cluster dianggap layak dipakai bila memenuhi tiga syarat: Silhouette ≥ 0,50, memiliki setidaknya satu indeks yang jelas menonjol dibanding cluster lain, dan dapat dikenali oleh guru BK sebagai tipe siswa yang nyata. Cluster dengan anggota sangat sedikit digabung atau dilaporkan sebagai kasus khusus.
-
-### 2.3 Peran Hasil bagi SPK
-
-Nama cluster menjadi konteks penyesuaian bobot: pada segmen *defisit tidur dan digital*, bobot kriteria kesesuaian faktor dominan (C1) mengarahkan skor tertinggi ke alternatif A4 dan A6; pada segmen *tekanan keluarga*, ke A8.
-
----
-
-## 3. Modul M2 — Klasifikasi Tingkat Indikasi
-
-### 3.1 Kandidat Algoritma
-
-| Algoritma | Alasan dicoba | Catatan |
-|---|---|---|
-| **Naïve Bayes** | Ringan, bekerja baik pada data kecil | Asumsi independensi antar-fitur tidak sepenuhnya terpenuhi |
-| **Decision Tree (C4.5/CART)** | Aturannya dapat dibaca langsung — cocok untuk domain yang menuntut penjelasan | Rawan *overfitting*; kedalaman dibatasi |
-| **Random Forest** | Biasanya paling akurat pada data tabular; menyediakan *feature importance* | Kurang transparan; dijelaskan lewat kepentingan fitur |
-| **k-NN** | Pembanding sederhana berbasis kemiripan | Sensitif terhadap skala dan jumlah data |
-
-### 3.2 Skema Pengujian
-
-| Aspek | Nilai |
-|---|---|
-| Pembagian data | 80/20 stratified (sudah disiapkan di Fase 3) |
-| Validasi silang | Stratified 5-fold pada data latih |
-| Penyetelan parameter | *Grid search* terbatas: kedalaman pohon, jumlah estimator, nilai *k*, kriteria split |
-| Penanganan kelas timpang | SMOTE di dalam lipatan latih; `class_weight='balanced'` sebagai pembanding |
-| Metrik pemilihan model | **Recall kelas "Tinggi"** sebagai metrik utama, F1-score makro sebagai metrik pendamping |
-
-### 3.3 Alasan Recall Diutamakan
-
-Kesalahan melewatkan siswa yang benar-benar berisiko (*false negative*) jauh lebih merugikan daripada menandai siswa yang sebenarnya baik-baik saja (*false positive*). Biaya *false positive* hanyalah satu sesi konseling tambahan; biaya *false negative* adalah siswa yang membutuhkan bantuan tidak terjangkau sama sekali. Karena itu model dengan akurasi lebih rendah tetapi recall kelas "Tinggi" lebih baik akan dipilih.
-
-Bila diperlukan, ambang probabilitas digeser dari 0,5 ke nilai yang lebih rendah untuk kelas "Tinggi" guna menaikkan recall — dengan konsekuensi presisi menurun, yang dilaporkan secara terbuka.
-
-### 3.4 Format Pelaporan Hasil
-
-| Model | Akurasi | Precision (Tinggi) | Recall (Tinggi) | F1 makro | Catatan |
+| Algoritma | MAE CV | RMSE CV | R² CV | MAE uji | R² uji |
 |---|---|---|---|---|---|
-| Naïve Bayes | … | … | … | … | |
-| Decision Tree | … | … | … | … | |
-| Random Forest | … | … | … | … | |
-| k-NN | … | … | … | … | |
+| Baseline rata-rata | 1,2238 | 1,5134 | −0,0010 | 1,2370 | −0,0024 |
+| Regresi linear | **0,7684** | **0,9549** | **0,6014** | **0,7548** | **0,6245** |
+| Decision Tree (kedalaman 10) | 0,8814 | 1,1127 | 0,4583 | 0,8672 | 0,4955 |
+| Gradient Boosting | 0,7728 | 0,9616 | 0,5958 | 0,7667 | 0,6155 |
+| **Random Forest (dipakai)** | 0,7790 | 0,9663 | 0,5918 | 0,7668 | 0,6136 |
 
-Tabel diisi dengan hasil eksperimen yang sebenarnya, disertai *confusion matrix* tiap model.
+Pada data Kaggle, regresi linear sedikit lebih akurat. Selisih MAE-nya 0,01 poin pada skala 0–10. Hal ini wajar karena data Kaggle tampak sintetis dengan hubungan yang hampir linear. RF tetap dipakai karena:
 
----
+1. Kinerjanya setara, jauh lebih baik dari baseline dan dari pohon tunggal.
+2. Data kuesioner riil berbentuk ordinal dan tidak dijamin linear.
+3. Metode pelatihan ulang dengan *warm start* (M3) memerlukan model *ensemble* pohon.
 
-## 4. Modul M3 — Aturan Asosiasi
+### 2.4 M2 — Faktor dominan
 
-| Aspek | Keputusan |
-|---|---|
-| Algoritma | FP-Growth (lebih efisien dari Apriori pada jumlah item sedang) |
-| Persiapan data | Indeks domain didiskretisasi menjadi Rendah / Sedang / Tinggi, lalu diubah ke bentuk transaksi |
-| Ambang | Support ≥ 10%, Confidence ≥ 70%, Lift > 1 |
-| Fokus | Aturan yang bagian konsekuennya adalah `level_kecemasan = Tinggi` |
-
-Bentuk aturan yang dicari, misalnya: *defisit tidur tinggi* ∧ *beban digital tinggi* ∧ *tekanan akademik tinggi* → *indikasi kecemasan tinggi*. Aturan semacam ini berguna sebagai kalimat penjelas pada keluaran SPK, karena lebih mudah dipahami guru BK daripada bobot model.
-
-Aturan dengan lift mendekati 1 dibuang meskipun confidence-nya tinggi, karena itu hanya mencerminkan kelas mayoritas.
-
----
-
-## 5. Modul M4 — Kepentingan Fitur dan Penentuan Bobot
-
-### 5.1 Sumber Peringkat
-
-Tiga metode dipakai bersama, dan hanya faktor yang konsisten muncul di peringkat atas pada ketiganya yang dipakai:
-
-1. *Information Gain* terhadap label.
-2. *Gini importance* dari Random Forest.
-3. Korelasi Spearman antara indeks domain dan skor kecemasan.
-
-### 5.2 Konversi ke Bobot Kriteria SMART
-
-Bobot mentah ditetapkan pada skala 0–100 dengan kriteria terpenting diberi nilai 100, lalu dinormalisasi sehingga totalnya 1:
-
-| Kode | Kriteria | Sifat | Bobot mentah | Bobot ternormalisasi |
-|---|---|---|---|---|
-| C1 | Kesesuaian dengan faktor dominan siswa | Benefit | 100 | **0,25** |
-| C2 | Kesesuaian dengan tingkat urgensi | Benefit | 80 | **0,20** |
-| C3 | Efektivitas menurut pakar dan literatur | Benefit | 60 | **0,15** |
-| C4 | Ketersediaan sumber daya sekolah | Benefit | 48 | **0,12** |
-| C5 | Biaya implementasi | Cost | 40 | **0,10** |
-| C6 | Waktu dan beban tambahan bagi siswa | Cost | 32 | **0,08** |
-| C7 | Aksesibilitas dan penerimaan siswa | Benefit | 40 | **0,10** |
-| | **Total** | | **400** | **1,00** |
-
-Nilai C1 tiap alternatif diturunkan dari kecocokannya dengan tiga faktor dominan siswa hasil M4; nilai C2 diturunkan dari level indikasi hasil M2. Dua kriteria inilah yang membuat peringkat berbeda antar siswa, sedangkan C3–C7 relatif tetap untuk satu sekolah.
-
----
-
-## 6. Modul M5 — Perhitungan SMART
-
-### 6.1 Langkah Baku
-
-1. Menentukan kriteria (C1–C7) dan alternatif (A1–A10).
-2. Menetapkan bobot mentah dan menormalisasinya sehingga Σw = 1.
-3. Menyusun matriks keputusan berisi nilai tiap alternatif pada tiap kriteria (skala 1–5).
-4. Menghitung nilai utilitas:
-   - Kriteria **benefit**: `u = (Cᵢ − Cₘᵢₙ) / (Cₘₐₓ − Cₘᵢₙ)`
-   - Kriteria **cost**: `u = (Cₘₐₓ − Cᵢ) / (Cₘₐₓ − Cₘᵢₙ)`
-   Dengan skala 1–5, keduanya menjadi `u = (x − 1)/4` dan `u = (5 − x)/4`.
-5. Menghitung skor akhir: `U(aᵢ) = Σⱼ wⱼ · uᵢⱼ`
-6. Mengurutkan alternatif dari skor tertinggi.
-
-### 6.2 Contoh Perhitungan
-
-**Profil siswa uji coba:** level indikasi **Tinggi**; segmen *defisit tidur dan digital*; tiga faktor dominan: F2 (pola tidur), F3 (media sosial), F1 (beban akademik).
-
-**Matriks keputusan** (nilai 1–5, lima alternatif teratas ditampilkan):
-
-| Alternatif | C1 | C2 | C3 | C4 | C5 (cost) | C6 (cost) | C7 |
-|---|---|---|---|---|---|---|---|
-| A4 — Program higiene tidur | 5 | 4 | 4 | 5 | 1 | 2 | 5 |
-| A6 — Digital wellbeing | 5 | 3 | 3 | 5 | 1 | 2 | 5 |
-| A3 — Manajemen waktu & strategi belajar | 4 | 4 | 4 | 4 | 2 | 3 | 4 |
-| A1 — Konseling individual BK | 3 | 5 | 5 | 3 | 3 | 4 | 3 |
-| A10 — Rujukan tenaga profesional | 2 | 5 | 5 | 2 | 5 | 5 | 2 |
-
-**Nilai utilitas** setelah normalisasi:
-
-| Alternatif | C1 | C2 | C3 | C4 | C5 | C6 | C7 |
-|---|---|---|---|---|---|---|---|
-| A4 | 1,00 | 0,75 | 0,75 | 1,00 | 1,00 | 0,75 | 1,00 |
-| A6 | 1,00 | 0,50 | 0,50 | 1,00 | 1,00 | 0,75 | 1,00 |
-| A3 | 0,75 | 0,75 | 0,75 | 0,75 | 0,75 | 0,50 | 0,75 |
-| A1 | 0,50 | 1,00 | 1,00 | 0,50 | 0,50 | 0,25 | 0,50 |
-| A10 | 0,25 | 1,00 | 1,00 | 0,25 | 0,00 | 0,00 | 0,25 |
-
-**Skor akhir** dengan bobot (0,25 / 0,20 / 0,15 / 0,12 / 0,10 / 0,08 / 0,10):
-
-| Peringkat | Alternatif | Skor akhir |
+| Peringkat | Fitur | *Importance* |
 |---|---|---|
-| 1 | **A4 — Program higiene tidur** | **0,893** |
-| 2 | A6 — Digital wellbeing | 0,805 |
-| 3 | A3 — Manajemen waktu & strategi belajar | 0,730 |
-| 4 | A1 — Konseling individual BK | 0,655 |
-| 5 | A10 — Rujukan tenaga profesional | 0,468 |
+| 1 | stress_level | 0,4268 |
+| 2 | burnout_score | 0,3036 |
+| 3 | financial_stress | 0,0630 |
+| 4 | exam_pressure | 0,0493 |
+| 5 | family_expectation | 0,0386 |
+| 6 | study_hours_per_day | 0,0327 |
+| 7 | sleep_hours | 0,0273 |
+| 8 | physical_activity | 0,0228 |
+| 9 | academic_performance | 0,0211 |
+| 10 | age | 0,0113 |
+| 11 | gender | 0,0035 |
 
-Contoh rincian A4:
-```
-U(A4) = 0,25(1,00) + 0,20(0,75) + 0,15(0,75) + 0,12(1,00)
-      + 0,10(1,00) + 0,08(0,75) + 0,10(1,00)
-      = 0,250 + 0,150 + 0,1125 + 0,120 + 0,100 + 0,060 + 0,100
-      = 0,893
-```
+Tingkat stres dan kelelahan menyumbang 73% kepentingan, sejalan dengan korelasi di Fase 2. Gender hampir tidak berpengaruh (0,35%), sehingga risiko bias gender kecil (diperiksa di Fase 5).
 
-### 6.3 Cara Membaca Hasil
+## 3. M3 — Pelatihan Ulang dengan Data Riil
 
-Peringkat teratas mengarah ke A4 dan A6 karena keduanya paling sesuai dengan faktor dominan siswa (C1 tinggi) sekaligus murah dan mudah dijalankan sekolah. A10 berada di peringkat bawah bukan karena tidak efektif — nilai C3-nya justru tertinggi — melainkan karena biayanya besar dan relevansinya terhadap faktor dominan siswa ini rendah.
+Tujuannya adalah menyesuaikan model dari populasi mahasiswa (Kaggle) ke siswa SMA (kuesioner). Tujuh strategi dibandingkan (`spk/retrain.py`):
 
-Untuk siswa dengan skor kecemasan sangat tinggi disertai gangguan fungsi sehari-hari, sistem menerapkan **aturan pengaman**: A1 dan A10 selalu dimunculkan sebagai rekomendasi pendamping berapa pun skor SMART-nya. Perhitungan multikriteria tidak boleh menutup jalur rujukan profesional.
+| Kode | Strategi | Penjelasan |
+|---|---|---|
+| S0 | Kaggle saja | model M1 tanpa pelatihan ulang (pembanding) |
+| S1 | Data riil saja | RF baru hanya dari kuesioner (`min_samples_leaf=3`) |
+| S2 (w = 1, 10, 50) | Gabungan berbobot | 8.000 baris Kaggle + data riil; tiap baris riil diberi bobot w |
+| S3 (+200, +600) | *Warm start* | 200 pohon Kaggle dipertahankan, lalu ditambah 200 atau 600 pohon baru yang dilatih pada data riil |
+| S4 | Data riil diperluas | S1 ditambah butir ekstra kuesioner (media sosial, pertemanan, pola makan, dll.); hanya dilaporkan, tidak dideploy |
 
-### 6.4 Aturan Penyajian Rekomendasi
+Strategi dengan **MAE validasi silang terendah** di antara S0–S3 dipilih, lalu dilatih ulang pada seluruh respons. Hasilnya disimpan sebagai `rf_real_model.joblib`, dan aplikasi otomatis memakainya.
 
-- Sistem menampilkan **tiga alternatif teratas**, bukan hanya satu, agar guru BK tetap memiliki ruang memilih.
-- Setiap rekomendasi disertai alasan berbasis faktor dominan dan aturan asosiasi yang relevan.
-- Skor SMART ditampilkan apa adanya agar dapat ditelusuri.
+⟦ISI dari `reports/private/real_data_report.md`: tabel MAE/RMSE/R² CV dan holdout untuk S0–S4, strategi terpilih, *feature importance* model aktif.⟧
 
----
+## 4. M4 — SMART
 
-## 7. Keluaran Fase
+### 4.1 Langkah
+
+1. **Matriks keputusan.** Setiap siswa memiliki 8 nilai kriteria (Fase 1 §4).
+2. **Utilitas** (normalisasi min–maks memakai batas referensi):
+   - benefit: `u = (x − min) / (max − min)`
+   - cost: `u = (max − x) / (max − min)`
+   - Nilai di luar batas dipotong ke rentang 0–1.
+3. **Skor prioritas:** `P = Σ wⱼ uⱼ` dengan bobot sama `wⱼ = 1/8`. Siswa diurutkan dengan `rank(method="dense")` dari skor tertinggi.
+4. **Skor tiap alternatif:** `Sₐ = Σ wₐⱼ uⱼ`, dengan bobot khusus alternatif a (tabel 4.2).
+5. **Rekomendasi:** alternatif dengan Sₐ tertinggi; aplikasi menampilkan tiga teratas.
+6. **Aturan pengaman:** bila prediksi kecemasan ≥ persentil 90 populasi referensi, konseling dan rujukan selalu ditampilkan.
+
+### 4.2 Profil bobot
+
+**Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai. Di notebook, bobot Exercise berjumlah **1,05**, padahal SMART mensyaratkan Σw = 1. Aplikasi menormalkannya dengan membagi setiap bobot Exercise dengan 1,05.
+
+| Kriteria | Sleep | Exercise* | Study | Counseling | Relaxation |
+|---|---|---|---|---|---|
+| Prediksi kecemasan | 0,15 | 0,143 | 0,10 | 0,30 | 0,20 |
+| Jam belajar | 0,10 | 0,048 | 0,40 | 0,05 | 0,05 |
+| Nilai rapor | 0,10 | 0,048 | 0,30 | 0,05 | 0,05 |
+| Jam tidur | 0,40 | 0,048 | 0,00 | 0,05 | 0,20 |
+| Aktivitas fisik | 0,05 | 0,429 | 0,00 | 0,05 | 0,10 |
+| Tekanan finansial | 0,05 | 0,048 | 0,05 | 0,20 | 0,15 |
+| Ekspektasi keluarga | 0,05 | 0,048 | 0,05 | 0,15 | 0,15 |
+| *Burnout* | 0,10 | 0,190 | 0,10 | 0,15 | 0,10 |
+
+\*setelah normalisasi (notebook: 0,15 / 0,05 / 0,05 / 0,05 / 0,45 / 0,05 / 0,05 / 0,20).
+
+**Profil B — hampir seimbang.** Kriteria utama tiap alternatif mendapat 0,15–0,20, dan kriteria lain 0,10.
+
+**Profil C — sama rata (kontrol).** Semua bobot 1/8. Karena kelima alternatif memakai bobot yang sama, semua skor seri. `idxmax` lalu selalu memilih alternatif pertama (Sleep). Profil C hanya menjadi pembanding.
+
+### 4.3 Contoh perhitungan (siswa STU00004, profil A)
+
+Siswa laki-laki, 17 tahun. Batas min/maks dari 20.000 siswa referensi.
+
+| Kriteria | Nilai x | Min | Maks | Jenis | Utilitas u |
+|---|---|---|---|---|---|
+| Prediksi kecemasan | 4,417 | 0,367 | 7,091 | benefit | 0,602 |
+| Jam belajar | 5,594 | 0,000 | 13,227 | benefit | 0,423 |
+| Nilai rapor | 68,375 | 47,565 | 92,894 | cost | 0,541 |
+| Jam tidur | 3,146 | 3,000 | 10,000 | cost | 0,979 |
+| Aktivitas fisik | 2,539 | 0,000 | 7,000 | cost | 0,637 |
+| Tekanan finansial | 7,278 | 0,000 | 10,000 | benefit | 0,728 |
+| Ekspektasi keluarga | 2,577 | 0,000 | 10,000 | benefit | 0,258 |
+| *Burnout* | 4,609 | 0,000 | 9,855 | benefit | 0,468 |
+
+Contoh utilitas jam tidur (cost): u = (10,000 − 3,146) / (10,000 − 3,000) = 0,979.
+
+**Skor prioritas** P = (0,602 + 0,423 + 0,541 + 0,979 + 0,637 + 0,728 + 0,258 + 0,468) / 8 = **0,580**, lebih tinggi dari 93% siswa referensi.
+
+**Skor alternatif** (Σ bobot × utilitas):
+
+| Peringkat | Alternatif | Skor | Kontribusi terbesar |
+|---|---|---|---|
+| 1 | **Sleep** | **0,706** | jam tidur 0,40 × 0,979 = 0,392 |
+| 2 | Relaxation | 0,623 | jam tidur 0,196; prediksi kecemasan 0,121 |
+| 3 | Exercise | 0,588 | aktivitas fisik 0,273 |
+| 4 | Counseling | 0,564 | prediksi kecemasan 0,181; tekanan finansial 0,146 |
+| 5 | Study | 0,488 | jam belajar 0,169; nilai rapor 0,162 |
+
+Penjelasan yang dihasilkan aplikasi: *"Tidur mendapat skor tertinggi (0,706). Pendorong utama: jam tidur sedikit (3,1 jam), prediksi kecemasan tinggi (4,4/10), nilai rapor rendah (68). Selisih dengan alternatif kedua (Relaksasi) 0,083."*
+
+### 4.4 Hasil pada populasi referensi (20.000 siswa)
+
+| Alternatif | Profil A (notebook, Σ=1,05) | Profil A (dinormalkan) | Profil B |
+|---|---|---|---|
+| Sleep | 4.796 | 5.356 | 5.662 |
+| Exercise | 8.866 | 6.905 | 4.673 |
+| Study | 2.323 | 2.613 | 1.940 |
+| Counseling | 1.863 | 2.202 | 7.553 |
+| Relaxation | 2.152 | 2.924 | 172 |
+
+Normalisasi menurunkan dominasi Exercise dari 44% menjadi 35%. Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
+
+## 5. Keluaran Fase
 
 | Berkas | Isi |
 |---|---|
-| `model_klasifikasi.pkl` | Model terpilih beserta parameternya |
-| `model_cluster.pkl` | Model K-Means dan pusat cluster |
-| `profil_cluster.csv` | Rata-rata indeks per cluster dan nama segmen |
-| `aturan_asosiasi.csv` | Daftar aturan dengan support, confidence, lift |
-| `bobot_kriteria.json` | Bobot C1–C7 hasil turunan kepentingan fitur |
-| `smart_engine.py` | Implementasi perhitungan SMART |
-| `laporan_modeling.md` | Perbandingan model, parameter, dan alasan pemilihan |
-
-Seluruh keluaran ini diuji ulang terhadap tujuan bisnis pada Fase 5 — Evaluation.
+| `app/models/rf_anxiety_model.joblib` + metadata | model dasar (Kaggle), metrik, batas SMART |
+| `app/models/model_comparison.json` | perbandingan 5 algoritma |
+| `app/models/rf_real_model.joblib` + metadata + `real_summary.json` | model aktif setelah data riil (agregat saja) |
+| `app/spk/smart.py`, `config.py` | implementasi SMART dan profil bobot |
