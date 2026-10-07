@@ -40,8 +40,10 @@ def weights() -> dict:
     return PROFILES[profile_key()]
 
 
-def show(fig):
-    st.pyplot(fig)
+def show(fig, compact: bool = False):
+    """Render a Matplotlib figure. compact=True keeps its natural size (small heatmaps, bar charts)."""
+    # A compact figure is shown at its physical size (inches x 96 CSS px), capped by the column.
+    st.pyplot(fig, width=int(fig.get_figwidth() * 96) if compact else "stretch")
     plt.close(fig)
 
 
@@ -120,8 +122,8 @@ def sidebar():
             st.warning(T("profile_c_warning"))
         _, meta = load_active()
         source = {"kaggle": "src_kaggle", "kaggle+gform": "src_real", "gform": "src_real"}[meta["data_source"]]
-        st.caption(T("model_badge", source=T(source), n=f"{meta.get('n_rows', 0):,}",
-                     strategy=meta.get("strategy", "-")))
+        strategy = f" · {meta['strategy']}" if meta.get("strategy") else ""
+        st.caption(T("model_badge", source=T(source), n=f"{meta.get('n_rows', 0):,}", strategy=strategy))
         st.divider()
         st.caption(T("disclaimer"))
         st.caption(T("privacy_note"))
