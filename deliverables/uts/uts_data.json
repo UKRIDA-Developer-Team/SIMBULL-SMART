@@ -1,0 +1,888 @@
+{
+  "criteria": [
+    "rf_anxiety_score",
+    "study_hours_per_day",
+    "academic_performance",
+    "sleep_hours",
+    "physical_activity",
+    "financial_stress",
+    "family_expectation",
+    "burnout_score"
+  ],
+  "criteria_type": {
+    "rf_anxiety_score": "benefit",
+    "study_hours_per_day": "benefit",
+    "academic_performance": "cost",
+    "sleep_hours": "cost",
+    "physical_activity": "cost",
+    "financial_stress": "benefit",
+    "family_expectation": "benefit",
+    "burnout_score": "benefit"
+  },
+  "alternatives": [
+    "Sleep",
+    "Exercise",
+    "Study",
+    "Counseling",
+    "Relaxation"
+  ],
+  "bounds": {
+    "rf_anxiety_score": {
+      "min": 0.36695553548331766,
+      "max": 7.091249383126152
+    },
+    "study_hours_per_day": {
+      "min": 0.0,
+      "max": 13.2274332022389
+    },
+    "academic_performance": {
+      "min": 47.564975384036146,
+      "max": 92.89366997522322
+    },
+    "sleep_hours": {
+      "min": 3.0,
+      "max": 10.0
+    },
+    "physical_activity": {
+      "min": 0.0,
+      "max": 7.0
+    },
+    "financial_stress": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "family_expectation": {
+      "min": 0.0,
+      "max": 10.0
+    },
+    "burnout_score": {
+      "min": 0.0,
+      "max": 9.854597899553744
+    }
+  },
+  "weights_A_raw": {
+    "Sleep": {
+      "rf_anxiety_score": 0.15,
+      "study_hours_per_day": 0.1,
+      "academic_performance": 0.1,
+      "sleep_hours": 0.4,
+      "physical_activity": 0.05,
+      "financial_stress": 0.05,
+      "family_expectation": 0.05,
+      "burnout_score": 0.1
+    },
+    "Exercise": {
+      "rf_anxiety_score": 0.15,
+      "study_hours_per_day": 0.05,
+      "academic_performance": 0.05,
+      "sleep_hours": 0.05,
+      "physical_activity": 0.45,
+      "financial_stress": 0.05,
+      "family_expectation": 0.05,
+      "burnout_score": 0.2
+    },
+    "Study": {
+      "rf_anxiety_score": 0.1,
+      "study_hours_per_day": 0.4,
+      "academic_performance": 0.3,
+      "sleep_hours": 0.0,
+      "physical_activity": 0.0,
+      "financial_stress": 0.05,
+      "family_expectation": 0.05,
+      "burnout_score": 0.1
+    },
+    "Counseling": {
+      "rf_anxiety_score": 0.3,
+      "study_hours_per_day": 0.05,
+      "academic_performance": 0.05,
+      "sleep_hours": 0.05,
+      "physical_activity": 0.05,
+      "financial_stress": 0.2,
+      "family_expectation": 0.15,
+      "burnout_score": 0.15
+    },
+    "Relaxation": {
+      "rf_anxiety_score": 0.2,
+      "study_hours_per_day": 0.05,
+      "academic_performance": 0.05,
+      "sleep_hours": 0.2,
+      "physical_activity": 0.1,
+      "financial_stress": 0.15,
+      "family_expectation": 0.15,
+      "burnout_score": 0.1
+    }
+  },
+  "weights_B": {
+    "Sleep": {
+      "rf_anxiety_score": 0.15,
+      "study_hours_per_day": 0.15,
+      "academic_performance": 0.1,
+      "sleep_hours": 0.2,
+      "physical_activity": 0.1,
+      "financial_stress": 0.1,
+      "family_expectation": 0.1,
+      "burnout_score": 0.1
+    },
+    "Exercise": {
+      "rf_anxiety_score": 0.15,
+      "study_hours_per_day": 0.1,
+      "academic_performance": 0.1,
+      "sleep_hours": 0.1,
+      "physical_activity": 0.2,
+      "financial_stress": 0.1,
+      "family_expectation": 0.1,
+      "burnout_score": 0.15
+    },
+    "Study": {
+      "rf_anxiety_score": 0.15,
+      "study_hours_per_day": 0.2,
+      "academic_performance": 0.15,
+      "sleep_hours": 0.1,
+      "physical_activity": 0.1,
+      "financial_stress": 0.1,
+      "family_expectation": 0.1,
+      "burnout_score": 0.1
+    },
+    "Counseling": {
+      "rf_anxiety_score": 0.2,
+      "study_hours_per_day": 0.1,
+      "academic_performance": 0.1,
+      "sleep_hours": 0.1,
+      "physical_activity": 0.1,
+      "financial_stress": 0.15,
+      "family_expectation": 0.15,
+      "burnout_score": 0.1
+    },
+    "Relaxation": {
+      "rf_anxiety_score": 0.2,
+      "study_hours_per_day": 0.1,
+      "academic_performance": 0.1,
+      "sleep_hours": 0.15,
+      "physical_activity": 0.1,
+      "financial_stress": 0.1,
+      "family_expectation": 0.1,
+      "burnout_score": 0.15
+    }
+  },
+  "weights_C": {
+    "Sleep": {
+      "rf_anxiety_score": 0.125,
+      "study_hours_per_day": 0.125,
+      "academic_performance": 0.125,
+      "sleep_hours": 0.125,
+      "physical_activity": 0.125,
+      "financial_stress": 0.125,
+      "family_expectation": 0.125,
+      "burnout_score": 0.125
+    },
+    "Exercise": {
+      "rf_anxiety_score": 0.125,
+      "study_hours_per_day": 0.125,
+      "academic_performance": 0.125,
+      "sleep_hours": 0.125,
+      "physical_activity": 0.125,
+      "financial_stress": 0.125,
+      "family_expectation": 0.125,
+      "burnout_score": 0.125
+    },
+    "Study": {
+      "rf_anxiety_score": 0.125,
+      "study_hours_per_day": 0.125,
+      "academic_performance": 0.125,
+      "sleep_hours": 0.125,
+      "physical_activity": 0.125,
+      "financial_stress": 0.125,
+      "family_expectation": 0.125,
+      "burnout_score": 0.125
+    },
+    "Counseling": {
+      "rf_anxiety_score": 0.125,
+      "study_hours_per_day": 0.125,
+      "academic_performance": 0.125,
+      "sleep_hours": 0.125,
+      "physical_activity": 0.125,
+      "financial_stress": 0.125,
+      "family_expectation": 0.125,
+      "burnout_score": 0.125
+    },
+    "Relaxation": {
+      "rf_anxiety_score": 0.125,
+      "study_hours_per_day": 0.125,
+      "academic_performance": 0.125,
+      "sleep_hours": 0.125,
+      "physical_activity": 0.125,
+      "financial_stress": 0.125,
+      "family_expectation": 0.125,
+      "burnout_score": 0.125
+    }
+  },
+  "safety_percentile": 90,
+  "rf_metrics": {
+    "mae": 0.7667788502385423,
+    "mse": 0.9112285623486327,
+    "rmse": 0.9545829258627208,
+    "r2": 0.613622034076458
+  },
+  "students": [
+    {
+      "id": "S01",
+      "source": "Contoh aplikasi: Risiko tinggi",
+      "features": {
+        "age": 17,
+        "gender": "Female",
+        "study_hours_per_day": 9.0,
+        "academic_performance": 58.0,
+        "exam_pressure": 9.5,
+        "stress_level": 8.5,
+        "sleep_hours": 4.5,
+        "physical_activity": 0.5,
+        "financial_stress": 8.0,
+        "family_expectation": 9.0,
+        "burnout_score": 8.0
+      },
+      "actual_anxiety": null,
+      "app": {
+        "A": {
+          "priority": 0.8258942336565946,
+          "scores": {
+            "Exercise": 0.8729939532343858,
+            "Counseling": 0.8542551140980059,
+            "Relaxation": 0.8448638221522323,
+            "Sleep": 0.8115445093833823,
+            "Study": 0.7623664658921462
+          },
+          "best": "Exercise"
+        },
+        "B": {
+          "priority": 0.8258942336565946,
+          "scores": {
+            "Exercise": 0.8407061278415147,
+            "Counseling": 0.83880220327006,
+            "Relaxation": 0.8336781074424782,
+            "Sleep": 0.819850429488305,
+            "Study": 0.8137888106061325
+          },
+          "best": "Exercise"
+        },
+        "C": {
+          "priority": 0.8258942336565946,
+          "scores": {
+            "Sleep": 0.8258942336565946,
+            "Exercise": 0.8258942336565946,
+            "Study": 0.8258942336565946,
+            "Counseling": 0.8258942336565946,
+            "Relaxation": 0.8258942336565946
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 6.626386599922224,
+      "rf_percentile": 99.66559522164923,
+      "safety": true,
+      "utility": {
+        "rf_anxiety_score": 0.9308681634478417,
+        "study_hours_per_day": 0.6804041163841706,
+        "academic_performance": 0.7697920774009526,
+        "sleep_hours": 0.7857142857142857,
+        "physical_activity": 0.9285714285714286,
+        "financial_stress": 0.8,
+        "family_expectation": 0.9,
+        "burnout_score": 0.8118037977340783
+      }
+    },
+    {
+      "id": "S02",
+      "source": "Contoh aplikasi: Risiko rendah",
+      "features": {
+        "age": 16,
+        "gender": "Male",
+        "study_hours_per_day": 3.0,
+        "academic_performance": 85.0,
+        "exam_pressure": 3.0,
+        "stress_level": 2.0,
+        "sleep_hours": 8.0,
+        "physical_activity": 5.0,
+        "financial_stress": 2.0,
+        "family_expectation": 4.0,
+        "burnout_score": 1.0
+      },
+      "actual_anxiety": null,
+      "app": {
+        "A": {
+          "priority": 0.23099699376928506,
+          "scores": {
+            "Relaxation": 0.24073457434031867,
+            "Sleep": 0.234932548428636,
+            "Exercise": 0.2279224733049669,
+            "Counseling": 0.21607825490257254,
+            "Study": 0.20052372794862042
+          },
+          "best": "Relaxation"
+        },
+        "B": {
+          "priority": 0.23099699376928506,
+          "scores": {
+            "Sleep": 0.233415474177896,
+            "Counseling": 0.23221035898470105,
+            "Exercise": 0.2271491793073311,
+            "Study": 0.2248912588222784,
+            "Relaxation": 0.22156984700625335
+          },
+          "best": "Sleep"
+        },
+        "C": {
+          "priority": 0.23099699376928506,
+          "scores": {
+            "Sleep": 0.23099699376928506,
+            "Exercise": 0.23099699376928506,
+            "Study": 0.23099699376928506,
+            "Counseling": 0.23099699376928506,
+            "Relaxation": 0.23099699376928506
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 1.537840951773711,
+      "rf_percentile": 10.421030474939634,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.17412763969273015,
+        "study_hours_per_day": 0.22680137212805687,
+        "academic_performance": 0.17414289218816215,
+        "sleep_hours": 0.2857142857142857,
+        "physical_activity": 0.2857142857142857,
+        "financial_stress": 0.2,
+        "family_expectation": 0.4,
+        "burnout_score": 0.10147547471675979
+      }
+    },
+    {
+      "id": "S03",
+      "source": "Data uji Kaggle (indeks 7884)",
+      "features": {
+        "age": 28,
+        "gender": "Male",
+        "study_hours_per_day": 6.068486032801618,
+        "academic_performance": 73.77124254640417,
+        "exam_pressure": 5.179796944532683,
+        "stress_level": 4.214137786865674,
+        "sleep_hours": 8.157794972714305,
+        "physical_activity": 3.657615942443283,
+        "financial_stress": 4.589724924428409,
+        "family_expectation": 7.972403408073314,
+        "burnout_score": 0.6360841714653872
+      },
+      "actual_anxiety": 3.866100001683836,
+      "app": {
+        "A": {
+          "priority": 0.4151251734731157,
+          "scores": {
+            "Study": 0.4172303184906337,
+            "Counseling": 0.4158107438895213,
+            "Relaxation": 0.41509033706649595,
+            "Exercise": 0.3853522995109891,
+            "Sleep": 0.34331418374826067
+          },
+          "best": "Study"
+        },
+        "B": {
+          "priority": 0.4151251734731156,
+          "scores": {
+            "Counseling": 0.43280520933187666,
+            "Study": 0.4180184561478103,
+            "Exercise": 0.4020230440662753,
+            "Sleep": 0.4003035838824295,
+            "Relaxation": 0.38638052217008645
+          },
+          "best": "Counseling"
+        },
+        "C": {
+          "priority": 0.4151251734731157,
+          "scores": {
+            "Sleep": 0.4151251734731157,
+            "Exercise": 0.4151251734731157,
+            "Study": 0.4151251734731157,
+            "Counseling": 0.4151251734731157,
+            "Relaxation": 0.4151251734731157
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 2.915088285991853,
+      "rf_percentile": 48.20613074824865,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.37894428890875587,
+        "study_hours_per_day": 0.45878031965978516,
+        "academic_performance": 0.421861419158029,
+        "sleep_hours": 0.2631721467550993,
+        "physical_activity": 0.4774834367938167,
+        "financial_stress": 0.4589724924428409,
+        "family_expectation": 0.7972403408073314,
+        "burnout_score": 0.06454694325926699
+      }
+    },
+    {
+      "id": "S04",
+      "source": "Data uji Kaggle (indeks 12357)",
+      "features": {
+        "age": 24,
+        "gender": "Female",
+        "study_hours_per_day": 4.222356973827813,
+        "academic_performance": 70.14905833422563,
+        "exam_pressure": 4.625164020577184,
+        "stress_level": 2.1283289535499597,
+        "sleep_hours": 9.018503171774103,
+        "physical_activity": 2.677654342700827,
+        "financial_stress": 3.75941065987365,
+        "family_expectation": 7.547531884984586,
+        "burnout_score": 0.0
+      },
+      "actual_anxiety": 1.8489201312980372,
+      "app": {
+        "A": {
+          "priority": 0.3624746379829722,
+          "scores": {
+            "Exercise": 0.3914512938274377,
+            "Study": 0.35379359846931613,
+            "Relaxation": 0.3385294874472508,
+            "Counseling": 0.3244633912124523,
+            "Sleep": 0.25415666134532205
+          },
+          "best": "Exercise"
+        },
+        "B": {
+          "priority": 0.3624746379829722,
+          "scores": {
+            "Counseling": 0.36555724601919404,
+            "Exercise": 0.36124891694491423,
+            "Study": 0.3565108695942638,
+            "Sleep": 0.3294831110223206,
+            "Relaxation": 0.31603322492508784
+          },
+          "best": "Counseling"
+        },
+        "C": {
+          "priority": 0.3624746379829722,
+          "scores": {
+            "Sleep": 0.3624746379829722,
+            "Exercise": 0.3624746379829722,
+            "Study": 0.3624746379829722,
+            "Counseling": 0.3624746379829722,
+            "Relaxation": 0.3624746379829722
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 1.6474509047387929,
+      "rf_percentile": 12.482436952392192,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.19042822908525128,
+        "study_hours_per_day": 0.31921211842620595,
+        "academic_performance": 0.5017707182200579,
+        "sleep_hours": 0.14021383260369952,
+        "physical_activity": 0.6174779510427391,
+        "financial_stress": 0.375941065987365,
+        "family_expectation": 0.7547531884984586,
+        "burnout_score": 0.0
+      }
+    },
+    {
+      "id": "S05",
+      "source": "Data uji Kaggle (indeks 13113)",
+      "features": {
+        "age": 22,
+        "gender": "Female",
+        "study_hours_per_day": 6.450297009183361,
+        "academic_performance": 75.54140865189461,
+        "exam_pressure": 8.735002008016746,
+        "stress_level": 5.415417235064488,
+        "sleep_hours": 7.156808331990587,
+        "physical_activity": 3.141853550346285,
+        "financial_stress": 4.376079629622113,
+        "family_expectation": 5.509231645661172,
+        "burnout_score": 0.9197217054850164
+      },
+      "actual_anxiety": 3.351792906279768,
+      "app": {
+        "A": {
+          "priority": 0.41876801935003616,
+          "scores": {
+            "Relaxation": 0.42558472023271293,
+            "Exercise": 0.4247824528326355,
+            "Study": 0.4127100069420439,
+            "Counseling": 0.40769733036999584,
+            "Sleep": 0.40190548007601185
+          },
+          "best": "Relaxation"
+        },
+        "B": {
+          "priority": 0.4187680193500362,
+          "scores": {
+            "Counseling": 0.4284904486812046,
+            "Study": 0.42494417637487764,
+            "Sleep": 0.422038447926386,
+            "Exercise": 0.41682199157817457,
+            "Relaxation": 0.40403886405271117
+          },
+          "best": "Counseling"
+        },
+        "C": {
+          "priority": 0.41876801935003616,
+          "scores": {
+            "Sleep": 0.41876801935003616,
+            "Exercise": 0.41876801935003616,
+            "Study": 0.41876801935003616,
+            "Counseling": 0.41876801935003616,
+            "Relaxation": 0.41876801935003616
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 3.328971795529453,
+      "rf_percentile": 62.003356487183744,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.44049476824759154,
+        "study_hours_per_day": 0.4876454041054292,
+        "academic_performance": 0.3828096414385222,
+        "sleep_hours": 0.406170238287059,
+        "physical_activity": 0.5511637785219593,
+        "financial_stress": 0.4376079629622113,
+        "family_expectation": 0.5509231645661172,
+        "burnout_score": 0.09332919667139998
+      }
+    },
+    {
+      "id": "S06",
+      "source": "Data uji Kaggle (indeks 366)",
+      "features": {
+        "age": 21,
+        "gender": "Male",
+        "study_hours_per_day": 7.669386408839547,
+        "academic_performance": 70.86236400521223,
+        "exam_pressure": 6.7256280772977215,
+        "stress_level": 5.8993509738452525,
+        "sleep_hours": 5.343064931388285,
+        "physical_activity": 4.047202383418389,
+        "financial_stress": 2.883441162460385,
+        "family_expectation": 7.913043173336176,
+        "burnout_score": 3.740784889345022
+      },
+      "actual_anxiety": 6.340083662662389,
+      "app": {
+        "A": {
+          "priority": 0.5234635975816326,
+          "scores": {
+            "Sleep": 0.5720556868970891,
+            "Relaxation": 0.5435401874541138,
+            "Study": 0.5272276103618739,
+            "Counseling": 0.5136058331781105,
+            "Exercise": 0.4691503246374986
+          },
+          "best": "Sleep"
+        },
+        "B": {
+          "priority": 0.5234635975816326,
+          "scores": {
+            "Sleep": 0.5430646884635476,
+            "Counseling": 0.5303047208359821,
+            "Study": 0.529829221845416,
+            "Relaxation": 0.5285660171986328,
+            "Exercise": 0.5087093078281542
+          },
+          "best": "Sleep"
+        },
+        "C": {
+          "priority": 0.5234635975816326,
+          "scores": {
+            "Sleep": 0.5234635975816326,
+            "Exercise": 0.5234635975816326,
+            "Study": 0.5234635975816326,
+            "Counseling": 0.5234635975816326,
+            "Relaxation": 0.5234635975816326
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 4.236882203183067,
+      "rf_percentile": 84.23437106821413,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.5755142109169326,
+        "study_hours_per_day": 0.5798091203016933,
+        "academic_performance": 0.48603442408187897,
+        "sleep_hours": 0.6652764383731021,
+        "physical_activity": 0.42182823094023014,
+        "financial_stress": 0.2883441162460385,
+        "family_expectation": 0.7913043173336176,
+        "burnout_score": 0.37959792245956786
+      }
+    },
+    {
+      "id": "S07",
+      "source": "Data uji Kaggle (indeks 13251)",
+      "features": {
+        "age": 28,
+        "gender": "Female",
+        "study_hours_per_day": 3.152328554606286,
+        "academic_performance": 78.7224885703218,
+        "exam_pressure": 4.474007137354004,
+        "stress_level": 4.442220504877453,
+        "sleep_hours": 10.0,
+        "physical_activity": 2.272552554521286,
+        "financial_stress": 7.670321800017334,
+        "family_expectation": 6.883152209226698,
+        "burnout_score": 0.0
+      },
+      "actual_anxiety": 3.8127622469148266,
+      "app": {
+        "A": {
+          "priority": 0.378848585900398,
+          "scores": {
+            "Exercise": 0.43485099758634516,
+            "Counseling": 0.42271143114805654,
+            "Relaxation": 0.3832130448232411,
+            "Study": 0.29679809530581375,
+            "Sleep": 0.21400114645975293
+          },
+          "best": "Exercise"
+        },
+        "B": {
+          "priority": 0.37884858590039794,
+          "scores": {
+            "Counseling": 0.41076049784468666,
+            "Exercise": 0.38807096176623124,
+            "Study": 0.35999932530722406,
+            "Relaxation": 0.3379931277984665,
+            "Sleep": 0.33245187228577844
+          },
+          "best": "Counseling"
+        },
+        "C": {
+          "priority": 0.378848585900398,
+          "scores": {
+            "Sleep": 0.378848585900398,
+            "Exercise": 0.378848585900398,
+            "Study": 0.378848585900398,
+            "Counseling": 0.378848585900398,
+            "Relaxation": 0.378848585900398
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 2.714692910625311,
+      "rf_percentile": 41.50420750012133,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.3491425907814812,
+        "study_hours_per_day": 0.23831748052771998,
+        "academic_performance": 0.3126315799011917,
+        "sleep_hours": 0.0,
+        "physical_activity": 0.6753496350683877,
+        "financial_stress": 0.7670321800017333,
+        "family_expectation": 0.6883152209226698,
+        "burnout_score": 0.0
+      }
+    },
+    {
+      "id": "S08",
+      "source": "Data uji Kaggle (indeks 12704)",
+      "features": {
+        "age": 29,
+        "gender": "Male",
+        "study_hours_per_day": 2.208099992943875,
+        "academic_performance": 65.82770124571658,
+        "exam_pressure": 5.475109280546379,
+        "stress_level": 5.349561020008752,
+        "sleep_hours": 4.914108697366466,
+        "physical_activity": 2.835993836013644,
+        "financial_stress": 3.518760503919974,
+        "family_expectation": 7.230939618502661,
+        "burnout_score": 2.3134116407662573
+      },
+      "actual_anxiety": 3.9126193260626905,
+      "app": {
+        "A": {
+          "priority": 0.48409784245726317,
+          "scores": {
+            "Sleep": 0.5456339604481764,
+            "Relaxation": 0.5232411061168305,
+            "Exercise": 0.4900534898369029,
+            "Counseling": 0.4616069859376568,
+            "Study": 0.3708892971316829
+          },
+          "best": "Sleep"
+        },
+        "B": {
+          "priority": 0.48409784245726317,
+          "scores": {
+            "Sleep": 0.49216085062630394,
+            "Counseling": 0.4887874108838125,
+            "Relaxation": 0.483104432513612,
+            "Exercise": 0.4823821216845189,
+            "Study": 0.4577071553932859
+          },
+          "best": "Sleep"
+        },
+        "C": {
+          "priority": 0.48409784245726317,
+          "scores": {
+            "Sleep": 0.48409784245726317,
+            "Exercise": 0.48409784245726317,
+            "Study": 0.48409784245726317,
+            "Counseling": 0.48409784245726317,
+            "Relaxation": 0.48409784245726317
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 3.5785210641952694,
+      "rf_percentile": 69.94227627393424,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.47760636305888826,
+        "study_hours_per_day": 0.16693336939854117,
+        "academic_performance": 0.5971045266935368,
+        "sleep_hours": 0.7265559003762192,
+        "physical_activity": 0.5948580234266222,
+        "financial_stress": 0.35187605039199743,
+        "family_expectation": 0.7230939618502661,
+        "burnout_score": 0.23475454446203411
+      }
+    },
+    {
+      "id": "S09",
+      "source": "Data uji Kaggle (indeks 3848)",
+      "features": {
+        "age": 18,
+        "gender": "Female",
+        "study_hours_per_day": 5.760326577463597,
+        "academic_performance": 84.99399844388152,
+        "exam_pressure": 6.681536005109093,
+        "stress_level": 3.742149735276573,
+        "sleep_hours": 9.12588233559637,
+        "physical_activity": 3.2731862114676016,
+        "financial_stress": 6.703579336616006,
+        "family_expectation": 5.996326570370844,
+        "burnout_score": 1.2319772176961714
+      },
+      "actual_anxiety": 1.0616263221886506,
+      "app": {
+        "A": {
+          "priority": 0.3782402949692399,
+          "scores": {
+            "Counseling": 0.4152850603678326,
+            "Exercise": 0.3994260977003456,
+            "Relaxation": 0.3844794056019842,
+            "Study": 0.3388651700237872,
+            "Sleep": 0.2681288814335576
+          },
+          "best": "Counseling"
+        },
+        "B": {
+          "priority": 0.3782402949692399,
+          "scores": {
+            "Counseling": 0.40247994124096326,
+            "Exercise": 0.3802772944700424,
+            "Study": 0.37304842088003015,
+            "Sleep": 0.35504788524105096,
+            "Relaxation": 0.35147488295920976
+          },
+          "best": "Counseling"
+        },
+        "C": {
+          "priority": 0.3782402949692399,
+          "scores": {
+            "Sleep": 0.3782402949692399,
+            "Exercise": 0.3782402949692399,
+            "Study": 0.3782402949692399,
+            "Counseling": 0.3782402949692399,
+            "Relaxation": 0.3782402949692399
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 2.8138033974080123,
+      "rf_percentile": 44.72428493115644,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.36388175730637123,
+        "study_hours_per_day": 0.43548332389148586,
+        "academic_performance": 0.17427529300342065,
+        "sleep_hours": 0.12487395205766154,
+        "physical_activity": 0.5324019697903426,
+        "financial_stress": 0.6703579336616006,
+        "family_expectation": 0.5996326570370843,
+        "burnout_score": 0.12501547300595192
+      }
+    },
+    {
+      "id": "S10",
+      "source": "Data uji Kaggle (indeks 18956)",
+      "features": {
+        "age": 22,
+        "gender": "Female",
+        "study_hours_per_day": 10.832698084493304,
+        "academic_performance": 79.86977894619099,
+        "exam_pressure": 8.91507211791582,
+        "stress_level": 6.034856414383152,
+        "sleep_hours": 7.546076420396559,
+        "physical_activity": 4.752789027073367,
+        "financial_stress": 8.184957923329602,
+        "family_expectation": 3.3069056710843037,
+        "burnout_score": 0.7377420673155077
+      },
+      "actual_anxiety": 3.0251890643118884,
+      "app": {
+        "A": {
+          "priority": 0.439992672451757,
+          "scores": {
+            "Study": 0.5305270567073104,
+            "Counseling": 0.46883266705224635,
+            "Relaxation": 0.44099796482156617,
+            "Sleep": 0.40955264642360023,
+            "Exercise": 0.34994370809118397
+          },
+          "best": "Study"
+        },
+        "B": {
+          "priority": 0.439992672451757,
+          "scores": {
+            "Study": 0.4741570666171997,
+            "Counseling": 0.46125581587780323,
+            "Sleep": 0.4538992155609626,
+            "Relaxation": 0.4250676597992979,
+            "Exercise": 0.41374146815748974
+          },
+          "best": "Study"
+        },
+        "C": {
+          "priority": 0.439992672451757,
+          "scores": {
+            "Sleep": 0.439992672451757,
+            "Exercise": 0.439992672451757,
+            "Study": 0.439992672451757,
+            "Counseling": 0.439992672451757,
+            "Relaxation": 0.439992672451757
+          },
+          "best": "Sleep"
+        }
+      },
+      "rf_score": 3.85029843815356,
+      "rf_percentile": 76.49051662202572,
+      "safety": false,
+      "utility": {
+        "rf_anxiety_score": 0.5180235994432799,
+        "study_hours_per_day": 0.8189569298040182,
+        "academic_performance": 0.2873211140645636,
+        "sleep_hours": 0.3505605113719202,
+        "physical_activity": 0.32103013898951904,
+        "financial_stress": 0.8184957923329602,
+        "family_expectation": 0.33069056710843037,
+        "burnout_score": 0.0748627264993649
+      }
+    }
+  ]
+}
