@@ -2,7 +2,8 @@
 //
 // Supports: # / ## / ### / #### headings, paragraphs, **bold**, *italic*, `code`,
 // ⟦placeholder⟧ (yellow highlight), pipe tables, bullet and numbered lists (2 levels),
-// ``` code blocks, > blockquotes, ![caption](image.png), and two markers:
+// ``` code blocks, > blockquotes, ![caption](image.png), and three markers:
+//   [[WIDTHS 8,10,12 size=16]]  column widths (% of text width) and font size for the next table
 //   [[TOC]]        table of contents field (Word/ONLYOFFICE fill it on open)
 //   [[PAGEBREAK]]  page break
 //
@@ -18,10 +19,13 @@ const {
 } = require('docx');
 
 const PAGE_W = 11906, PAGE_H = 16838, MARGIN = 1440;           // A4, 1" margins (DXA)
-const CONTENT_W = PAGE_W - 2 * MARGIN;                           // 9026 DXA = 6.27"
-const CONTENT_PX = Math.round((CONTENT_W / 1440) * 96);          // ~602 px
-const MAX_IMG_H_PX = Math.round(8.3 * 96);
-const FONT = 'Calibri';
+// Mutable style so other builders (e.g. the PKM proposal) can reuse the parser with their own format.
+const ST = {
+  font: 'Calibri', size: 22, tableSize: 19, contentW: PAGE_W - 2 * MARGIN, maxImgHpx: Math.round(8.3 * 96),
+  para: { spacing: { after: 120 } }, tableHead: 'DCE6F2', tableBorder: 'BFBFBF', captionColor: '555555',
+};
+function configure(opts) { Object.assign(ST, opts); }
+const CONTENT_PX = Math.round((ST.contentW / 1440) * 96);          // ~602 px (default layout)
 
 function pngSize(file) {
   const b = fs.readFileSync(file);
@@ -35,14 +39,14 @@ function inline(text, base = {}) {
   const runs = [];
   const re = /(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|⟦[^⟧]*⟧|`[^`]+`|\*[^*\s][^*]*\*)/g;
   let last = 0, m;
-  const push = (t, opts = {}) => { if (t) runs.push(new TextRun({ text: t.replace(/\uE000/g, '*'), font: FONT, ...base, ...opts })); };
+  const push = (t, opts = {}) => { if (t) runs.push(new TextRun({ text: t.replace(/\uE000/g, '*'), font: ST.font, ...base, ...opts })); };
   while ((m = re.exec(text))) {
     push(text.slice(last, m.index));
     const tok = m[0];
     if (tok.startsWith('***')) push(tok.slice(3, -3), { bold: true, italics: true });
     else if (tok.startsWith('**')) runs.push(...inline(tok.slice(2, -2), { ...base, bold: true }));
     else if (tok.startsWith('⟦')) push(tok.replace(/[`*]/g, ''), { highlight: 'yellow', bold: true });
-    else if (tok.startsWith('`')) push(tok.slice(1, -1), { font: 'Courier New', size: (base.size || 22) - 2 });
+    else if (tok.startsWith('`')) push(tok.slice(1, -1), { font: ST.codeFont || 'Courier New', size: (base.size || ST.size) - (ST.codeFont ? 0 : 2) });
     else runs.push(...inline(tok.slice(1, -1), { ...base, italics: true }));
     last = m.index + tok.length;
   }
@@ -56,28 +60,31 @@ function splitRow(line) {
     .split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
 }
 
-function table(rows) {
+function table(rows, layout) {
   const header = splitRow(rows[0]);
   const body = rows.slice(2).map(splitRow);
   const n = header.length;
+  const size = (layout && layout.size) || ST.tableSize;
   const lens = header.map((h, i) => Math.max(h.length, ...body.map(r => (r[i] || '').length), 3));
   const capped = lens.map(l => Math.min(l, 60));
   const total = capped.reduce((a, b) => a + b, 0);
-  let widths = capped.map(l => Math.max(700, Math.round((l / total) * CONTENT_W)));
-  const scale = CONTENT_W / widths.reduce((a, b) => a + b, 0);
+  let widths = layout && layout.pct
+    ? layout.pct.map(p => Math.round((p / 100) * ST.contentW))
+    : capped.map(l => Math.max(700, Math.round((l / total) * ST.contentW)));
+  const scale = ST.contentW / widths.reduce((a, b) => a + b, 0);
   widths = widths.map(w => Math.floor(w * scale));
-  widths[n - 1] += CONTENT_W - widths.reduce((a, b) => a + b, 0);
-  const border = { style: BorderStyle.SINGLE, size: 4, color: 'BFBFBF' };
+  widths[n - 1] += ST.contentW - widths.reduce((a, b) => a + b, 0);
+  const border = { style: BorderStyle.SINGLE, size: 4, color: ST.tableBorder };
   const borders = { top: border, bottom: border, left: border, right: border };
   const cell = (text, i, head) => new TableCell({
     width: { size: widths[i], type: WidthType.DXA },
     borders,
-    shading: head ? { fill: 'DCE6F2', type: ShadingType.CLEAR, color: 'auto' } : undefined,
+    shading: head && ST.tableHead ? { fill: ST.tableHead, type: ShadingType.CLEAR, color: 'auto' } : undefined,
     margins: { top: 50, bottom: 50, left: 90, right: 90 },
-    children: [new Paragraph({ spacing: { before: 0, after: 0 }, children: inline(text || '', { size: 19, bold: head || undefined }) })],
+    children: [new Paragraph({ spacing: { before: 0, after: 0 }, alignment: ST.tableAlign && !head ? ST.tableAlign(i) : undefined, children: inline(text || '', { size, bold: head || undefined }) })],
   });
   return new Table({
-    width: { size: CONTENT_W, type: WidthType.DXA },
+    width: { size: ST.contentW, type: WidthType.DXA },
     columnWidths: widths,
     rows: [
       new TableRow({ tableHeader: true, children: header.map((h, i) => cell(h, i, true)) }),
@@ -89,24 +96,32 @@ function table(rows) {
 function image(src, caption, baseDir) {
   const file = path.resolve(baseDir, src);
   const { w, h, data } = pngSize(file);
-  let width = CONTENT_PX, height = Math.round((h / w) * width);
-  if (height > MAX_IMG_H_PX) { height = MAX_IMG_H_PX; width = Math.round((w / h) * height); }
+  const maxW = Math.round((ST.contentW / 1440) * 96 * (ST.imgScale || 1));
+  let width = maxW, height = Math.round((h / w) * width);
+  if (height > ST.maxImgHpx) { height = ST.maxImgHpx; width = Math.round((w / h) * height); }
   const out = [new Paragraph({
-    alignment: AlignmentType.CENTER, spacing: { before: 120, after: 60 },
+    alignment: AlignmentType.CENTER, spacing: { before: 120, after: 60 }, keepNext: !!caption,
     children: [new ImageRun({ type: 'png', data, transformation: { width, height },
       altText: { title: caption || src, description: caption || src, name: path.basename(src) } })],
   })];
   if (caption) out.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 },
-    children: inline(caption, { italics: true, size: 18, color: '555555' }) }));
+    children: inline(caption, ST.captionRun || { italics: true, size: 18, color: ST.captionColor }) }));
   return out;
 }
 
 function parse(markdown, baseDir, opts = {}) {
   const lines = markdown.replace(/\r/g, '').split('\n');
   const out = [];
-  let i = 0, para = [], listInstance = 0, inList = false;
+  let i = 0, para = [], listInstance = 0, inList = false, inHanging = false, layout = null;
   const flush = () => {
-    if (para.length) { out.push(new Paragraph({ spacing: { after: 120 }, alignment: AlignmentType.JUSTIFIED, children: inline(para.join(' ')) })); para = []; }
+    if (para.length) {
+      const text = para.join(' ');
+      const hang = opts.hanging && inHanging;
+      out.push(new Paragraph({ ...ST.para, alignment: AlignmentType.JUSTIFIED,
+        keepNext: ST.keepNextPattern ? ST.keepNextPattern.test(text) : undefined,
+        indent: hang ? { left: 720, hanging: 720 } : undefined, children: inline(text) }));
+      para = [];
+    }
   };
   const headings = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3, 4: HeadingLevel.HEADING_4 };
   while (i < lines.length) {
@@ -115,15 +130,18 @@ function parse(markdown, baseDir, opts = {}) {
     if (t === '[[TOC]]') {
       flush();
       out.push(new Paragraph({ spacing: { before: 120, after: 240 },
-        children: [new TextRun({ text: opts.tocTitle || 'Daftar Isi', font: FONT, size: 32, bold: true, color: '1F3864' })] }));
+        children: [new TextRun({ text: opts.tocTitle || 'Daftar Isi', font: ST.font, size: 32, bold: true, color: '1F3864' })] }));
       out.push(new TableOfContents(opts.tocTitle || 'Daftar Isi', { hyperlink: false, headingStyleRange: '1-2',
         cachedEntries: (opts.toc || []).map(e => ({ title: e.title, level: e.level, page: e.page })) }));
       i++; continue;
     }
+    const wm = t.match(/^\[\[WIDTHS ([\d.,]+)(?: size=(\d+))?\]\]$/);
+    if (wm) { flush(); layout = { pct: wm[1].split(',').map(Number), size: wm[2] ? Number(wm[2]) : undefined }; i++; continue; }
     if (t === '[[PAGEBREAK]]') { flush(); out.push(new Paragraph({ children: [new PageBreak()] })); i++; continue; }
     if (/^#{1,4} /.test(t)) {
       flush();
       const level = t.match(/^#+/)[0].length;
+      if (level === 1) inHanging = !!(opts.hanging && opts.hanging.test(t));
       out.push(new Paragraph({ heading: headings[level], children: inline(t.replace(/^#+ /, '')) }));
       i++; continue;
     }
@@ -143,7 +161,8 @@ function parse(markdown, baseDir, opts = {}) {
       flush();
       const rows = [];
       while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(lines[i++]);
-      out.push(table(rows));
+      out.push(table(rows, layout));
+      layout = null;
       out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
       continue;
     }
@@ -170,7 +189,7 @@ function parse(markdown, baseDir, opts = {}) {
       // continuation lines (indented, not a new item)
       while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*]|\d+\.)\s+/.test(lines[i])) text += ' ' + lines[i++].trim();
       out.push(new Paragraph({ numbering: { reference: numbered ? 'numbers' : 'bullets', level, instance: listInstance },
-        spacing: { after: 60 }, children: inline(text) }));
+        spacing: ST.listSpacing || { after: 60 }, children: inline(text) }));
       continue;
     }
     para.push(t); i++;
@@ -185,20 +204,20 @@ async function build({ markdown, baseDir, out, title, cover = [], toc = [], tocT
     creator: 'Kelompok 1', title,
     features: { updateFields: true },
     styles: {
-      default: { document: { run: { font: FONT, size: 22 } } },
+      default: { document: { run: { font: ST.font, size: 22 } } },
       paragraphStyles: [
         { id: 'Heading1', name: 'Heading 1', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 32, bold: true, font: FONT, color: '1F3864' }, paragraph: { spacing: { before: 360, after: 180 }, outlineLevel: 0, keepNext: true, keepLines: true } },
+          run: { size: 32, bold: true, font: ST.font, color: '1F3864' }, paragraph: { spacing: { before: 360, after: 180 }, outlineLevel: 0, keepNext: true, keepLines: true } },
         { id: 'Heading2', name: 'Heading 2', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 26, bold: true, font: FONT, color: '2E74B5' }, paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1, keepNext: true, keepLines: true } },
+          run: { size: 26, bold: true, font: ST.font, color: '2E74B5' }, paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1, keepNext: true, keepLines: true } },
         { id: 'Heading3', name: 'Heading 3', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 23, bold: true, font: FONT, color: '404040' }, paragraph: { spacing: { before: 200, after: 100 }, outlineLevel: 2, keepNext: true, keepLines: true } },
-        { id: 'TOC1', name: 'toc 1', basedOn: 'Normal', next: 'Normal', run: { bold: true, size: 22, font: FONT },
+          run: { size: 23, bold: true, font: ST.font, color: '404040' }, paragraph: { spacing: { before: 200, after: 100 }, outlineLevel: 2, keepNext: true, keepLines: true } },
+        { id: 'TOC1', name: 'toc 1', basedOn: 'Normal', next: 'Normal', run: { bold: true, size: 22, font: ST.font },
           paragraph: { spacing: { before: 100, after: 20 } } },
-        { id: 'TOC2', name: 'toc 2', basedOn: 'Normal', next: 'Normal', run: { size: 21, font: FONT },
+        { id: 'TOC2', name: 'toc 2', basedOn: 'Normal', next: 'Normal', run: { size: 21, font: ST.font },
           paragraph: { indent: { left: 360 }, spacing: { before: 0, after: 20 } } },
         { id: 'Heading4', name: 'Heading 4', basedOn: 'Normal', next: 'Normal', quickFormat: true,
-          run: { size: 22, bold: true, italics: true, font: FONT }, paragraph: { spacing: { before: 160, after: 80 }, outlineLevel: 3, keepNext: true, keepLines: true } },
+          run: { size: 22, bold: true, italics: true, font: ST.font }, paragraph: { spacing: { before: 160, after: 80 }, outlineLevel: 3, keepNext: true, keepLines: true } },
       ],
     },
     numbering: { config: [
@@ -214,9 +233,9 @@ async function build({ markdown, baseDir, out, title, cover = [], toc = [], tocT
       {
         properties: { page: { size: { width: PAGE_W, height: PAGE_H }, margin: { top: MARGIN, bottom: MARGIN, left: MARGIN, right: MARGIN }, pageNumbers: { start: 1 } } },
         headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT,
-          children: [new TextRun({ text: title, font: FONT, size: 16, color: '888888' })] })] }) },
+          children: [new TextRun({ text: title, font: ST.font, size: 16, color: '888888' })] })] }) },
         footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER,
-          children: [new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18 })] })] }) },
+          children: [new TextRun({ children: [PageNumber.CURRENT], font: ST.font, size: 18 })] })] }) },
         children: parse(markdown, baseDir, { toc, tocTitle }),
       },
     ],
@@ -227,7 +246,7 @@ async function build({ markdown, baseDir, out, title, cover = [], toc = [], tocT
 
 function coverPage({ kicker, title, subtitle, members, footer, logo }) {
   const P = (children, opts = {}) => new Paragraph({ alignment: AlignmentType.CENTER, ...opts, children });
-  const T = (text, o = {}) => new TextRun({ text, font: FONT, ...o });
+  const T = (text, o = {}) => new TextRun({ text, font: ST.font, ...o });
   const out = [
     P([T(kicker, { size: 26, bold: true, color: '2E74B5' })], { spacing: { before: 1800, after: 240 } }),
     P([T(title, { size: 40, bold: true, color: '1F3864' })], { spacing: { after: 240 } }),
@@ -284,4 +303,4 @@ async function buildWithToc(args, { maxLevel = 2, firstNumberedPage = 2 } = {}) 
   return args.out;
 }
 
-module.exports = { build, buildWithToc, coverPage, image, CONTENT_PX };
+module.exports = { build, buildWithToc, coverPage, image, parse, inline, configure, ST, headingsOf, squash, CONTENT_PX };
