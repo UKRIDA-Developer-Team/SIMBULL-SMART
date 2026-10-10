@@ -11,7 +11,8 @@ Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random
 | `deliverables/user-manual/` | User Manual (.docx) with annotated screenshots |
 | `deliverables/ppt/` | Final presentation (.pptx, about 15 minutes, speaker notes included) |
 | `deliverables/pkm/` | Proposal PKM-KC (.docx) in the 2026 format, plus the simbelmawa form values |
-| `deliverables/build/` | Scripts that rebuild the documents: `node build_laporan.js`, `node build_manual.js`, `node build_ppt.js`, `node build_pkm.js` (after `npm install`) |
+| `deliverables/uts/` | Laporan UTS SPK (.docx), SMART spreadsheet with traceable Excel formulas (.xlsx), and README, per the UTS SPK rubric |
+| `deliverables/build/` | Scripts that rebuild the documents: `node build_laporan.js`, `node build_manual.js`, `node build_ppt.js`, `node build_pkm.js`, `node build_uts.js` (after `npm install`); `build_uts_xlsx.py` for the spreadsheet |
 
 Quick start: `cd app && pip install -r requirements.txt && streamlit run streamlit_app.py`.
 

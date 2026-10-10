@@ -2,7 +2,8 @@
 //
 // Supports: # / ## / ### / #### headings, paragraphs, **bold**, *italic*, `code`,
 // ⟦placeholder⟧ (yellow highlight), pipe tables, bullet and numbered lists (2 levels),
-// ``` code blocks, > blockquotes, ![caption](image.png), and two markers:
+// ``` code blocks, > blockquotes, ![caption](image.png), and three markers:
+//   [[WIDTHS 8,10,12 size=16]]  column widths (% of text width) and font size for the next table
 //   [[TOC]]        table of contents field (Word/ONLYOFFICE fill it on open)
 //   [[PAGEBREAK]]  page break
 //
@@ -59,14 +60,17 @@ function splitRow(line) {
     .split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
 }
 
-function table(rows) {
+function table(rows, layout) {
   const header = splitRow(rows[0]);
   const body = rows.slice(2).map(splitRow);
   const n = header.length;
+  const size = (layout && layout.size) || ST.tableSize;
   const lens = header.map((h, i) => Math.max(h.length, ...body.map(r => (r[i] || '').length), 3));
   const capped = lens.map(l => Math.min(l, 60));
   const total = capped.reduce((a, b) => a + b, 0);
-  let widths = capped.map(l => Math.max(700, Math.round((l / total) * ST.contentW)));
+  let widths = layout && layout.pct
+    ? layout.pct.map(p => Math.round((p / 100) * ST.contentW))
+    : capped.map(l => Math.max(700, Math.round((l / total) * ST.contentW)));
   const scale = ST.contentW / widths.reduce((a, b) => a + b, 0);
   widths = widths.map(w => Math.floor(w * scale));
   widths[n - 1] += ST.contentW - widths.reduce((a, b) => a + b, 0);
@@ -77,7 +81,7 @@ function table(rows) {
     borders,
     shading: head && ST.tableHead ? { fill: ST.tableHead, type: ShadingType.CLEAR, color: 'auto' } : undefined,
     margins: { top: 50, bottom: 50, left: 90, right: 90 },
-    children: [new Paragraph({ spacing: { before: 0, after: 0 }, alignment: ST.tableAlign && !head ? ST.tableAlign(i) : undefined, children: inline(text || '', { size: ST.tableSize, bold: head || undefined }) })],
+    children: [new Paragraph({ spacing: { before: 0, after: 0 }, alignment: ST.tableAlign && !head ? ST.tableAlign(i) : undefined, children: inline(text || '', { size, bold: head || undefined }) })],
   });
   return new Table({
     width: { size: ST.contentW, type: WidthType.DXA },
@@ -108,7 +112,7 @@ function image(src, caption, baseDir) {
 function parse(markdown, baseDir, opts = {}) {
   const lines = markdown.replace(/\r/g, '').split('\n');
   const out = [];
-  let i = 0, para = [], listInstance = 0, inList = false, inHanging = false;
+  let i = 0, para = [], listInstance = 0, inList = false, inHanging = false, layout = null;
   const flush = () => {
     if (para.length) {
       const text = para.join(' ');
@@ -131,6 +135,8 @@ function parse(markdown, baseDir, opts = {}) {
         cachedEntries: (opts.toc || []).map(e => ({ title: e.title, level: e.level, page: e.page })) }));
       i++; continue;
     }
+    const wm = t.match(/^\[\[WIDTHS ([\d.,]+)(?: size=(\d+))?\]\]$/);
+    if (wm) { flush(); layout = { pct: wm[1].split(',').map(Number), size: wm[2] ? Number(wm[2]) : undefined }; i++; continue; }
     if (t === '[[PAGEBREAK]]') { flush(); out.push(new Paragraph({ children: [new PageBreak()] })); i++; continue; }
     if (/^#{1,4} /.test(t)) {
       flush();
@@ -155,7 +161,8 @@ function parse(markdown, baseDir, opts = {}) {
       flush();
       const rows = [];
       while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(lines[i++]);
-      out.push(table(rows));
+      out.push(table(rows, layout));
+      layout = null;
       out.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
       continue;
     }
