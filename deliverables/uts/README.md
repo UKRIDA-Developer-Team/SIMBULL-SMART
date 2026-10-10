@@ -1,6 +1,13 @@
 # SPK SMART Kecemasan Siswa
 
-**Sistem Pendukung Keputusan Prioritas dan Rekomendasi Penanganan Kecemasan Siswa SMA Berbasis Random Forest dan Metode SMART**
+**Sistem Rekomendasi Penangan Kecemasan Siswa SMA Menggunakan Metode Simple Multi-Attribute Rating Technique (SMART)**
+
+```
+NOTE:
+Keluaran pada tahap ini masih menggunakan GForm sebelum penambahan pertanyaan serta belum menggunakan data GForm asli (masih merupakan sintetis).
+
+Bobot perhitungan yang digunakan juga masih berupa estimasi, bukan hasil pertimbangan ahli (Psikolog).
+```
 
 Keluaran UTS mata kuliah Sistem Pendukung Keputusan, UKRIDA 2026. Folder ini berisi tiga berkas:
 
@@ -14,14 +21,13 @@ Keluaran UTS mata kuliah Sistem Pendukung Keputusan, UKRIDA 2026. Folder ini ber
 
 | Nama | NIM |
 |---|---|
-| Steven Feryanta | 412025028 |
 | Steven Iwan | 412024008 |
 | Triemas Putra | 412024018 |
 | Davidson Rafael | 412024030 |
 
 ## Metode yang Dipilih
 
-**SMART (*Simple Multi-Attribute Rating Technique*)**, digabung dengan model data mining **Random Forest Regressor**.
+**SMART (*Simple Multi-Attribute Rating Technique*)**, digabung dengan model machine learning **Random Forest Regressor**.
 
 - Random Forest memprediksi skor kecemasan siswa (0–10) dari 11 faktor gaya hidup dan akademik. Prediksi ini menjadi kriteria C1.
 - SMART mengubah delapan kriteria (C1–C8) menjadi utilitas 0–1, lalu membuat dua keputusan:
