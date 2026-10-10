@@ -1,22 +1,24 @@
-# Kelompok 1
+# SPK SMART Kecemasan Siswa
 
-## Sistem Rekomendasi Penangan Kecemasan Siswa SMA Menggunakan Metode Simple Multi-Attribute Rating Technique (SMART)
+Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random Forest predicts a student's anxiety score from 11 lifestyle and academic factors. SMART then ranks students by priority and recommends one of five interventions (Sleep, Exercise, Study, Counseling, Relaxation), with explanations, sensitivity analysis, and a safety rule. The model is pretrained on a Kaggle sample. It can be retrained on the team's confidential Google Form answers.
 
----
+| Path | Contents |
+|---|---|
+| `app/` | Streamlit app (bilingual ID/EN), training and retraining scripts, tests. See [app/README.md](app/README.md) |
+| `code/` | Original Google Colab notebook |
+| `PPT-Doc_CRISP-DM/` | CRISP-DM phase documents (phases 1-4) matching the built system; weekly decks; `_rancangan-awal/` keeps the first design |
+| `deliverables/uts/` | Laporan UTS SPK (.docx), SMART spreadsheet with traceable Excel formulas (.xlsx), and README, per the UTS SPK rubric |
+| `deliverables/build/` | Scripts that rebuild the documents: `node build_uts.js` (after `npm install`); `build_uts_xlsx.py` for the spreadsheet |
 
-## Description
+Quick start: `cd app && pip install -r requirements.txt && streamlit run streamlit_app.py`.
 
-Membuat Sistem Pendukung Keputusan untuk menentukan Siswa mana yang mengalami risiko gangguan kecemasan berdasarkan kriteria Lama Tidur, Jam Belajar, Waktu Bermain/Olahraga, Ekspektasi Keluarga, Performa Akademik, Kondisi Finansial dan Beban Tugas serta skor kecemasan yang diprediksi menggunakan Random Forest dengan rentang 0-10. Kemudian Sistem juga akan memberikan rekomendasi kegiatan untuk mengurangi kecemasan pada siswa SMA berdasarkan Alternatif Olahraga, Tidur, Belajar, Relaksasi, dan Konseling.
-
----
-
-## Meet the member
+## Meet the member Kelompok 1- Anxiety Detection SMART Method
 
 <table>
   <tr>
-    <td align="center"><img src="sosok-sosok-misterius/steven-zhu.png" width="200" alt="david-gokong"><br>Steven Feryanta<br>412025028</td>
+    <td align="center"><img src="sosok-sosok-misterius/steven-zhu.png" width="200" alt="steven-zhu"><br>Steven Feryanta<br>412025028</td>
     <td align="center"><img src="sosok-sosok-misterius/steven-kappa.png" width="200" alt="steven-kappa"><br>Steven Iwan<br>412024008</td>
     <td align="center"><img src="sosok-sosok-misterius/sepuh-ai-triemas.png" width="200" alt="sepuh-ai-triemas"><br>Triemas Putra<br>412024018</td>
-    <td align="center"><img src="sosok-sosok-misterius/david-gokong.png" width="200" alt="david-gokong"><br>Davidson Rafael K. N<br>412024030</td>
+    <td align="center"><img src="sosok-sosok-misterius/david-gokong.png" width="200" alt="david-gokong"><br>Davidson Rafael<br>412024030</td>
   </tr>
 </table>
