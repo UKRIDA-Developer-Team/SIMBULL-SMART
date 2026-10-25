@@ -6,9 +6,10 @@ Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random
 |---|---|
 | `app/` | Streamlit app (bilingual ID/EN), training and retraining scripts, tests. See [app/README.md](app/README.md) |
 | `code/` | Original Google Colab notebook |
-| `PPT-Doc_CRISP-DM/` | CRISP-DM phase documents (phases 1-4) matching the built system; weekly decks; `_rancangan-awal/` keeps the first design |
+| `PPT-Doc_CRISP-DM/` | CRISP-DM phase documents (phases 1-6) matching the built system; weekly decks; `_rancangan-awal/` keeps the first design |
+| `deliverables/pkm/` | Proposal PKM-KC (.docx) in the 2026 format, plus the simbelmawa form values |
 | `deliverables/uts/` | Laporan UTS SPK (.docx), SMART spreadsheet with traceable Excel formulas (.xlsx), and README, per the UTS SPK rubric |
-| `deliverables/build/` | Scripts that rebuild the documents: `node build_uts.js` (after `npm install`); `build_uts_xlsx.py` for the spreadsheet |
+| `deliverables/build/` | Scripts that rebuild the documents: `node build_pkm.js`, `node build_uts.js` (after `npm install`); `build_uts_xlsx.py` for the spreadsheet |
 
 Quick start: `cd app && pip install -r requirements.txt && streamlit run streamlit_app.py`.
 
