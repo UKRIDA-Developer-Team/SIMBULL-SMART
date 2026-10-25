@@ -42,13 +42,20 @@ def test_single_assessment_result(lang):
     # format_func widgets, so the submitted features are injected directly.
     at = run("app_pages/recommendation.py", lang, assess_features=HIGH_RISK)
     assert not at.exception, [e.value for e in at.exception]
-    labels = [m.label for m in at.metric]
-    assert any(("Top recommendation" if lang == "en" else "Rekomendasi utama") in x for x in labels)
+    hero = [h.proto.body for h in at.get("html") if 'class="spk-hero"' in h.proto.body]
+    assert hero and ("Top recommendation" if lang == "en" else "Rekomendasi utama") in hero[0]
     assert at.error, "high-risk profile should trigger the safety rule"
 
 
+def test_edit_answers_shows_form_again():
+    at = run("app_pages/recommendation.py", "id", assess_features=HIGH_RISK, reco_step="form")
+    assert not at.exception, [e.value for e in at.exception]
+    assert not [h for h in at.get("html") if 'class="spk-hero"' in h.proto.body]
+    assert at.radio, "the questionnaire should be visible"
+
+
 def test_batch_synthetic_gform():
-    at = run("app_pages/recommendation.py", "id", batch_demo_choice="gform")
+    at = run("app_pages/recommendation.py", "id", reco_view="batch", batch_demo_choice="gform")
     assert not at.exception, [e.value for e in at.exception]
     assert any("Google Form" in i.value for i in at.info)
 
@@ -60,3 +67,11 @@ def test_language_switch_keeps_input_mode():
     assert not at.exception, [e.value for e in at.exception]
     assert at.session_state["input_mode_choice"] == "adv"
     assert any(s.label == "Sleep hours" for s in at.slider)
+
+
+def test_profile_survives_language_switch():
+    at = run("app_pages/analysis.py", "id", "B")
+    at.session_state["lang"] = "EN"
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    assert at.session_state["profile"] == "B"

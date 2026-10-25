@@ -7,20 +7,21 @@ This app is the deployable version of `code/Copy of EskulSPK2026_SMART_Final.ipy
 
 The model is pretrained on a Kaggle sample. It can be retrained on the team's real Google Form answers when that confidential export is dropped in (see [Real questionnaire data](#real-questionnaire-data)).
 
-The UI is bilingual (Bahasa Indonesia / English) and has four pages: Home, Recommendation, Analysis, and About.
+The UI is bilingual (Bahasa Indonesia / English) and has four pages: Home, Recommendation, Analysis, and About. Pages sit in a top navigation bar; the ID/EN switch is on the right of that bar, and the SMART weight profile is a small setting on the Recommendation and Analysis pages.
 
 ## Layout
 
 ```
 app/
-├── streamlit_app.py          # entry point: st.navigation, language toggle, weight-profile sidebar
-├── ui.py                     # Streamlit helpers: cached loaders, scoring, sidebar, footer
+├── streamlit_app.py          # entry point: top navigation, logo, language switch
+├── ui.py                     # Streamlit helpers: cached loaders, scoring, page header, weight-profile picker, footer
+├── assets/                   # style.css (layout and components on top of the theme), logo.svg, mark.svg
 ├── app_pages/
-│   ├── home.py               # problem, users, workflow, call to action
-│   ├── recommendation.py     # one student (questionnaire or 11 features) / many students (upload)
+│   ├── home.py               # what it does, how it works, the five kinds of support, call to action
+│   ├── recommendation.py     # one student (questionnaire -> result card) / a whole class (upload -> priority list)
 │   ├── analysis.py           # data, model, SMART, sensitivity, fairness
 │   └── about.py              # method, architecture, limitations, ethics
-├── content/{id,en}/*.md      # long page text per language
+├── content/{id,en}/*.md      # long About-page text per language
 ├── spk/
 │   ├── config.py             # features, criteria, benefit/cost, weight profiles, paths, safety settings
 │   ├── data.py               # Kaggle download + sampling, gender encoding, CSV validation
@@ -98,6 +99,10 @@ Form answers become model features as follows (see `spk/gform.py::derive`):
 | **anxiety_score** (target) | the 5 Psikologis items, concentration item reversed: 0–20 → 0–10 |
 
 The target items are never used as features. Timestamp, birth date, school, info source, and friend's name are dropped as soon as age is computed.
+
+## Look and feel
+
+The theme lives in `.streamlit/config.toml` (colors, Plus Jakarta Sans from Google Fonts, radii); `assets/style.css` adds the page width, cards, the result card and bar lists. Charts in `spk/plots.py` share one Matplotlib style and fixed colors: one color per intervention and one per criterion, checked for color-vision deficiency. Keep `.streamlit/config.toml` at the repo root identical to the one in `app/`.
 
 ## Deploy to Streamlit Community Cloud
 
