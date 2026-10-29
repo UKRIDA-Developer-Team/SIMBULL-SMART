@@ -80,7 +80,7 @@ s.addNotes('Latar belakang (±1 menit). Tiga keterbatasan cara lama: kapasitas, 
 // 3 ── Solution ────────────────────────────────────────────
 s = pres.addSlide(); s.background = { color: C.white };
 title(s, 'Solusi: Data Mining + SPK dalam satu aplikasi web', 'Dari jawaban kuesioner menjadi prioritas dan rekomendasi yang dapat dijelaskan');
-const flow = [['Kuesioner', '11 faktor gaya hidup & akademik'], ['Random Forest', 'prediksi skor kecemasan 0–10'], ['SMART', 'skor prioritas + 5 alternatif'], ['Rekomendasi', 'tiga teratas + alasan']];
+const flow = [['Kuesioner', '11 faktor gaya hidup & akademik'], ['Random Forest', 'prediksi skor kecemasan 0–10'], ['SMART', 'skor prioritas + 5 alternatif'], ['Rekomendasi', 'urutan lima pilihan + alasan']];
 flow.forEach(([h, d], i) => {
   const x = 0.6 + i * 3.15;
   card(s, x, 2.1, 2.7, 2.0, i === 1 || i === 2 ? C.mint : C.ice);
@@ -214,14 +214,14 @@ s = pres.addSlide(); s.background = { color: C.white };
 title(s, 'Aplikasi: hasil yang dapat dijelaskan', 'Streamlit · bilingual ID/EN · 4 halaman');
 const top = img(s, path.join(FIGS, 'ppt_result_top.png'), 0.6, 1.75, 6.4);
 img(s, path.join(FIGS, 'ppt_contrib.png'), 0.6, 1.95 + top.h, 6.4, 6.9 - (1.95 + top.h));
-const feats = [['Satu siswa', 'Kuesioner seperti Google Form atau 11 nilai fitur; contoh profil siap pakai'], ['Alasan', 'Tiga teratas, grafik kontribusi bobot × utilitas, kalimat alasan'], ['Sensitivitas', 'Tabel ±10/±20% per siswa'], ['Banyak siswa', 'Unggah ekspor Google Form → peringkat prioritas, unduh CSV, evaluasi data baru'], ['Analisis', 'Data, model, SMART, sensitivitas, keadilan']];
+const feats = [['Satu siswa', 'Kuesioner seperti Google Form atau 11 nilai fitur; contoh profil siap pakai'], ['Alasan', 'Urutan lima pilihan, "Mengapa …?", grafik kontribusi bobot × utilitas'], ['Sensitivitas', 'Tabel ±10/±20% per siswa'], ['Satu kelas', 'Unggah ekspor Google Form → peringkat prioritas, unduh CSV, evaluasi data baru'], ['Analisis', 'Data, model, SMART, sensitivitas, keadilan']];
 feats.forEach(([h, d], i) => {
   badge(s, i + 1, 7.3, 1.8 + i * 1.03, 0.5);
   text(s, h, { x: 7.95, y: 1.78 + i * 1.03, w: 4.8, h: 0.4, fontSize: 16, bold: true, color: C.deep });
   text(s, d, { x: 7.95, y: 2.15 + i * 1.03, w: 4.8, h: 0.6, fontSize: 13, color: C.mute });
 });
 footer(s, 10);
-s.addNotes('Demo (±3 menit, langsung di aplikasi). 1) Beranda. 2) Rekomendasi → Risiko tinggi: tunjukkan kotak pengaman, tiga teratas, alasan, grafik kontribusi, tabel sensitivitas. 3) Ganti profil bobot. 4) Banyak siswa → unggah ekspor Google Form. 5) Analisis singkat. 6) Ganti bahasa.');
+s.addNotes('Demo (±3 menit, langsung di aplikasi). 1) Beranda. 2) Rekomendasi → Contoh risiko tinggi: tunjukkan kotak pengaman, kartu hasil, urutan lima pilihan, "Mengapa …?", lalu Rincian perhitungan (grafik kontribusi, tabel sensitivitas). 3) Ganti profil lewat tombol Profil bobot. 4) Satu kelas (unggah berkas) → unggah ekspor Google Form. 5) Analisis singkat. 6) Ganti bahasa.');
 
 // 11 ── Architecture & retraining ──────────────────────────
 s = pres.addSlide(); s.background = { color: C.white };

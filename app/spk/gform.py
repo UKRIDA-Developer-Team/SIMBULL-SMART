@@ -4,9 +4,16 @@ Pipeline:
     raw export --resolve_columns--> field columns --encode--> numeric codes
     --derive--> model features, target, extras (PII dropped)
 
-The questionnaire (context.pdf) asks SMA students on Likert and range scales.
-`derive` rescales those answers onto the ranges the Kaggle features use, so the
-same Random Forest can be pretrained on Kaggle and retrained on real answers.
+The questionnaire asks SMA students on Likert and range scales. `derive` rescales
+those answers onto the ranges the Kaggle features use, so the same Random Forest
+can be pretrained on Kaggle and retrained on real answers.
+
+The form exists in two versions (context_ori.pdf, then the revised context_new.pdf).
+Both are the same Google Form, so one export mixes rows from either version: rows
+answered before the revision leave the added questions empty. Every composite is a
+mean over the items a row has, which gives the original formula for original rows
+and the revised formula for revised rows. `quality_report` checks how far the two
+item sets agree before they are pooled.
 """
 from __future__ import annotations
 
@@ -23,13 +30,26 @@ from . import config
 MAPPING_PATH = Path(__file__).with_name("gform_mapping.json")
 LIST_NUMBER = re.compile(r"^\d{1,2}\.\s*(?=\S)")
 
-# Fields that feed the 11 model features (target items listed separately).
+# Fields both form versions ask that feed the 11 model features (target items listed separately).
 CORE_FIELDS = [
     "gender", "birth_date", "study_hours", "late_night", "time_insufficient", "late_tasks",
     "sleep_duration", "report_grade", "many_tasks", "exam_stress", "fear_parents",
     "family_demand", "exercise_days", "pocket_money", "time_split", "exhausted", "lost_interest",
 ]
+# Target items both versions ask; a row needs all of them to get a target.
 TARGET_FIELDS = ["p1_nervous", "p2_worry", "p3_focus", "p4_distracted", "p5_hard_finish"]
+
+# Likert items averaged into one score. The number of answer levels and the
+# reverse flag come from gform_mapping.json; items added in the revised form
+# ('new_form') are empty for original-form rows and skipped in their mean.
+COMPOSITES = {
+    "exam_pressure": ["exam_stress", "below_target"],
+    "stress_level": ["many_tasks", "time_insufficient", "late_tasks", "late_night"],
+    "family_expectation": ["fear_parents", "family_demand", "family_talk"],
+    "burnout_score": ["time_split", "exhausted", "lost_interest"],
+    "sleep_quality": ["sleep_onset", "night_waking", "sleep_restless"],
+    config.TARGET: TARGET_FIELDS + ["p6_irritable", "p7_avoid"],
+}
 
 
 def load_mapping(path: Path | str = MAPPING_PATH) -> dict:
@@ -40,6 +60,7 @@ def norm(text) -> str:
     """Lowercase, unify dashes and whitespace so answers and headers compare reliably."""
     s = str(text).replace(" ", " ").replace("–", "-").replace("—", "-")
     s = re.sub(r"\s*-\s*", "-", s)
+    s = re.sub(r"([<>])\s+", r"\1", s)        # "> 5" and ">5" are the same option
     return re.sub(r"\s+", " ", s).strip().lower()
 
 
@@ -80,11 +101,20 @@ def _lookup(value, table: dict):
     return table.get(stripped, np.nan)
 
 
-def scale_table(options: list[str]) -> dict:
-    """Ordered option list -> {normalized text: 1..n}; bare digits '1'..'n' also accepted."""
-    table = {norm(o): i + 1 for i, o in enumerate(options)}
-    # A digit answer is ambiguous only when an option is itself a digit (late_tasks4).
-    if not any(norm(o).isdigit() for o in options):
+def scale_labels(options: list) -> list[str]:
+    """Display text per level: an option given as a list of labels shows its first label."""
+    return [o[0] if isinstance(o, list) else o for o in options]
+
+
+def scale_table(options: list) -> dict:
+    """Ordered option list -> {normalized text: 1..n}; bare digits '1'..'n' also accepted.
+
+    An option may be a list of labels that share one level (e.g. "Selalu" / "Sangat sering").
+    """
+    table = {norm(label): i + 1 for i, o in enumerate(options)
+             for label in (o if isinstance(o, list) else [o])}
+    # A digit answer is ambiguous only when an option is itself a digit (late_tasks5).
+    if not any(k.isdigit() for k in table):
         table.update({str(i + 1): i + 1 for i in range(len(options))})
     return table
 
@@ -127,6 +157,7 @@ class Resolution:
     columns: dict[str, str] = field(default_factory=dict)      # field -> header
     missing: list[str] = field(default_factory=list)            # required fields not found
     ambiguous: dict[str, list[str]] = field(default_factory=dict)
+    skipped: dict[str, list[str]] = field(default_factory=dict)  # optional fields left out as ambiguous
     unused: list[str] = field(default_factory=list)             # headers no field claimed
 
     @property
@@ -185,9 +216,12 @@ def resolve_columns(df: pd.DataFrame, mapping: dict | None = None) -> Resolution
 
     for name, cands in pending.items():
         free = [c for c in cands if c not in claimed]
+        required = not fields[name].get("optional") and not fields[name].get("extra")
         if len(free) > 1:
-            res.ambiguous[name] = free
-        elif not fields[name].get("optional") and not fields[name].get("extra"):
+            # An optional item (e.g. one a removed question still shares text with) must not
+            # block the whole export: leave it out and report it.
+            (res.ambiguous if required else res.skipped)[name] = free
+        elif required:
             res.missing.append(name)
     res.unused = [h for h in df.columns if h not in claimed]
     return res
@@ -209,9 +243,35 @@ def _unit(s: pd.Series, n_levels: int) -> pd.Series:
     return (s - 1) / (n_levels - 1)
 
 
-def _mean_unit(fields: pd.DataFrame, cols: dict[str, int]) -> pd.Series:
-    parts = pd.concat([_unit(fields[c], n) for c, n in cols.items() if c in fields], axis=1)
-    return parts.mean(axis=1, skipna=True)
+def item_units(fields: pd.DataFrame, items: list[str], mapping: dict) -> pd.DataFrame:
+    """The items present in `fields` on 0..1, oriented so 1 = more of the construct."""
+    cols = {}
+    for name in items:
+        if name not in fields:
+            continue
+        spec = mapping["fields"][name]
+        u = _unit(fields[name], len(mapping["scales"][spec["scale"]]))
+        cols[name] = 1 - u if spec.get("reverse") else u
+    return pd.DataFrame(cols, index=fields.index)
+
+
+def composite(fields: pd.DataFrame, name: str, mapping: dict, original_only: bool = False) -> pd.Series:
+    """Mean (0..1) of the items of COMPOSITES[name] each row answered; NaN when it has none."""
+    items = COMPOSITES[name]
+    if original_only:
+        items = [c for c in items if not mapping["fields"][c].get("new_form")]
+    units = item_units(fields, items, mapping)
+    return units.mean(axis=1, skipna=True) if units.shape[1] else pd.Series(np.nan, index=fields.index)
+
+
+def form_version(fields: pd.DataFrame, mapping: dict) -> pd.Series:
+    """'revised' when a row answered any question added in the revised form, else 'original'."""
+    added = [n for n, s in mapping["fields"].items() if s.get("new_form") and n in fields]
+    revised = fields[added].notna().any(axis=1) if added else pd.Series(False, index=fields.index)
+    for name in ("late_night", "late_tasks"):   # their top option exists only in the revised form
+        if name in fields:
+            revised |= fields[name].eq(len(mapping["scales"][mapping["fields"][name]["scale"]]))
+    return revised.map({True: "revised", False: "original"})
 
 
 def age_from(fields: pd.DataFrame, reference_date=None) -> pd.Series:
@@ -222,46 +282,55 @@ def age_from(fields: pd.DataFrame, reference_date=None) -> pd.Series:
     return age.where(age.between(10, 40))
 
 
-def derive(fields: pd.DataFrame, reference_date=None) -> pd.DataFrame:
+def derive(fields: pd.DataFrame, reference_date=None, mapping: dict | None = None) -> pd.DataFrame:
     """Encoded fields -> model features on Kaggle-like scales, target, and x_ extras.
 
+    unit(x) maps an n-level answer 1..n to 0..1; (r) = reversed, 1 - unit(x); [rev] = item
+    only in the revised form, skipped for rows answered on the original form.
     Transformations (documented in the report and About page):
-      exam_pressure      = 1 + (exam_stress - 1) * 9/4                      (1-5 -> 1-10)
+      exam_pressure      = 1 + 9 * mean(unit(exam_stress), unit(below_target)[rev])      (1-10)
       stress_level       = 10 * mean(unit(many_tasks), unit(time_insufficient),
-                                     unit(late_tasks), unit(late_night))    (proxy, 0-10)
-      financial_stress   = 10 * (5 - pocket_money) / 4                      (reversed, 0-10)
-      family_expectation = 10 * mean(unit(fear_parents), unit(family_demand))
+                                     unit(late_tasks), unit(late_night))   (proxy, 0-10)
+      financial_stress   = 10 * (5 - pocket_money) / 4                     (reversed, 0-10)
+      family_expectation = 10 * mean(unit(fear_parents), unit(family_demand),
+                                     unit(family_talk)(r)[rev])
       burnout_score      = 10 * mean(unit(time_split), unit(exhausted), unit(lost_interest))
-      anxiety_score      = sum(p - 1, p3 reversed) / 2                      (0-20 -> 0-10)
+      anxiety_score      = 10 * mean(unit(p1..p5), p3 (r), unit(p6, p7)[rev])          (0-10)
+      x_sleep_quality    = 10 * mean(unit(sleep_onset, night_waking, sleep_restless))[rev]
+    On original rows these reduce to the original formulas, e.g. anxiety = sum(p - 1) / 2.
     """
+    mapping = mapping or load_mapping()
     out = pd.DataFrame(index=fields.index)
     get = lambda c: fields[c] if c in fields else pd.Series(np.nan, index=fields.index)  # noqa: E731
 
     if "age" in fields:  # the in-app questionnaire asks age directly
         out["age"] = fields["age"]
-    else:
+    elif "birth_date" in fields:
         out["age"] = age_from(fields, reference_date)
+    else:
+        out["age"] = np.nan
     out["gender"] = get("gender")
     out["study_hours_per_day"] = get("study_hours")
     out["academic_performance"] = get("report_grade")
-    out["exam_pressure"] = 1 + (get("exam_stress") - 1) * 9 / 4
-    out["stress_level"] = 10 * _mean_unit(fields, {
-        "many_tasks": 5, "time_insufficient": 4, "late_tasks": 4, "late_night": 4})
+    out["exam_pressure"] = 1 + 9 * composite(fields, "exam_pressure", mapping)
+    out["stress_level"] = 10 * composite(fields, "stress_level", mapping)
     out["sleep_hours"] = get("sleep_duration")
     out["physical_activity"] = get("exercise_days")
     out["financial_stress"] = 10 * (5 - get("pocket_money")) / 4
-    out["family_expectation"] = 10 * _mean_unit(fields, {"fear_parents": 5, "family_demand": 5})
-    out["burnout_score"] = 10 * _mean_unit(fields, {"time_split": 5, "exhausted": 5, "lost_interest": 5})
+    out["family_expectation"] = 10 * composite(fields, "family_expectation", mapping)
+    out["burnout_score"] = 10 * composite(fields, "burnout_score", mapping)
     out = out[config.FEATURES]
 
     if all(c in fields for c in TARGET_FIELDS):
-        items = [(5 - fields[c]) if c == "p3_focus" else (fields[c] - 1) for c in TARGET_FIELDS]
-        out[config.TARGET] = pd.concat(items, axis=1).sum(axis=1, min_count=len(items)) / 2
+        # A target needs every item both versions ask; the revised items join when answered.
+        score = 10 * composite(fields, config.TARGET, mapping)
+        out[config.TARGET] = score.where(fields[TARGET_FIELDS].notna().all(axis=1))
 
-    mapping = load_mapping()
     for name, spec in mapping["fields"].items():
         if spec.get("extra") and name in fields:
             out[f"x_{name}"] = fields[name]
+    if any(c in fields for c in COMPOSITES["sleep_quality"]):
+        out["x_sleep_quality"] = 10 * composite(fields, "sleep_quality", mapping)
     return out
 
 
@@ -270,12 +339,65 @@ class Prepared:
     data: pd.DataFrame           # respondent_id index, features (+ target, extras); no PII
     resolution: Resolution
     report: dict
+    form_version: pd.Series | None = None   # respondent_id -> "original" | "revised"
+
+
+def _num(x, digits: int = 3):
+    return None if x is None or pd.isna(x) else round(float(x), digits)
+
+
+def cronbach_alpha(items: pd.DataFrame) -> dict:
+    """Internal consistency of a composite, on the rows that answered every item."""
+    full = items.dropna()
+    k, n = items.shape[1], len(full)
+    total = full.sum(axis=1).var(ddof=1) if n >= 3 else 0.0
+    alpha = k / (k - 1) * (1 - full.var(ddof=1).sum() / total) if k >= 2 and total > 0 else None
+    return {"alpha": _num(alpha), "items": k, "n": n}
+
+
+def reliability(fields: pd.DataFrame, mapping: dict) -> dict:
+    """Cronbach's alpha per composite; for composites that gained revised items, also the original set."""
+    out = {}
+    for name, items in COMPOSITES.items():
+        present = [c for c in items if c in fields]
+        if len(present) >= 2:
+            out[name] = cronbach_alpha(item_units(fields, present, mapping))
+        original = [c for c in present if not mapping["fields"][c].get("new_form")]
+        if 2 <= len(original) < len(present):
+            out[f"{name} (original items)"] = cronbach_alpha(item_units(fields, original, mapping))
+    return out
+
+
+def item_set_check(fields: pd.DataFrame, mapping: dict, revised: pd.Series) -> dict:
+    """On revised rows: score from the original items vs from all items (are the two versions poolable?).
+
+    r is their correlation; shift is the mean change, in the score's own units, that the
+    revised items add. A high r and a small shift mean original and revised rows can be pooled.
+    """
+    out = {}
+    rows = fields[revised]
+    for name, items in COMPOSITES.items():
+        added = [c for c in items if mapping["fields"][c].get("new_form") and c in fields]
+        if not added or len(added) == len(items):
+            continue
+        full, base = composite(rows, name, mapping), composite(rows, name, mapping, original_only=True)
+        ok = full.notna() & base.notna()
+        span = 9 if name == "exam_pressure" else 10
+        out[name] = {"n": int(ok.sum()),
+                     "r": _num(full[ok].corr(base[ok])) if ok.sum() >= 3 else None,
+                     "shift": _num(span * (full[ok] - base[ok]).mean()) if ok.any() else None}
+    return out
 
 
 def quality_report(raw: pd.DataFrame, fields: pd.DataFrame, derived: pd.DataFrame,
-                   resolution: Resolution, mapping: dict) -> dict:
+                   resolution: Resolution, mapping: dict, versions: pd.Series | None = None) -> dict:
     likert = [n for n, s in mapping["fields"].items() if s["kind"] == "scale" and n in fields]
     straight = int((fields[likert].nunique(axis=1) == 1).sum()) if len(likert) > 2 else 0
+    versions = form_version(fields, mapping) if versions is None else versions
+    above = {}
+    for name in ("late_night", "late_tasks"):
+        if name in fields:
+            above[name] = int(fields[name].eq(len(mapping["scales"][mapping["fields"][name]["scale"]])).sum())
     answer_cols = [h for f, h in resolution.columns.items() if not mapping["fields"][f].get("pii")]
     unparsed = {}
     for name, header in resolution.columns.items():
@@ -288,13 +410,18 @@ def quality_report(raw: pd.DataFrame, fields: pd.DataFrame, derived: pd.DataFram
             unparsed[name] = {"count": int(len(bad)), "examples": sorted(map(str, bad.unique()))[:5]}
     return {
         "rows_raw": int(len(raw)),
+        "rows_by_form_version": {v: int(n) for v, n in versions.value_counts().sort_index().items()},
         "duplicate_answer_rows": int(raw[answer_cols].duplicated().sum()) if answer_cols else 0,
         "straight_lining_rows": straight,
         "missing_per_feature": {c: int(derived[c].isna().sum()) for c in config.FEATURES},
         "missing_target": int(derived[config.TARGET].isna().sum()) if config.TARGET in derived else None,
+        "answers_above_original_max": above,
+        "reliability": reliability(fields, mapping),
+        "item_set_check": item_set_check(fields, mapping, versions.eq("revised")),
         "unparsed_answers": unparsed,
         "pii_columns_dropped": [resolution.columns[f] for f, s in mapping["fields"].items()
                                 if s.get("pii") and f in resolution.columns],
+        "skipped_ambiguous_fields": resolution.skipped,
         "unused_columns": resolution.unused,
     }
 
@@ -328,18 +455,19 @@ def prepare(raw: pd.DataFrame, mapping: dict | None = None, reference_date=None,
         raise ValueError("; ".join(msg) + ". Set 'header' in spk/gform_mapping.json "
                          "(run scripts/inspect_gform.py to see candidates).")
     fields = encode(raw, res, mapping)
-    derived = derive(fields, reference_date)
-    report = quality_report(raw, fields, derived, res, mapping)
+    derived = derive(fields, reference_date, mapping)
+    versions = form_version(fields, mapping)
+    report = quality_report(raw, fields, derived, res, mapping, versions)
 
     keep = pd.Series(True, index=raw.index)
     if drop_duplicates:
         answer_cols = [h for f, h in res.columns.items() if not mapping["fields"][f].get("pii")]
         keep &= ~raw[answer_cols].duplicated()
-    derived = derived[keep].reset_index(drop=True)
-    derived.index = [f"R{i + 1:04d}" for i in range(len(derived))]
-    derived.index.name = "respondent_id"
+    ids = [f"R{i + 1:04d}" for i in range(int(keep.sum()))]
+    derived = derived[keep].set_axis(pd.Index(ids, name="respondent_id"))
+    versions = versions[keep].set_axis(derived.index)
     report["rows_clean"] = int(len(derived))
-    return Prepared(derived, res, report)
+    return Prepared(derived, res, report, versions)
 
 
 def impute(df: pd.DataFrame, medians: dict) -> pd.DataFrame:

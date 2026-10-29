@@ -10,14 +10,16 @@ Data kuesioner bersifat **rahasia**: berkas mentah tidak pernah masuk repositori
 ### Persiapan data
 
 - **Kaggle**: tanpa nilai hilang; `gender` dikodekan tetap (`Female=0, Male=1, Other=2`, sama dengan LabelEncoder di notebook); 50% sampel (10.000 baris) dibagi 80/20 menjadi data latih/uji (`random_state=42`).
-- **Google Form → 11 fitur model** (`spk/gform.py`): jawaban teks diubah ke angka, lalu diskalakan ke rentang fitur Kaggle:
+- **Google Form → 11 fitur model** (`spk/gform.py`): jawaban teks diubah ke angka, lalu diskalakan ke rentang fitur Kaggle. Setiap butir dipetakan dulu ke 0-1 (tingkat 1 → 0, tingkat teratas → 1):
   - jam belajar & jam tidur: teks rentang ("1 jam 30 menit") → jam;
-  - tekanan ujian: Likert 1-5 → 1-10;
-  - tingkat stres: rata-rata ternormalisasi dari tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut malam × 10;
+  - tekanan ujian: rata-rata "tertekan karena ujian" dan "nilai di bawah target" → 1-10;
+  - tingkat stres: rata-rata tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut malam × 10 (tugas terlambat dan belajar larut malam punya 5 tingkat, sampai "> 5");
   - tekanan finansial: kebalikan dari "uang saku cukup" × 10;
-  - ekspektasi keluarga & burnout: rata-rata butir terkait × 10;
-  - **target** skor kecemasan: jumlah 5 butir *Psikologis* (butir konsentrasi dibalik), 0-20 → 0-10.
+  - ekspektasi keluarga: rata-rata takut mengecewakan orang tua, tuntutan keluarga, dan kebalikan dari "mampu membicarakan kesulitan dengan keluarga" × 10;
+  - burnout: rata-rata 3 butirnya × 10;
+  - **target** skor kecemasan: rata-rata 7 butir *Psikologis* (butir konsentrasi dibalik) × 10, 0-10.
   Butir pembentuk target **tidak pernah** dipakai sebagai fitur (mencegah *label leakage*).
+- **Dua versi formulir dalam satu ekspor**: formulir direvisi, dan baris yang diisi sebelum revisi tidak punya pertanyaan tambahan. Setiap skor merata-ratakan butir yang dimiliki baris tersebut, sehingga baris lama tetap memakai rumus lama (mis. kecemasan = 5 butir) dan baris baru memakai semua butir. Laporan kualitas memeriksa penggabungan ini: *Cronbach's alpha* per skor, serta pada baris baru korelasi dan selisih rata-rata antara versi butir lama dan versi semua butir.
 
 ### Pemodelan (Data Mining)
 

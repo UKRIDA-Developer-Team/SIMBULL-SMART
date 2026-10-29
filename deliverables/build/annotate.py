@@ -1,6 +1,6 @@
 """Draw numbered callouts on the app screenshots for the User Manual.
 
-Input : deliverables/user-manual/screens/*.png + *.json (element boxes captured in the browser)
+Input : deliverables/user-manual/screens/*.png + *.json (element boxes, from capture_screens.js)
 Output: deliverables/user-manual/figures/*.png
 
 Run with any Python that has Pillow (e.g. app/.venv/bin/python deliverables/build/annotate.py).
@@ -54,15 +54,18 @@ def split_tall(name, max_h=2000):
         return [name]
     gray = img.convert("L")
     w, h = gray.size
-    blank = [gray.crop((0, y, w, y + 1)).getextrema()[0] > 240 for y in range(h)]
+    # Prefer a gap between cards (blank across the full width); otherwise a gap between two lines inside a
+    # bordered card (blank in the middle band, which leaves out the card's side borders).
+    x0, x1 = int(w * 0.06), int(w * 0.94)
+    gaps = [[gray.crop((0, y, w, y + 1)).getextrema()[0] > 240 for y in range(h)],
+            [gray.crop((x0, y, x1, y + 1)).getextrema()[0] > 240 for y in range(h)]]
     parts, top, k = [], 0, 0
     while top < h:
         cut = min(top + max_h, h)
         if cut < h:
-            for y in range(cut, max(top + max_h // 2, cut - 600), -1):
-                if all(blank[y - 14:y + 1]):
-                    cut = y
-                    break
+            found = (y for blank in gaps for y in range(cut, max(top + max_h // 2, cut - 600), -1)
+                     if all(blank[y - 14:y + 1]))
+            cut = next(found, cut)
         k += 1
         part = name.replace(".png", f"_{chr(96 + k)}.png")
         img.crop((0, top, w, cut)).save(FIGS / part, optimize=True)
@@ -72,46 +75,81 @@ def split_tall(name, max_h=2000):
     return parts
 
 
+def column(b, top, bottom, margin=44):
+    """Crop box for the page's content column (boxes json key "content") between two y values."""
+    x, _, w, _ = b["content"]
+    return (x - margin, top, x + w + margin, bottom)
+
+
+def bottom(box, gap=0):
+    return box[1] + box[3] + gap
+
+
+def inset(box, dx=16, dy=0):
+    """Shrink a box so callouts on side-by-side parts of one card do not overlap."""
+    x, y, w, h = box
+    return [x + dx, y + dy, w - 2 * dx, h - 2 * dy]
+
+
 def main():
     home = boxes("01_home.json")
     annotate("01_home.png", "fig01_home.png", [
-        (1, home["nav"]), (2, home["lang"]), (3, home["profile"]), (4, home["badge"]),
-        (5, home["disclaimer"]), (6, home["metrics"]), (7, home["flow"])])
+        (1, home["nav"]), (2, home["lang"]), (3, home["cta"]), (4, home["cta_batch"]), (5, home["preview"]),
+        (6, home["steps"]), (7, home["alts"]), (8, home["notes"]), (9, home["footer"])],
+        crop=(0, 0, None, bottom(home["footer"], 30)))
 
     form = boxes("02_reco_form.json")
     annotate("02_reco_form.png", "fig02_form_top.png", [
-        (1, form["tabs"]), (2, form["mode"]), (3, form["examples"]), (4, form["identity"]),
-        (5, form["slider"]), (6, form["grade"])], crop=(0, 330, None, 1150))
-    annotate("02_reco_form.png", "fig03_form_submit.png", [(7, form["submit"])], crop=(0, 1900, None, 2380))
+        (1, form["view"]), (2, form["profile"]), (3, form["adv"]), (4, form["q1"]), (5, form["slider"]),
+        (6, form["grade"]), (7, form["radio"]), (8, form["tips"]), (9, form["examples"])],
+        crop=column(form, form["title"][1] - 40, bottom(form["q2"], 40)))
+    annotate("02_reco_form.png", "fig03_form_submit.png", [(10, form["submit"])],
+             crop=column(form, form["q5"][1] - 40, bottom(form["submit"], 40)))
 
-    res = boxes("03_reco_result.json")
-    top = res["divider_y"] - 10
-    annotate("03_reco_result_full.png", "fig04_result.png", [
-        (1, res["safety"]), (2, res["metrics"]), (3, res["help"]), (4, res["cards"]),
-        (5, res["why"]), (6, res["chart"])], crop=(0, top, None, res["exp_inputs"][1] - 10))
-    annotate("03_reco_result_full.png", "ppt_result_top.png", [],
-             crop=(100, res["safety"][1] - 20, 1550, res["cards"][1] + res["cards"][3] + 20))
-    annotate("03_reco_result_full.png", "ppt_contrib.png", [],
-             crop=(100, res["chart"][1] - 10, 1550, res["chart"][1] + res["chart"][3] + 10))
-    annotate("04_reco_inputs.png", "fig05_inputs.png", [])
-    annotate("05_reco_sensitivity.png", "fig06_sensitivity.png", [])
+    res = boxes("04_result.json")
+    annotate("04_result.png", "fig04_result.png", [
+        (1, res["back"]), (2, res["reset"]), (3, res["safety"]),
+        (4, inset(res["best"])), (5, inset(res["anx"])), (6, inset(res["prio"])),
+        (7, res["rank"]), (8, res["why"]), (9, res["details"])],
+        crop=column(res, res["back"][1] - 40, bottom(res["details"], 40)))
+    annotate("04_result.png", "ppt_result_top.png", [],
+             crop=column(res, res["safety"][1] - 16, bottom(res["hero"], 16), margin=12))
 
-    batch = boxes("06_reco_batch.json")
-    eval_y = batch["eval"][1]
-    annotate("06_reco_batch_full.png", "fig07_batch_a.png", [
-        (1, batch["upload"]), (2, batch["demo"]), (3, batch["detected"]), (4, batch["bounds"]),
-        (5, batch["topn"]), (6, batch["table"]), (7, batch["download"]), (8, batch["charts"])],
-        crop=(0, 360, None, eval_y - 30))
-    annotate("06_reco_batch_full.png", "fig07_batch_b.png", [(9, batch["eval"])],
-             crop=(0, eval_y - 40, None, 100000))
+    contrib = boxes("05_details_contrib.json")
+    annotate("05_details_contrib.png", "fig05_contrib.png", [(1, contrib["tabs"])],
+             crop=column(contrib, contrib["details"][1] - 40, bottom(contrib["details"], 40)))
+    x, y, w, h = contrib["chart"]
+    annotate("05_details_contrib.png", "ppt_contrib.png", [], crop=(x - 10, y - 10, x + w + 10, y + h + 10))
+    for src, out in [("06_details_inputs", "fig06_inputs.png"), ("07_details_sens", "fig07_sensitivity.png")]:
+        b = boxes(f"{src}.json")
+        annotate(f"{src}.png", out, [], crop=column(b, b["details"][1] - 40, bottom(b["details"], 40)))
 
-    tabs = boxes("07_an.json")["tabs"]
-    annotate("07_an_data.png", "fig08_an_data.png", [(1, tabs)], crop=(0, 120, None, 1980))
-    for i, name in enumerate(["08_an_model", "09_an_smart", "10_an_sens", "11_an_fair"], start=9):
-        annotate(f"{name}.png", f"fig{i:02d}_{name[3:]}.png", [], crop=(0, 120, None, 100000))
-    annotate("12_about.png", "fig13_about.png", [], crop=(0, 120, None, 100000))
-    annotate("13_en_view.png", "fig14_en.png", [(1, boxes("13_en.json")["lang"])])
-    for name in ["fig09_an_model.png", "fig10_an_smart.png", "fig11_an_sens.png", "fig13_about.png"]:
+    prof = boxes("03_profile.json")
+    body, button = prof["body"], prof["button"]
+    annotate("03_profile.png", "fig08_profile.png", [(1, button), (2, prof["radio"]), (3, prof["note"])],
+             crop=(body[0] - 44, button[1] - 24, button[0] + button[2] + 44, bottom(body, 40)))
+
+    batch = boxes("08_batch.json")
+    annotate("08_batch.png", "fig09_batch_a.png", [
+        (1, batch["upload"]), (2, batch["demo"]), (3, batch["detected"]), (4, batch["metrics"]), (5, batch["list"]),
+        (6, batch["table"]), (7, batch["download"])],
+        crop=column(batch, batch["upload"][1] - 36, bottom(batch["download"], 40)))
+    annotate("08_batch.png", "fig09_batch_b.png", [(8, batch["charts"]), (9, batch["options"]), (10, batch["eval"])],
+             crop=column(batch, batch["charts"][1] - 40, bottom(batch["eval"], 40)))
+
+    data = boxes("09_an_data.json")
+    annotate("09_an_data.png", "fig10_an_data.png", [(1, data["population"]), (2, data["profile"]), (3, data["tabs"])],
+             crop=column(data, data["title"][1] - 40, data["footer"][1] - 20))
+    for src, out in [("10_an_model", "fig11_an_model.png"), ("11_an_smart", "fig12_an_smart.png"),
+                     ("12_an_sens", "fig13_an_sens.png"), ("13_an_fair", "fig14_an_fair.png")]:
+        b = boxes(f"{src}.json")
+        annotate(f"{src}.png", out, [], crop=column(b, b["tabs"][1] - 30, b["footer"][1] - 20))
+    about = boxes("14_about.json")
+    annotate("14_about.png", "fig15_about.png", [], crop=column(about, about["title"][1] - 40, about["footer"][1] - 20))
+    en = boxes("15_en.json")
+    annotate("15_en.png", "fig16_en.png", [(1, en["lang"]), (2, en["nav"])], crop=(0, 0, None, 1180))
+
+    for name in ["fig11_an_model.png", "fig12_an_smart.png", "fig13_an_sens.png", "fig15_about.png"]:
         print(name, "->", split_tall(name))
     print("figures ->", FIGS)
 

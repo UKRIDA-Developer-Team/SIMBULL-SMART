@@ -45,9 +45,11 @@ Dari 10.000 baris: **8.000 latih** dan **2.000 uji** (`test_size=0.2`, `random_s
 
 Ekspor Google Form memakai judul pertanyaan sebagai nama kolom. Pertanyaan grid tertulis sebagai `Judul grid [teks baris]`. Berkas `spk/gform_mapping.json` mencocokkan setiap *field* dengan potongan teks pertanyaan. Beberapa judul dipakai dua kali di formulir, misalnya "Rata-Rata Jam Belajar Per Hari" dan "Target pengumpulan tugas". Untuk kasus ini, sistem memilih kolom yang jawabannya paling banyak dapat dibaca oleh *parser* field tersebut. Skrip `scripts/inspect_gform.py` menampilkan hasil pencocokan sebelum pelatihan.
 
+**Dua versi formulir.** Formulir direvisi (`context_ori.pdf` → `context_new.pdf`, dikurangi butir yang dihapus). Keduanya adalah Google Form yang sama, jadi satu ekspor berisi baris dari kedua versi. Google mempertahankan kolom saat judul diubah, sehingga header memakai judul terbaru. Pertanyaan tambahan (ditandai `new_form` di `gform_mapping.json`) bersifat opsional: kosong pada baris versi lama dan tidak menggagalkan ekspor lama. Setiap baris diberi label `original` atau `revised`: revisi bila menjawab salah satu pertanyaan tambahan atau memilih opsi "> 5" yang baru ada setelah revisi. Kolom pertanyaan yang sudah dihapus dari formulir diabaikan (masuk daftar kolom tak terpakai). Bila sebuah butir opsional cocok dengan dua kolom setara, butir itu dilewati dan dilaporkan, bukan menghentikan proses.
+
 ### 3.2 Pembersihan
 
-- **Data pribadi dibuang:** *timestamp*, tanggal lahir, nama sekolah, sumber informasi, nama teman, dan email. Pembuangan terjadi segera setelah usia dihitung. Setiap baris diberi ID anonim `R0001…`.
+- **Data pribadi dibuang:** *timestamp*, tanggal lahir, nama sekolah, sumber informasi, nama teman, email, dan jawaban esai kondisi saat bangun tidur (teks bebas dapat memuat nama). Pembuangan terjadi segera setelah usia dihitung. Setiap baris diberi ID anonim `R0001…`.
 - **Duplikat:** baris dengan jawaban identik dibuang.
 - **Rentang:** nilai rapor di luar 0–100 dan jam di luar rentang pertanyaan dikosongkan.
 - **Jawaban tak dikenal** dihitung dan dicontohkan di laporan privat agar pemetaan dapat diperbaiki.
@@ -58,9 +60,9 @@ Ekspor Google Form memakai judul pertanyaan sebagai nama kolom. Pertanyaan grid 
 | Jenis jawaban | Contoh | Menjadi |
 |---|---|---|
 | Rentang jam | "Dibawah 30 menit", "1 jam 30 menit", "12 jam" | 0,25 · 1,5 · 12 |
-| Likert frekuensi | Tidak pernah … Sangat sering | 1 … 5 |
+| Likert frekuensi | Tidak pernah … Sangat sering (atau … Selalu) | 1 … 5 |
 | Likert persetujuan | Sangat tidak setuju … Sangat setuju | 1 … 5 |
-| Ordinal 4 tingkat | Tidak pernah / 1 kali / 2-3 kali / 4-5 kali | 1 … 4 |
+| Ordinal 5 tingkat | Tidak pernah / 1 kali / 2-3 kali / 4-5 kali / > 5 kali | 1 … 5 (versi lama tidak punya tingkat 5) |
 | Hari olahraga | 0 / 1-2 / 3-4 / 5-6 / 7 hari | 0 · 1,5 · 3,5 · 5,5 · 7 (titik tengah) |
 | Jenis kelamin | Laki-laki / Perempuan | Male / Female |
 
@@ -76,16 +78,27 @@ Agar model Kaggle dapat dipakai dan dilatih ulang, jawaban kuesioner diubah ke r
 | gender | jenis kelamin |
 | study_hours_per_day | jam belajar (jam) |
 | academic_performance | nilai rata-rata rapor |
-| exam_pressure | 1 + (tertekan ujian − 1) × 9/4 → 1–10 |
+| exam_pressure | 1 + 9 × rata-rata unit(tertekan ujian, nilai di bawah target ᴿ) → 1–10 |
 | stress_level | 10 × rata-rata unit(tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut malam) |
 | sleep_hours | durasi tidur (jam) |
 | physical_activity | hari olahraga per minggu |
 | financial_stress | 10 × (5 − uang saku cukup) / 4 (dibalik) |
-| family_expectation | 10 × rata-rata unit(takut mengecewakan orang tua, tuntutan nilai keluarga) |
+| family_expectation | 10 × rata-rata unit(takut mengecewakan orang tua, tuntutan nilai keluarga, 1 − unit(mampu bercerita ke keluarga) ᴿ) |
 | burnout_score | 10 × rata-rata unit(sulit membagi waktu, kelelahan, kehilangan minat) |
-| **anxiety_score** (target) | [Σ(P − 1) untuk P01, P02, P04, P05 + (5 − P03)] / 2 → 0–10 |
+| **anxiety_score** (target) | 10 × rata-rata unit(P01, P02, 1 − unit(P03), P04, P05, P06 ᴿ, P07 ᴿ) → 0–10 |
+| x_sleep_quality (tambahan) | 10 × rata-rata unit(sulit tertidur, terbangun lalu sulit tidur lagi, mimpi buruk/gelisah) ᴿ |
 
-Lima butir Psikologis (P01–P05) hanya membentuk target dan **tidak pernah** menjadi fitur, sehingga tidak ada *label leakage*. Rumus diuji otomatis di `tests/test_gform.py`.
+ᴿ = butir yang hanya ada di formulir revisi. Rata-rata diambil dari butir yang dijawab baris tersebut, sehingga pada baris versi lama rumus kembali ke rumus awal, misalnya anxiety_score = [Σ(P − 1) untuk P01, P02, P04, P05 + (5 − P03)] / 2. Target membutuhkan kelima butir P01–P05; P06–P07 ikut bila dijawab. Opsi "4-5 kali" bernilai tingkat 4 dari 5 (0,75) pada kedua versi, jadi label yang sama selalu bernilai sama.
+
+Butir Psikologis (P01–P07) hanya membentuk target dan **tidak pernah** menjadi fitur, sehingga tidak ada *label leakage*. Rumus diuji otomatis di `tests/test_gform.py`.
+
+### 3.4.1 Pemeriksaan penggabungan dua versi
+
+Laporan kualitas (`inspect_gform.py`, laporan privat pelatihan) memuat:
+
+- **Jumlah baris per versi** (`rows_by_form_version`) dan jumlah jawaban "> 5" (`answers_above_original_max`).
+- **Reliabilitas** (*Cronbach's alpha*) setiap skor gabungan, untuk semua butir dan untuk butir versi lama saja. Alpha ≥ 0,6 dianggap cukup. Bila butir tambahan menurunkan alpha suatu skor, keluarkan butir itu dari `COMPOSITES` di `spk/gform.py`.
+- **Kesetaraan versi** (`item_set_check`): pada baris revisi, korelasi *r* dan selisih rata-rata (*shift*) antara skor dari butir lama dan skor dari semua butir. *r* tinggi (≥ 0,8) dan *shift* kecil (< 0,5 poin) berarti baris lama dan baru aman digabung.
 
 ### 3.5 Imputasi
 
@@ -93,7 +106,8 @@ Fitur yang kosong diisi median data kuesioner. Untuk gender, dipakai modus. Nila
 
 ### 3.6 Pembagian data
 
-- **80% pengembangan dan 20% holdout** (`random_state=42`) bila respons ≥ 30.
+- **80% pengembangan dan 20% holdout** (`random_state=42`) bila respons ≥ 30, distratifikasi menurut versi formulir agar proporsi baris lama dan baru sama di kedua bagian. Laporan menampilkan galat holdout per versi.
+- Butir tambahan (`x_…`) yang kosong pada baris versi lama tidak diimputasi untuk model laporan S4; Random Forest menangani nilai kosong secara langsung, sehingga baris lama tidak tampak "rata-rata".
 - Pada data pengembangan dijalankan ***repeated k-fold cross-validation*** (5 lipatan × 2 ulangan) untuk memilih strategi pelatihan ulang (Fase 4).
 - Model akhir dilatih ulang pada seluruh respons dengan strategi terpilih.
 
