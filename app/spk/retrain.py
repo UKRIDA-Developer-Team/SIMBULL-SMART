@@ -65,8 +65,9 @@ def fit(name: str, base, X_real: pd.DataFrame, y_real: pd.Series,
 
 
 def _extended_frame(df: pd.DataFrame, extras: list[str]) -> pd.DataFrame:
-    X = encode_gender(df[config.FEATURES]).join(df[extras])
-    return X.fillna(X.median(numeric_only=True))
+    # Extras stay NaN where a row never saw the question (original-form rows lack the revised
+    # items). The forest routes missing values itself; a median would make those rows look average.
+    return encode_gender(df[config.FEATURES]).join(df[extras])
 
 
 def cross_validate(base, dev: pd.DataFrame, X_kaggle, y_kaggle, n_repeats: int = 2,
@@ -124,9 +125,26 @@ def feature_stats(df: pd.DataFrame, cols: list[str]) -> dict:
     return stats
 
 
+def group_errors(hold: pd.DataFrame, pred, groups: pd.Series) -> dict:
+    """Holdout error per group; groups smaller than SUPPRESS_BELOW are hidden."""
+    err = (hold[config.TARGET] - pred).abs()
+    pred = pd.Series(pred, index=hold.index)
+    out = {}
+    for g, idx in hold.groupby(groups).groups.items():
+        n = len(idx)
+        out[str(g)] = ({"n": n, "mae": float(err.loc[idx].mean()), "mean_pred": float(pred.loc[idx].mean()),
+                        "mean_actual": float(hold.loc[idx, config.TARGET].mean())}
+                       if n >= config.SUPPRESS_BELOW else {"n": f"<{config.SUPPRESS_BELOW}"})
+    return out
+
+
 def run(real: pd.DataFrame, kaggle: pd.DataFrame, base, base_meta: dict, quality: dict,
-        holdout_frac: float = 0.2, log=print):
-    """Full experiment. Returns (final_model, metadata, summary)."""
+        holdout_frac: float = 0.2, log=print, strata: pd.Series | None = None):
+    """Full experiment. Returns (final_model, metadata, summary).
+
+    strata (respondent_id -> form version) keeps original and revised rows in the same
+    proportion in the development and holdout parts.
+    """
     real = real.dropna(subset=[config.TARGET]).copy()
     from .gform import feature_medians, impute
     medians = feature_medians(real)
@@ -138,7 +156,11 @@ def run(real: pd.DataFrame, kaggle: pd.DataFrame, base, base_meta: dict, quality
 
     use_holdout = len(real) >= 30
     if use_holdout:
-        dev, hold = train_test_split(real, test_size=holdout_frac, random_state=config.RANDOM_STATE)
+        groups = strata.reindex(real.index) if strata is not None else None
+        counts = groups.value_counts() if groups is not None else pd.Series(dtype=int)
+        stratify = groups if len(counts) > 1 and counts.min() >= 2 and groups.notna().all() else None
+        dev, hold = train_test_split(real, test_size=holdout_frac, random_state=config.RANDOM_STATE,
+                                     stratify=stratify)
     else:
         dev, hold = real, real.iloc[0:0]
     log(f"Real rows: {len(real)} (dev {len(dev)}, holdout {len(hold)})")
@@ -148,20 +170,16 @@ def run(real: pd.DataFrame, kaggle: pd.DataFrame, base, base_meta: dict, quality
     chosen = select(scores)
     log(f"Selected: {chosen}")
 
-    fairness = {}
+    fairness, by_version = {}, {}
     if use_holdout:
         for name in STRATEGIES:
             m = fit(name, base, dev[config.FEATURES], dev[config.TARGET], X_kaggle, y_kaggle)
             pred = predict(m, hold[config.FEATURES])
             scores[name].update({f"holdout_{k}": v for k, v in metrics(hold[config.TARGET], pred).items()})
             if name == chosen:
-                err = (hold[config.TARGET] - pred).abs()
-                for g, idx in hold.groupby("gender").groups.items():
-                    n = len(idx)
-                    fairness[str(g)] = ({"n": n, "mae": float(err.loc[idx].mean()),
-                                         "mean_pred": float(pd.Series(pred, index=hold.index).loc[idx].mean()),
-                                         "mean_actual": float(hold.loc[idx, config.TARGET].mean())}
-                                        if n >= config.SUPPRESS_BELOW else {"n": f"<{config.SUPPRESS_BELOW}"})
+                fairness = group_errors(hold, pred, hold["gender"])
+                if strata is not None:
+                    by_version = group_errors(hold, pred, strata.reindex(hold.index))
 
     final = fit(chosen, base, real[config.FEATURES], real[config.TARGET], X_kaggle, y_kaggle)
 
@@ -211,6 +229,7 @@ def run(real: pd.DataFrame, kaggle: pd.DataFrame, base, base_meta: dict, quality
         "feature_stats": feature_stats(real, config.FEATURES[:1] + config.FEATURES[2:] + [config.TARGET] + extras),
         "correlation": real[corr_cols].apply(pd.to_numeric, errors="coerce").corr().round(3).to_dict(),
         "fairness_holdout": fairness,
+        "holdout_by_form_version": by_version,
         "feature_importance": dict(zip(config.FEATURES, map(float, final.feature_importances_))),
     }
     return final, metadata, summary

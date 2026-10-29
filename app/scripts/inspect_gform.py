@@ -31,9 +31,12 @@ def main():
     print("Resolved fields:")
     for name in mapping["fields"]:
         spec = mapping["fields"][name]
-        tag = "PII " if spec.get("pii") else ("TGT " if spec.get("target") else ("xtra" if spec.get("extra") else "core"))
+        extra = spec.get("extra") or name in gform.COMPOSITES["sleep_quality"]   # -> x_sleep_quality
+        tag = "PII " if spec.get("pii") else ("TGT " if spec.get("target") else ("xtra" if extra else "core"))
+        tag += "+rev" if spec.get("new_form") else "    "
         header = res.columns.get(name, "-")
         print(f"  [{tag}] {name:18s} <- {header}")
+    print("  (+rev = added in the revised form; empty for rows answered on the original form)")
 
     if res.missing:
         print("\nMISSING required fields (set 'header' for them in spk/gform_mapping.json):")
@@ -42,6 +45,10 @@ def main():
     if res.ambiguous:
         print("\nAMBIGUOUS fields (several columns fit; set 'header'):")
         for name, cands in res.ambiguous.items():
+            print(f"  {name}: {cands}")
+    if res.skipped:
+        print("\nSKIPPED optional fields (several columns fit; set 'header' to use them):")
+        for name, cands in res.skipped.items():
             print(f"  {name}: {cands}")
     if res.unused:
         print("\nColumns no field uses:")
@@ -59,7 +66,7 @@ def main():
     print(prepared.data[cols].describe().T[["count", "mean", "min", "max"]].round(2).to_string())
 
     if args.clean:
-        prepared.data.to_csv(args.clean)
+        prepared.data.assign(form_version=prepared.form_version).to_csv(args.clean)
         print(f"\nClean (no PII) -> {args.clean}")
 
 

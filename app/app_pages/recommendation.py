@@ -30,12 +30,31 @@ def stable_radio(label, options, state, fmt, **kw):
     return value
 
 
-# ---------------------------------------------------------------- one student
-def scale_input(field: str, scale: str, default: int, container=st):
-    options = SCALES[scale]
-    return container.select_slider(
-        i18n.question(field, L), options=list(range(1, len(options) + 1)), value=default,
-        format_func=lambda i: i18n.option_label(scale, i - 1, options[i - 1], L), key=f"q_{field}_{L}")
+def edit_answers():
+    st.session_state["reco_step"] = "form"
+
+
+def new_assessment():
+    for k in [k for k in st.session_state if k.startswith(("q_", "a_"))] + ["assess_features"]:
+        del st.session_state[k]
+    st.session_state["reco_step"] = "form"
+
+
+def q_section(n: int, title: str, hint: str | None = None):
+    """A numbered card that groups related questions."""
+    box = st.container(border=True, key=f"card_q{n}")
+    hint_html = f"<p class='spk-q-hint'>{html.escape(hint)}</p>" if hint else ""
+    box.html(f"<div class='spk-q-head'><span class='spk-step'>{n}</span>"
+             f"<div><p class='spk-q-title'>{html.escape(title)}</p>{hint_html}</div></div>")
+    return box
+
+
+def scale_input(field: str, scale: str, default: int, container):
+    options = gform.scale_labels(SCALES[scale])
+    return container.radio(
+        i18n.question(field, L), options=list(range(1, len(options) + 1)), index=default - 1, horizontal=True,
+        format_func=lambda i: i18n.option_label(scale, i - 1, options[i - 1], L), key=f"q_{field}_{L}",
+        persist_state="session")
 
 
 def questionnaire_form():
@@ -53,18 +72,20 @@ def questionnaire_form():
         c1, c2 = st.columns(2)
         f = {"gender": gender, "age": age}
         f["study_hours"] = c1.select_slider(i18n.question("study_hours", L), hours, value=2.0, key=f"q_study_{L}",
-                                            format_func=lambda h: i18n.hours_label(h, L))
-        f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, 82.0, 0.5, key=f"q_grade_{L}")
-        f["late_night"] = scale_input("late_night", "late_night4", 2, c1)
-        f["time_insufficient"] = scale_input("time_insufficient", "insufficient4", 2, c2)
-        f["late_tasks"] = scale_input("late_tasks", "late_tasks4", 1, c1)
+                                            format_func=lambda h: i18n.hours_label(h, L), persist_state="session")
+        f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, 82.0, 0.5,
+                                            key=f"q_grade_{L}", persist_state="session")
+        f["late_night"] = scale_input("late_night", "late_night5", 2, box)
+        f["time_insufficient"] = scale_input("time_insufficient", "insufficient4", 2, box)
+        f["late_tasks"] = scale_input("late_tasks", "late_tasks5", 1, box)
+        f["below_target"] = scale_input("below_target", "freq5a", 2, box)
 
-        st.markdown(f"**{ui.T('sec_q_pressure')}**")
-        c1, c2 = st.columns(2)
-        f["many_tasks"] = scale_input("many_tasks", "freq5", 3, c1)
-        f["exam_stress"] = scale_input("exam_stress", "freq5", 3, c2)
-        f["fear_parents"] = scale_input("fear_parents", "freq5", 3, c1)
-        f["family_demand"] = scale_input("family_demand", "freq5", 3, c2)
+        box = q_section(3, T("sec_q_pressure"), T("sec_q_pressure_hint"))
+        f["many_tasks"] = scale_input("many_tasks", "freq5", 3, box)
+        f["exam_stress"] = scale_input("exam_stress", "freq5", 3, box)
+        f["fear_parents"] = scale_input("fear_parents", "freq5", 3, box)
+        f["family_demand"] = scale_input("family_demand", "freq5", 3, box)
+        f["family_talk"] = scale_input("family_talk", "agree5", 4, box)
 
         st.markdown(f"**{ui.T('sec_q_life')}**")
         c1, c2 = st.columns(2)
@@ -212,7 +233,8 @@ def load_batch(upload):
         missing = data.validate_columns(raw)
         raise ValueError(ui.T("batch_missing_cols", cols=missing, need=config.FEATURES)) from err
     dropped = prepared.report["pii_columns_dropped"]
-    note = ui.T("batch_detected_gform", n=len(prepared.data), k=len(dropped), cols=", ".join(dropped))
+    short = [h if len(h) <= 40 else h[:39] + "…" for h in dropped]   # the essay title is long
+    note = T("batch_detected_gform", n=len(prepared.data), k=len(dropped), cols=", ".join(short))
     frame = prepared.data.drop(columns=[c for c in prepared.data if c.startswith("x_")])
     frame.index.name = "student_id"
     return frame, note

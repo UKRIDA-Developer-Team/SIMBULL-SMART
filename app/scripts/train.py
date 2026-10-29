@@ -87,6 +87,10 @@ def write_report(path: Path, metadata: dict, summary: dict, quality: dict):
         "",
         "```json", json.dumps(summary["fairness_holdout"], indent=2), "```",
         "",
+        "## Holdout by form version (original vs revised questionnaire)",
+        "",
+        "```json", json.dumps(summary["holdout_by_form_version"], indent=2), "```",
+        "",
         "## Data quality",
         "",
         "```json", json.dumps(quality, indent=2, ensure_ascii=False, default=str), "```",
@@ -104,7 +108,8 @@ def stage_real(args):
 
     base, base_meta = model.load_base()
     kaggle = data.load_dataset()
-    final, metadata, summary = retrain.run(prepared.data, kaggle, base, base_meta, prepared.report)
+    final, metadata, summary = retrain.run(prepared.data, kaggle, base, base_meta, prepared.report,
+                                           strata=prepared.form_version)
 
     if args.dry_run:
         print("Dry run: nothing saved.")

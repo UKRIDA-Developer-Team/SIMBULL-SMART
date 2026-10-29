@@ -1,22 +1,29 @@
 {
   "_doc": [
-    "Maps a Google Form export (questionnaire in context.pdf) to named fields.",
+    "Maps a Google Form export to named fields. Covers both versions of the form: the original",
+    "questionnaire (context_ori.pdf) and the revised one (context_new.pdf, minus the removed items).",
+    "Both versions are the same Google Form, so one export can hold rows answered on either version.",
     "Each field is found by 'header' (exact column name, set this if matching fails) or by 'match':",
-    "a list of lowercase substrings; a column matches when it contains any of them.",
+    "a list of lowercase substrings; the first substring that finds a column wins.",
     "If several columns match, the one whose answers parse best is used (titles are reused in the form).",
+    "'new_form': true marks questions added in the revised form. They are optional: rows answered on",
+    "the original form leave them empty, and composites average whichever items a row has.",
+    "'reverse': true marks items scored in the opposite direction inside their composite.",
+    "A scale option may be a list of labels that share one level; the first label is the display text.",
     "Answer text is matched case-insensitively; a leading list number like '3.' is ignored.",
     "Run scripts/inspect_gform.py <export.csv> to see which column each field resolved to."
   ],
   "date_dayfirst": true,
   "scales": {
     "freq5": ["Tidak pernah", "Jarang", "Kadang-kadang", "Sering", "Sangat sering"],
+    "freq5a": ["Tidak pernah", "Jarang", "Kadang-kadang", "Sering", ["Selalu", "Sangat sering"]],
     "agree5": ["Sangat tidak setuju", "Tidak setuju", "Netral", "Setuju", "Sangat setuju"],
     "psych5": ["Tidak pernah", "Pernah", "Kadang-kadang", "Sering", "Sangat sering"],
     "jajan5": ["Tidak pernah", "Pernah", "Netral", "Sering", "Sangat sering"],
     "phys5": ["Sangat Jarang/Tidak Pernah", "Jarang", "Netral", "Sering", "Sangat Sering"],
-    "late_night4": ["Tidak pernah", "1 kali", "2-3 kali", "4-5 kali"],
+    "late_night5": ["Tidak pernah", "1 kali", "2-3 kali", "4-5 kali", ">5 kali"],
     "insufficient4": ["Tidak pernah", "Jarang", "Kadang-kadang", "Sering"],
-    "late_tasks4": ["Tidak pernah", "1", "2-3", "4-5"],
+    "late_tasks5": ["Tidak pernah", "1", "2-3", "4-5", "> 5"],
     "bedtime5": ["Sebelum 21.00 WIB", "21.00-21.59 WIB", "22.00-22.59 WIB", "23.00-23.59 WIB", "00.00 atau lebih"],
     "socmed5": ["< 1 jam", "1-2 jam", "2-3 jam", "3-4 jam", "> 4 jam"],
     "attendance5": ["< 80%", "80-84%", "85-89%", "90-94%", "95-100%"]
@@ -24,11 +31,12 @@
   "value_maps": {
     "gender": {"Laki-laki (Male)": "Male", "Laki-laki": "Male", "Male": "Male", "Perempuan (Female)": "Female", "Perempuan": "Female", "Female": "Female"},
     "exercise_days": {"0 hari": 0, "1-2 hari": 1.5, "3-4 hari": 3.5, "5-6 hari": 5.5, "7 hari": 7},
-    "competitions": {"Tidak pernah": 0, "1 kali": 1, "2-3 kali": 2.5, "4-5 kali": 4.5}
+    "competitions": {"Tidak pernah": 0, "1 kali": 1, "2-3 kali": 2.5, "4-5 kali": 4.5},
+    "hours_band": {"< 1 jam": 0.5, "1-2 jam": 1.5, "2-3 jam": 2.5, "3-4 jam": 3.5, "> 4 jam": 4.5}
   },
   "fields": {
     "timestamp":        {"kind": "datetime", "pii": true, "optional": true, "match": ["timestamp", "stempel waktu", "cap waktu"]},
-    "email":            {"kind": "text", "pii": true, "optional": true, "match": ["email address", "alamat email"]},
+    "email":            {"kind": "text", "pii": true, "optional": true, "match": ["email address", "alamat email", "email"]},
     "gender":           {"kind": "map", "map": "gender", "match": ["jenis kelamin"]},
     "birth_date":       {"kind": "date", "pii": true, "match": ["tanggal lahir"]},
     "school":           {"kind": "text", "pii": true, "optional": true, "match": ["nama sekolah"]},
@@ -36,15 +44,17 @@
     "friend_name":      {"kind": "text", "pii": true, "optional": true, "match": ["teman (word of mouth)", "nama teman"]},
 
     "study_hours":      {"kind": "hours", "range": [0, 12], "match": ["estimasi jam belajar", "jam belajar per hari"]},
-    "late_night":       {"kind": "scale", "scale": "late_night4", "match": ["belajar sampai larut malam", "jam belajar per hari"]},
+    "late_night":       {"kind": "scale", "scale": "late_night5", "match": ["belajar sampai larut malam", "jam belajar per hari"]},
     "time_insufficient":{"kind": "scale", "scale": "insufficient4", "match": ["waktu belajar anda tidak cukup", "target pengumpulan tugas"]},
-    "late_tasks":       {"kind": "scale", "scale": "late_tasks4", "match": ["tugas yang terlambat", "target pengumpulan tugas"]},
+    "late_tasks":       {"kind": "scale", "scale": "late_tasks5", "match": ["tugas yang terlambat", "target pengumpulan tugas"]},
     "sleep_duration":   {"kind": "hours", "range": [4, 12], "match": ["durasi tidur malam", "jam tidur setiap malam"]},
     "report_grade":     {"kind": "number", "range": [0, 100], "match": ["nilai rata-rata rapor", "rapor"]},
+    "below_target":     {"kind": "scale", "scale": "freq5a", "new_form": true, "optional": true, "match": ["nilai di bawah yang kamu targetkan", "di bawah yang kamu targetkan"]},
     "many_tasks":       {"kind": "scale", "scale": "freq5", "match": ["terlalu banyak tugas sekolah"]},
     "exam_stress":      {"kind": "scale", "scale": "freq5", "match": ["tertekan karena ujian"]},
     "fear_parents":     {"kind": "scale", "scale": "freq5", "match": ["takut mengecewakan orang tua"]},
     "family_demand":    {"kind": "scale", "scale": "freq5", "match": ["menuntut saya untuk mendapatkan nilai"]},
+    "family_talk":      {"kind": "scale", "scale": "agree5", "new_form": true, "optional": true, "reverse": true, "match": ["membicarakan kesulitan"]},
     "exercise_days":    {"kind": "map", "map": "exercise_days", "match": ["berapa hari anda melakukan aktivitas fisik"]},
     "pocket_money":     {"kind": "scale", "scale": "jajan5", "match": ["uang saku yang cukup"]},
     "time_split":       {"kind": "scale", "scale": "agree5", "match": ["kesulitan membagi waktu"]},
@@ -56,13 +66,19 @@
     "p3_focus":         {"kind": "scale", "scale": "psych5", "target": true, "reverse": true, "match": ["anda berkonsentrasi ketika mengikuti pelajaran"]},
     "p4_distracted":    {"kind": "scale", "scale": "psych5", "target": true, "match": ["terganggu oleh masalah pribadi"]},
     "p5_hard_finish":   {"kind": "scale", "scale": "psych5", "target": true, "match": ["kesulitan menyelesaikan tugas karena sulit berkonsentrasi"]},
+    "p6_irritable":     {"kind": "scale", "scale": "psych5", "target": true, "new_form": true, "optional": true, "match": ["mudah tersinggung"]},
+    "p7_avoid":         {"kind": "scale", "scale": "psych5", "target": true, "new_form": true, "optional": true, "match": ["kecemasan membuatmu menghindari", "menghindari kegiatan"]},
 
     "bedtime":          {"kind": "scale", "scale": "bedtime5", "extra": true, "match": ["pukul berapa anda tidur", "kebiasaan tidur di hari sekolah"]},
     "lack_sleep":       {"kind": "scale", "scale": "freq5", "extra": true, "match": ["merasa kurang tidur"]},
     "sleepy_class":     {"kind": "scale", "scale": "freq5", "extra": true, "match": ["mengantuk saat mengikuti pelajaran"]},
+    "sleep_onset":      {"kind": "scale", "scale": "freq5a", "new_form": true, "optional": true, "match": ["sulit tertidur"]},
+    "night_waking":     {"kind": "scale", "scale": "freq5a", "new_form": true, "optional": true, "match": ["lalu sulit tidur kembali", "sulit tidur kembali"]},
+    "sleep_restless":   {"kind": "scale", "scale": "freq5a", "new_form": true, "optional": true, "match": ["mimpi buruk"]},
     "socmed_hours":     {"kind": "scale", "scale": "socmed5", "extra": true, "match": ["jam per hari anda menggunakan media sosial"]},
     "socmed_study":     {"kind": "scale", "scale": "freq5", "extra": true, "match": ["media sosial ketika seharusnya sedang belajar"]},
     "socmed_bed":       {"kind": "scale", "scale": "freq5", "extra": true, "match": ["media sosial sebelum tidur"]},
+    "free_time":        {"kind": "map", "map": "hours_band", "extra": true, "new_form": true, "match": ["waktu bebas"]},
     "attendance":       {"kind": "scale", "scale": "attendance5", "extra": true, "match": ["persentase kehadiran"]},
     "exercise_minutes": {"kind": "number", "range": [0, 300], "extra": true, "match": ["berapa menit anda melakukan aktivitas fisik"]},
     "light_activity":   {"kind": "scale", "scale": "phys5", "extra": true, "match": ["aktivitas fisik ringan-sedang"]},
@@ -81,6 +97,7 @@
     "buy_caffeine":     {"kind": "scale", "scale": "jajan5", "extra": true, "match": ["minuman berkafein"]},
     "stress_food":      {"kind": "scale", "scale": "jajan5", "extra": true, "match": ["memilih makanan/minuman tertentu"]},
     "calm_food":        {"kind": "scale", "scale": "jajan5", "extra": true, "match": ["lebih tenang setelah membeli"]},
-    "skip_meal":        {"kind": "scale", "scale": "jajan5", "extra": true, "match": ["melewatkan waktu makan"]}
+    "skip_meal":        {"kind": "scale", "scale": "jajan5", "extra": true, "match": ["melewatkan waktu makan"]},
+    "wake_note":        {"kind": "text", "pii": true, "optional": true, "new_form": true, "match": ["ketika anda terbangun dari tidur"]}
   }
 }
