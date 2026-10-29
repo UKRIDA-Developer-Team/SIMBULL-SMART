@@ -50,7 +50,7 @@ def q_section(n: int, title: str, hint: str | None = None):
 
 
 def scale_input(field: str, scale: str, default: int, container):
-    options = SCALES[scale]
+    options = gform.scale_labels(SCALES[scale])
     return container.radio(
         i18n.question(field, L), options=list(range(1, len(options) + 1)), index=default - 1, horizontal=True,
         format_func=lambda i: i18n.option_label(scale, i - 1, options[i - 1], L), key=f"q_{field}_{L}",
@@ -77,15 +77,17 @@ def questionnaire_form():
                                             format_func=lambda h: i18n.hours_label(h, L), persist_state="session")
         f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, 82.0, 0.5,
                                             key=f"q_grade_{L}", persist_state="session")
-        f["late_night"] = scale_input("late_night", "late_night4", 2, box)
+        f["late_night"] = scale_input("late_night", "late_night5", 2, box)
         f["time_insufficient"] = scale_input("time_insufficient", "insufficient4", 2, box)
-        f["late_tasks"] = scale_input("late_tasks", "late_tasks4", 1, box)
+        f["late_tasks"] = scale_input("late_tasks", "late_tasks5", 1, box)
+        f["below_target"] = scale_input("below_target", "freq5a", 2, box)
 
         box = q_section(3, T("sec_q_pressure"), T("sec_q_pressure_hint"))
         f["many_tasks"] = scale_input("many_tasks", "freq5", 3, box)
         f["exam_stress"] = scale_input("exam_stress", "freq5", 3, box)
         f["fear_parents"] = scale_input("fear_parents", "freq5", 3, box)
         f["family_demand"] = scale_input("family_demand", "freq5", 3, box)
+        f["family_talk"] = scale_input("family_talk", "agree5", 4, box)
 
         box = q_section(4, T("sec_q_life"), T("sec_q_life_hint"))
         f["sleep_duration"] = box.select_slider(i18n.question("sleep_duration", L), sleep, value=7.0, key=f"q_sleep_{L}",
@@ -273,7 +275,8 @@ def load_batch(upload):
         missing = data.validate_columns(raw)
         raise ValueError(T("batch_missing_cols", cols=missing, need=config.FEATURES)) from err
     dropped = prepared.report["pii_columns_dropped"]
-    note = T("batch_detected_gform", n=len(prepared.data), k=len(dropped), cols=", ".join(dropped))
+    short = [h if len(h) <= 40 else h[:39] + "…" for h in dropped]   # the essay title is long
+    note = T("batch_detected_gform", n=len(prepared.data), k=len(dropped), cols=", ".join(short))
     frame = prepared.data.drop(columns=[c for c in prepared.data if c.startswith("x_")])
     frame.index.name = "student_id"
     return frame, note
