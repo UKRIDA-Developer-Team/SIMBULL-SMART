@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 import ui
-from spk import config, data, explain, gform, i18n, model, recommend
+from spk import config, data, explain, gform, i18n, model, recommend, xai
 from spk import plots
 
 L = ui.lang()
@@ -182,6 +182,92 @@ def hero_html(a) -> str:
 </div>"""
 
 
+# ---------------------------------------------------------------- explainable AI
+def _num(feature: str, value) -> str:
+    return f"{float(value):.0f}" if feature in ("age", "academic_performance") else f"{float(value):.1f}"
+
+
+def chain_html(a, expl) -> str:
+    """Stage 1 (RF) -> stage 2 (SMART) -> result, as three linked boxes."""
+    steps = [
+        (T("xai_chain_rf"), T("xai_chain_rf_d", pred=expl.prediction)),
+        (T("xai_chain_smart"), T("xai_chain_smart_d")),
+        (T("xai_chain_out"), T("xai_chain_out_d", alt=i18n.alt(a.best, L), score=float(a.ranking.iloc[0]))),
+    ]
+    boxes = [f"<div class='spk-chain-step'><p class='spk-chain-label'>{html.escape(t)}</p>"
+             f"<p class='spk-chain-value'>{html.escape(d)}</p></div>" for t, d in steps]
+    arrow = "<span class='spk-icon spk-chain-arrow'>arrow_forward</span>"
+    return f"<div class='spk-chain'>{arrow.join(boxes)}</div>"
+
+
+def what_if_view(features: dict, key: str):
+    rf, meta = ui.load_active()
+    st.caption(T("xai_whatif_lead", n=f"{len(ui.load_reference()):,}"))
+    cf = xai.counterfactuals(rf, meta, features, ui.weights(), ui.xai_targets())
+    if len(cf) == 1:
+        st.success(T("xai_whatif_none"), icon=":material/check_circle:")
+    else:
+        rows = []
+        for label, r in cf.iterrows():
+            if label == "current":
+                name = T("xai_current")
+            elif label == "all":
+                name = T("xai_all")
+            else:
+                name = f"{i18n.feature(label, L)}: {_num(label, r['from'])} → {_num(label, r['to'])}"
+            first = label == "current"
+            rows.append({
+                T("xai_scenario"): name,
+                T("xai_pred_col"): f"{r['prediction']:.2f}" + ("" if first else f" ({r['delta_prediction']:+.2f})"),
+                T("xai_prio_col"): f"{r['priority']:.3f}" + ("" if first else f" ({r['delta_priority']:+.3f})"),
+                T("xai_best_col"): i18n.alt(r["best"], L) + (f" · {T('xai_changed')}" if r["best_changed"] else ""),
+            })
+        table = pd.DataFrame(rows).set_index(T("xai_scenario"))
+        changed = cf["best_changed"].to_numpy()
+        st.table(table.style.apply(lambda frame: pd.DataFrame(
+            [["background-color: #FBEAD2" if c else ""] * frame.shape[1] for c in changed],
+            index=frame.index, columns=frame.columns), axis=None))
+    st.caption(T("xai_whatif_note"))
+
+    st.markdown(f"**{T('xai_try')}**")
+    c1, c2 = st.columns([1, 1.6], gap="medium")
+    feat = c1.selectbox(T("xai_try_feature"), list(xai.ACTIONABLE), key=f"wi_feat_{key}_{L}",
+                        format_func=lambda f: i18n.feature(f, L))
+    lo, hi, _ = config.INPUT_RANGES[feat]
+    current = min(max(float(features[feat]), float(lo)), float(hi))
+    value = c2.slider(T("xai_try_value"), float(lo), float(hi), round(current, 1), 0.1, key=f"wi_val_{key}_{feat}")
+    r = xai.what_if(rf, meta, features, ui.weights(), [("try", {feat: value})]).loc["try"]
+    m = st.columns(3, gap="small")
+    moved = value != round(current, 1)
+    m[0].metric(T("xai_pred_col"), f"{r['prediction']:.2f}", f"{r['delta_prediction']:+.2f}" if moved else None,
+                delta_color="inverse", border=True)
+    m[1].metric(T("xai_prio_col"), f"{r['priority']:.3f}", f"{r['delta_priority']:+.3f}" if moved else None,
+                delta_color="inverse", border=True)
+    m[2].metric(T("xai_best_col"), i18n.alt(r["best"], L), T("xai_changed") if r["best_changed"] else None,
+                delta_color="off", border=True)
+
+
+def xai_panel(a, features: dict, key: str):
+    """The explainable-AI card: RF prediction (Shapley), RF -> SMART chain, and what-if scenarios."""
+    expl = ui.shap_explanation(features)
+    link = xai.smart_link(a)
+    ui.section(T("xai_title"), T("xai_lead"))
+    with st.container(border=True, key=f"card_xai_{key}"):
+        t1, t2, t3 = st.tabs([T("xai_tab_pred"), T("xai_tab_chain"), T("xai_tab_whatif")])
+        with t1:
+            st.markdown("\n".join(f"- {line}" for line in explain.shap_narrative(expl, None, L)))
+            ui.show(plots.shap_waterfall(expl, L))
+            st.caption(T("xai_method", n=len(ui.xai_background())))
+        with t2:
+            st.html(chain_html(a, expl))
+            st.markdown(T("xai_link", c=link["contribution"], alt=i18n.alt(link["alternative"], L),
+                          score=link["score"], share=link["share"]))
+            ui.show(plots.contribution_bars(a.contributions, L))
+            st.caption(T("xai_chain_help"))
+        with t3:
+            what_if_view(features, key)
+
+
 def render_result(features: dict):
     rf, meta = ui.load_active()
     a = recommend.assess(rf, meta, features, ui.weights(), ui.reference_quantiles())
@@ -211,11 +297,11 @@ def render_result(features: dict):
         st.markdown("\n".join(f"- {line}" for line in explain.narrative(a, ui.profile_label(), L)))
 
     st.space("small")
+    xai_panel(a, features, "single")
+
+    st.space("small")
     with st.expander(T("res_details"), icon=":material/calculate:"):
-        t1, t2, t3 = st.tabs([T("res_contrib"), T("res_inputs"), T("res_sens")])
-        with t1:
-            st.caption(T("res_contrib_help"))
-            ui.show(plots.contribution_bars(a.contributions, L))
+        t2, t3 = st.tabs([T("res_inputs"), T("res_sens")])
         with t2:
             table = pd.DataFrame({
                 T("criterion"): [i18n.feature(c, L) for c in config.CRITERIA],
@@ -310,7 +396,7 @@ def batch_view():
     result, utility = ui.score(frame, ui.profile_key(), use_ref)
 
     # Summary first: how many students, how many urgent, what the class needs most.
-    cutoff = ui.reference_quantiles()["rf_anxiety_score"][config.SAFETY_PERCENTILE]
+    cutoff = recommend.cutoff(ui.reference_quantiles()["rf_anxiety_score"])
     urgent = int((result["rf_anxiety_score"] >= cutoff).sum())
     mix = result["Best_Recommendation"].value_counts()
     m = st.columns(4, gap="small")
@@ -349,6 +435,16 @@ def batch_view():
         ui.show(plots.recommendation_mix(result, L))
     with c2.container(border=True, key="card_hist"):
         ui.show(plots.score_histogram(result["smart_score"], L))
+
+    st.space("small")
+    ui.section(T("xai_explain_one"), T("xai_explain_one_help"))
+    ids = list(pd.unique(result.index[:top_n]))
+    sid = st.selectbox(T("xai_pick"), ids, key="xai_pick_batch")
+    feats = frame.loc[[sid], config.FEATURES].iloc[0].to_dict()
+    rf, meta = ui.load_active()
+    one = recommend.assess(rf, meta, feats, ui.weights(), ui.reference_quantiles())
+    st.html(ui.bars([(i18n.alt(alt, L), float(s), f"{s:.3f}") for alt, s in one.ranking.items()]))
+    xai_panel(one, feats, "batch")
 
     with st.expander(T("batch_options"), icon=":material/settings:"):
         st.checkbox(T("batch_bounds"), value=True, key="batch_use_ref")

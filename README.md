@@ -4,7 +4,7 @@ Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random
 
 | Path | Contents |
 |---|---|
-| `app/` | Streamlit app (bilingual ID/EN), training and retraining scripts, tests. See [app/README.md](app/README.md) |
+| `app/` | Streamlit app (bilingual ID/EN) with explainable-AI results and a CRISP-DM Data Mining page, training and retraining scripts, black-box and white-box tests. See [app/README.md](app/README.md) and [app/tests/TESTING.md](app/tests/TESTING.md) |
 | `code/` | Original Google Colab notebook |
 | `PPT-Doc_CRISP-DM/` | CRISP-DM phase documents (phases 1-6) matching the built system; weekly decks; `_rancangan-awal/` keeps the first design |
 | `deliverables/laporan-dm/` | Laporan Teknis Data Mining (.docx) |

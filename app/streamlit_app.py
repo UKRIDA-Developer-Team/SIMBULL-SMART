@@ -19,6 +19,7 @@ pages = [
     st.Page("app_pages/home.py", title=ui.T("nav_home"), default=True, url_path="home"),
     st.Page("app_pages/recommendation.py", title=ui.T("nav_reco"), url_path="recommendation"),
     st.Page("app_pages/analysis.py", title=ui.T("nav_analysis"), url_path="analysis"),
+    st.Page("app_pages/data_mining.py", title=ui.T("nav_dm"), url_path="data-mining"),
     st.Page("app_pages/about.py", title=ui.T("nav_about"), url_path="about"),
 ]
 st.navigation(pages, position="top").run()

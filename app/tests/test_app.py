@@ -2,7 +2,8 @@
 import pytest
 from streamlit.testing.v1 import AppTest
 
-PAGES = ["app_pages/home.py", "app_pages/recommendation.py", "app_pages/analysis.py", "app_pages/about.py"]
+PAGES = ["app_pages/home.py", "app_pages/recommendation.py", "app_pages/analysis.py", "app_pages/data_mining.py",
+         "app_pages/about.py"]
 
 
 def run(page: str, lang: str, profile: str = "A", **state) -> AppTest:

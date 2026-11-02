@@ -1,0 +1,147 @@
+{
+  "loop": "CRISP-DM berulang: temuan di fase Evaluation dapat mengembalikan proyek ke Business Understanding untuk iterasi berikutnya.",
+  "phases": [
+    {
+      "name": "Business Understanding",
+      "icon": "flag",
+      "question": "Masalah apa yang diselesaikan, untuk siapa, dan kapan dianggap berhasil?",
+      "steps": [
+        {"t": "Merumuskan masalah", "d": "Deteksi kecemasan masih bergantung pada observasi guru BK: kapasitas terbatas, reaktif, dan subjektif."},
+        {"t": "Tujuan bisnis", "d": "Deteksi dini, menyusun prioritas siswa, dan merekomendasikan penanganan beserta alasannya."},
+        {"t": "Tujuan data mining", "d": "Memprediksi skor kecemasan 0-10 dan menjadikannya kriteria SMART (titik temu DM dan SPK)."},
+        {"t": "Kriteria keberhasilan", "d": "D1-D4 untuk model (misalnya R² ≥ 0,60) dan S1-S4 untuk keputusan (misalnya ≥ 90% stabil)."}
+      ],
+      "decisions": [
+        "Data mining menjawab seberapa tinggi kecemasan dan faktor apa yang dominan; SMART menjawab siapa lebih dulu dan penanganan apa.",
+        "Lima alternatif: tidur, olahraga, strategi belajar, konseling, relaksasi.",
+        "Sistem adalah alat skrining, bukan diagnosis klinis."
+      ],
+      "table": {
+        "title": "Tujuan data mining",
+        "columns": ["Kode", "Tujuan", "Teknik"],
+        "rows": [
+          ["DM-1", "Memprediksi skor kecemasan 0-10", "Regresi Random Forest"],
+          ["DM-2", "Menemukan faktor paling berpengaruh", "Gini, permutasi, Shapley"],
+          ["DM-3", "Menjadikan prediksi kriteria SPK", "Integrasi RF → SMART"],
+          ["DM-4", "Menyesuaikan model dengan siswa SMA", "Latih ulang dengan data kuesioner"]
+        ]
+      },
+      "outputs": ["Dokumen fase 1", "8 kriteria + jenisnya", "5 alternatif"],
+      "code": ["PPT-Doc_CRISP-DM/fase1-business-understanding.md", "app/spk/config.py"]
+    },
+    {
+      "name": "Data Understanding",
+      "icon": "travel_explore",
+      "question": "Data apa yang ada, seberapa baik kualitasnya, dan kolom mana yang berguna?",
+      "steps": [
+        {"t": "Dua sumber data", "d": "Kaggle (1 juta baris mahasiswa, publik) untuk pralatih; kuesioner Google Form siswa SMA (rahasia) untuk latih ulang."},
+        {"t": "Cek kualitas", "d": "Nilai hilang, duplikat, rentang wajar; pada kuesioner juga jawaban tak dikenal dan straight-lining."},
+        {"t": "Analisis korelasi", "d": "Tingkat stres dan kelelahan paling kuat berhubungan dengan skor kecemasan."},
+        {"t": "Seleksi kolom", "d": "Variabel hasil dibuang (label leakage), kolom berkorelasi hampir nol tidak dipakai."}
+      ],
+      "decisions": [
+        "mental_health_index, depression_score, dropout_risk, risk_level adalah hasil, bukan penyebab: dibuang agar tidak terjadi leakage.",
+        "social_support, screen_time, internet_usage hampir tidak berkorelasi: tidak dipakai.",
+        "academic_year tidak berlaku untuk siswa SMA."
+      ],
+      "outputs": ["Kamus data", "Statistik deskriptif", "Keputusan per kolom"],
+      "code": ["app/data/dataset.csv", "app/spk/crispdm.py"]
+    },
+    {
+      "name": "Data Preparation",
+      "icon": "tune",
+      "question": "Bagaimana data mentah menjadi 11 fitur yang siap dipakai model?",
+      "steps": [
+        {"t": "Sampling", "d": "1 juta baris → 20.000 (2%) → 10.000 untuk Random Forest, random_state 42."},
+        {"t": "Encoding", "d": "Gender ke kode tetap (Female 0, Male 1, Other 2); jawaban kuesioner teks → angka."},
+        {"t": "Konstruksi fitur", "d": "Butir kuesioner dipetakan ke 0-1 lalu ke skala fitur Kaggle; butir Psikologis membentuk target."},
+        {"t": "Privasi dan imputasi", "d": "Kolom pribadi dibuang setelah usia dihitung; nilai kosong diisi median data latih."}
+      ],
+      "decisions": [
+        "Butir target (P01-P07) tidak pernah menjadi fitur, sehingga tidak ada label leakage.",
+        "Batas min-maks SMART disimpan dari populasi referensi agar satu siswa pun dapat dinormalisasi.",
+        "Data kuesioner dibagi 80% pengembangan / 20% holdout, distratifikasi per versi formulir."
+      ],
+      "table": {
+        "title": "Konstruksi fitur dari kuesioner",
+        "columns": ["Fitur model", "Dari jawaban"],
+        "rows": [
+          ["study_hours_per_day, sleep_hours", "rentang jam (\"1 jam 30 menit\" → 1,5)"],
+          ["exam_pressure", "tertekan ujian + nilai di bawah target → 1-10"],
+          ["stress_level", "tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut × 10"],
+          ["financial_stress", "kebalikan \"uang saku cukup\" × 10"],
+          ["family_expectation", "takut mengecewakan, tuntutan nilai, (dibalik) bisa bercerita × 10"],
+          ["burnout_score", "sulit membagi waktu, kelelahan, kehilangan minat × 10"],
+          ["anxiety_score (target)", "butir Psikologis P01-P07, konsentrasi dibalik → 0-10"]
+        ]
+      },
+      "outputs": ["dataset.csv (20.000)", "11 fitur + target", "Metadata: smart_bounds, impute_medians"],
+      "code": ["app/spk/data.py", "app/spk/model.py", "app/spk/gform.py", "app/spk/gform_mapping.json"]
+    },
+    {
+      "name": "Modeling",
+      "icon": "model_training",
+      "question": "Algoritma apa yang memprediksi kecemasan, dan bagaimana SMART memutuskan?",
+      "steps": [
+        {"t": "Random Forest", "d": "Regresi 200 pohon: menangkap pola non-linear, tahan outlier, cocok untuk jawaban ordinal."},
+        {"t": "Perbandingan algoritma", "d": "RF setara regresi linear dan gradient boosting, jauh di atas baseline dan pohon tunggal."},
+        {"t": "SMART", "d": "Utilitas min-maks → skor prioritas (rata-rata) dan skor tiap alternatif (bobot × utilitas)."},
+        {"t": "Explainable AI", "d": "Nilai Shapley eksak per siswa, kontrafaktual \"bagaimana jika\", permutasi dan PDP/ICE."}
+      ],
+      "decisions": [
+        "RF dipakai walau regresi linear sedikit lebih akurat di Kaggle (selisih MAE ±0,01): data kuesioner ordinal dan latih ulang butuh warm start.",
+        "Tujuh strategi latih ulang dibandingkan dengan CV 5-fold × 2; MAE terendah yang dideploy.",
+        "Bobot profil A dinormalisasi (bobot Olahraga di notebook berjumlah 1,05)."
+      ],
+      "table": {
+        "title": "Strategi pelatihan ulang (Kaggle → data riil)",
+        "columns": ["Kode", "Strategi"],
+        "rows": [
+          ["S0", "Model Kaggle apa adanya (pembanding)"],
+          ["S1", "RF baru dari data riil saja"],
+          ["S2", "Kaggle + data riil, baris riil berbobot 1 / 10 / 50"],
+          ["S3", "Warm start: +200 / +600 pohon dari data riil"],
+          ["S4", "Data riil + butir tambahan (hanya dilaporkan)"]
+        ]
+      },
+      "outputs": ["rf_anxiety_model.joblib + metadata", "model_comparison.json", "Profil bobot A/B/C"],
+      "code": ["app/scripts/train.py", "app/spk/retrain.py", "app/spk/smart.py", "app/spk/xai.py"]
+    },
+    {
+      "name": "Evaluation",
+      "icon": "fact_check",
+      "question": "Apakah model akurat, keputusan stabil dan adil, dan tujuan bisnis tercapai?",
+      "steps": [
+        {"t": "Akurasi model", "d": "MAE, RMSE, R² pada data uji, dibandingkan dengan 4 algoritma lain."},
+        {"t": "Stabilitas keputusan", "d": "Bobot diubah ±10%/±20% per kriteria dan diacak 100 kali."},
+        {"t": "Keadilan dan penjelasan", "d": "MAE dan sebaran rekomendasi per gender; Gini vs permutasi; Shapley per siswa."},
+        {"t": "Pengujian perangkat lunak", "d": "Uji black-box (dari spesifikasi) dan white-box (dari kode), otomatis dengan pytest."}
+      ],
+      "decisions": [
+        "Profil A menjadi bawaan karena paling stabil (kriteria S1).",
+        "Aturan pengaman memakai persentil, karena RF menarik prediksi ekstrem ke tengah.",
+        "Uji tabel keputusan menemukan selisih cutoff pengaman antara tampilan satu siswa dan satu kelas; sudah diperbaiki."
+      ],
+      "outputs": ["Laporan evaluasi", "Status kriteria keberhasilan", "Rencana uji (TESTING.md)"],
+      "code": ["app/app_pages/analysis.py", "app/tests/", "app/scripts/coverage_report.py"]
+    },
+    {
+      "name": "Deployment",
+      "icon": "rocket_launch",
+      "question": "Bagaimana hasilnya dipakai guru BK dan dirawat?",
+      "steps": [
+        {"t": "Aplikasi Streamlit", "d": "Bilingual (ID/EN), lima halaman, di-hosting di Streamlit Community Cloud dari repositori privat."},
+        {"t": "Tanpa pelatihan di aplikasi", "d": "Model dilatih offline; aplikasi hanya memuat .joblib dan metadata lalu melakukan inferensi."},
+        {"t": "Pemantauan", "d": "Unggah respons baru untuk mengukur MAE; latih ulang saat respons bertambah."},
+        {"t": "Privasi", "d": "Tidak ada data disimpan, kolom pribadi dibuang, agregat < 5 orang disembunyikan."}
+      ],
+      "decisions": [
+        "Streamlit dipilih (bukan Gradio) karena multi-halaman, grafik lengkap, caching, dan hosting gratis.",
+        "Versi pustaka dipatok agar berkas .joblib dapat dimuat di server.",
+        "Setiap rilis menjalankan pytest lebih dulu."
+      ],
+      "outputs": ["Aplikasi daring", "Panduan pengguna", "Presentasi"],
+      "code": ["app/streamlit_app.py", "app/app_pages/", "app/requirements.txt", "app/scripts/evaluate.py"]
+    }
+  ]
+}

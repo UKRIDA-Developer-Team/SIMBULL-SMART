@@ -34,13 +34,13 @@ digraph {
     g [label="spk/gform.py\\n%s", fillcolor="#FFFFFF"];
     p [label="spk/model.py\\nRF predict", fillcolor="#FFFFFF"];
     s [label="spk/smart.py\\nSMART + %s", fillcolor="#FFFFFF"];
-    e [label="spk/explain.py\\nrecommend.py", fillcolor="#FFFFFF"];
+    e [label="spk/explain.py · xai.py\\nrecommend.py", fillcolor="#FFFFFF"];
     ui -> g -> p -> s -> e -> ui; }
   tr -> m; m -> p;
 }
-""" % (("Pelatihan offline", "rahasia, tidak di-commit", "Beranda · Rekomendasi · Analisis · Tentang", "jawaban → fitur", "sensitivitas")
+""" % (("Pelatihan offline", "rahasia, tidak di-commit", "Beranda · Rekomendasi · Analisis\\nData Mining · Tentang", "jawaban → fitur", "sensitivitas")
        if L == "id" else
-       ("Offline training", "confidential, not committed", "Home · Recommendation · Analysis · About", "answers → features", "sensitivity")))
+       ("Offline training", "confidential, not committed", "Home · Recommendation · Analysis\\nData Mining · About", "answers → features", "sensitivity")))
 
 st.space("small")
 with st.container(border=True, key="card_method"):

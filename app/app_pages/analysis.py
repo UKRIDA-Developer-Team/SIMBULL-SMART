@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 import ui
-from spk import config, i18n, model, plots, smart
+from spk import config, i18n, model, plots, smart, xai
 
 L = ui.lang()
 T = ui.T
@@ -24,16 +24,23 @@ with st.container(horizontal=True, vertical_alignment="center"):
 ui.profile_warning()
 profile = ui.profile_key()
 
-tab_data, tab_model, tab_smart, tab_sens, tab_fair = st.tabs(
-    [T("an_tab_data"), T("an_tab_model"), T("an_tab_smart"), T("an_tab_sens"), T("an_tab_fair")])
+tab_data, tab_model, tab_xai, tab_smart, tab_sens, tab_fair = st.tabs(
+    [T("an_tab_data"), T("an_tab_model"), T("an_tab_xai"), T("an_tab_smart"), T("an_tab_sens"), T("an_tab_fair")])
 
 result, utility = ui.score(reference[config.FEATURES], profile, True)
 
 
 @st.cache_data(show_spinner=False)
 def base_test_predictions():
-    _, X_test, _, y_test = model.split(reference.reset_index(drop=True))
+    X_test, y_test = ui.kaggle_test_set()
     return X_test, y_test, model.predict(base, X_test)
+
+
+@st.cache_data(show_spinner=False)
+def pdp_curves(features: tuple):
+    X_test, _, _ = base_test_predictions()
+    sample = X_test.sample(min(400, len(X_test)), random_state=config.RANDOM_STATE)
+    return [xai.partial_dependence(rf, sample, f) for f in features]
 
 
 def chart(fig, key: str, compact: bool = False):
@@ -121,6 +128,33 @@ with tab_model:
 
     with st.expander(T("an_metadata"), icon=":material/data_object:"):
         st.json({k: v for k, v in meta.items() if k not in ("smart_bounds", "reference_quantiles", "impute_medians")})
+
+# ---------------------------------------------------------------- explainable AI (global)
+with tab_xai:
+    st.caption(T("an_xai_intro"))
+    ui.section(T("an_xai_imp"))
+    perm = ui.permutation_importance()
+    gini = pd.Series(rf.feature_importances_, index=meta["features"])
+    chart(plots.importance_comparison(gini, perm, L), "xai_imp")
+    top_perm = list(perm.index[:2])
+    top_gini = list(gini.sort_values(ascending=False).index[:2])
+    if set(top_perm) == set(top_gini):
+        st.caption(T("an_xai_imp_note", a=i18n.feature(top_perm[0], L), b=i18n.feature(top_perm[1], L)))
+    gap = [f for f in gini.index if gini[f] >= 0.02 and perm.loc[f, "mean"] < 0.005]
+    if gap:
+        st.caption(T("an_xai_imp_gap", f=", ".join(i18n.feature(f, L) for f in gap)))
+
+    st.space("small")
+    ui.section(T("an_xai_pdp"))
+    default = [f for f in perm.index if f in xai.ACTIONABLE][:4]
+    picked = st.multiselect(T("an_xai_pdp_pick"), list(xai.ACTIONABLE), default=default, max_selections=4,
+                            format_func=lambda f: i18n.feature(f, L), key=f"pdp_pick_{L}")
+    if picked:
+        chart(plots.pdp_grid(pdp_curves(tuple(picked)), L), "xai_pdp")
+    st.caption(T("an_xai_pdp_note"))
+
+    with st.expander(T("an_xai_methods"), icon=":material/psychology:"):
+        st.markdown(ui.content("xai_methods"))
 
 # ---------------------------------------------------------------- SMART
 with tab_smart:
