@@ -427,3 +427,36 @@ def test_wb27_i18n_fallbacks():
     for key, entry in i18n.S.items():
         if key.startswith(("xai_", "dm_", "an_xai")):
             assert entry.get("id") and entry.get("en"), key
+
+
+def test_wb28_age_cleaning_and_split():
+    """BC data.clean: rows outside AGE_RANGE are dropped, both ends kept. PR data.split_full: every
+    row lands in exactly one of train/test, 80/20, each age in the same share in both. The
+    reference population and the retraining rows are age-stratified parts of test and train."""
+    lo, hi = config.AGE_RANGE
+    frame = pd.DataFrame({"age": [lo - 1, lo, hi, hi + 1], "v": range(4)})
+    assert data.clean(frame)["v"].to_list() == [1, 2]
+    assert data.clean(frame, (lo - 1, hi + 1))["v"].to_list() == [0, 1, 2, 3]
+
+    rng = np.random.default_rng(0)
+    full = pd.DataFrame({"age": rng.integers(lo - 3, hi + 4, 5000), "row": range(5000)})
+    train, test, counts = data.split_full(full)
+    kept = full["age"].between(lo, hi)
+    assert counts == {"full": 5000, "age_filtered": int(kept.sum()), "dropped": int((~kept).sum()),
+                      "train": len(train), "test": len(test)}
+    assert set(train["row"]).isdisjoint(test["row"]) and len(train) + len(test) == kept.sum()
+    assert abs(len(test) / kept.sum() - config.TEST_FRAC) < 0.001
+    share = lambda s: s.value_counts(normalize=True).sort_index()  # noqa: E731
+    assert (share(train["age"]) - share(test["age"])).abs().max() < 0.01
+    assert data.stratified_rows(test, 10_000).equals(test.reset_index(drop=True))
+    assert len(data.stratified_rows(test, 300)) == 300
+
+    reference, retrain_part = data.load_dataset(), data.load_retrain_rows()
+    assert len(reference) == config.REFERENCE_ROWS and reference["age"].between(lo, hi).all()
+    assert len(retrain_part) == config.RETRAIN_KAGGLE_ROWS
+    assert list(retrain_part.columns) == config.FEATURES + [config.TARGET]
+    cols = config.FEATURES + [config.TARGET]
+    rows = lambda f: set(map(tuple, f[cols].round(9).itertuples(index=False)))  # noqa: E731
+    assert not rows(retrain_part) & rows(reference)       # training rows never in the reference/test rows
+    X, y = model.kaggle_test_set(reference)
+    assert len(X) == len(y) == len(reference) and list(X.columns) == config.FEATURES
