@@ -99,8 +99,22 @@ with tab_model:
     if meta["data_source"] != "kaggle":
         st.caption(T("an_metrics_real", s=meta["strategy"], n=meta["n_real"], note=meta.get("metrics_note", "")))
 
+    if summary and summary.get("strategies"):
+        st.space("small")
+        ui.section(T("an_iter_title"), T("an_iter_lead"))
+        s0, s1 = summary["strategies"]["S0_kaggle"], summary["strategies"][summary["selected"]]
+        dk = T("an_iter_data_k", n=f"{base_meta.get('rows', {}).get('test', 0):,}")
+        dr = T("an_iter_data_r", n=summary.get("holdout_rows", 0))
+        iters = pd.DataFrame({
+            T("model_opt_kaggle"): {f"MAE · {dk}": base_meta["metrics"]["mae"], f"R² · {dk}": base_meta["metrics"]["r2"],
+                                    f"MAE · {dr}": s0.get("holdout_mae"), f"R² · {dr}": s0.get("holdout_r2")},
+            T("model_opt_real"): {f"MAE · {dk}": None, f"R² · {dk}": None,
+                                  f"MAE · {dr}": s1.get("holdout_mae"), f"R² · {dr}": s1.get("holdout_r2")},
+        }).T
+        st.table(iters.map(lambda v: "–" if v is None or pd.isna(v) else f"{v:.3f}"))
+
     X_test, y_test, pred = base_test_predictions()
-    st.caption(T("an_base_test"))
+    st.caption(T("an_base_test", n=f"{len(X_test):,}", total=f"{base_meta.get('rows', {}).get('test', len(X_test)):,}"))
     c1, c2 = st.columns(2, gap="medium")
     with c1:
         chart(plots.actual_vs_predicted(y_test, pred, L), "avp")

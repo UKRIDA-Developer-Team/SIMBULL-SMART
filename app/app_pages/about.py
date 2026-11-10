@@ -24,7 +24,7 @@ digraph {
         fontcolor="#1D2725", margin="0.18,0.08"];
   edge [color="#8A9491", arrowsize=0.6];
   subgraph cluster_off { label="%s"; style="rounded,dashed"; color="#D9D5CC"; fontname="Helvetica"; fontsize=10; fontcolor="#5D6A67";
-    kag [label="Kaggle 1M → 20k", fillcolor="#FBF4E8"]; gf [label="Google Form\\n(%s)", fillcolor="#FBF4E8"];
+    kag [label="Kaggle 1M\\n(%s)", fillcolor="#FBF4E8"]; gf [label="Google Form\\n(%s)", fillcolor="#FBF4E8"];
     tr [label="scripts/train.py\\n(kaggle | real | compare)", fillcolor="#FFFFFF"];
     kag -> tr; gf -> tr; }
   subgraph cluster_art { label="models/"; style="rounded,dashed"; color="#D9D5CC"; fontname="Helvetica"; fontsize=10; fontcolor="#5D6A67";
@@ -38,9 +38,9 @@ digraph {
     ui -> g -> p -> s -> e -> ui; }
   tr -> m; m -> p;
 }
-""" % (("Pelatihan offline", "rahasia, tidak di-commit", "Beranda · Rekomendasi · Analisis\\nData Mining · Tentang", "jawaban → fitur", "sensitivitas")
+""" % (("Pelatihan offline", "usia %d-%d · latih/uji 80/20" % config.AGE_RANGE, "rahasia, tidak di-commit", "Beranda · Rekomendasi · Analisis\\nData Mining · Tentang", "jawaban → fitur", "sensitivitas")
        if L == "id" else
-       ("Offline training", "confidential, not committed", "Home · Recommendation · Analysis\\nData Mining · About", "answers → features", "sensitivity")))
+       ("Offline training", "age %d-%d · train/test 80/20" % config.AGE_RANGE, "confidential, not committed", "Home · Recommendation · Analysis\\nData Mining · About", "answers → features", "sensitivity")))
 
 st.space("small")
 with st.container(border=True, key="card_method"):
@@ -73,7 +73,8 @@ k[3].metric("n_estimators", meta.get("n_estimators_total", hp.get("n_estimators"
 st.caption(
     f"{ui.model_note()} · {'strategi' if L == 'id' else 'strategy'}: `{meta.get('strategy', 'kaggle base')}` · "
     f"max_depth={hp.get('max_depth')}, min_samples_leaf={hp.get('min_samples_leaf')}, "
-    f"max_features={hp.get('max_features')}, random_state={hp.get('random_state')} · "
+    f"max_features={hp.get('max_features')}, max_samples={hp.get('max_samples')}, "
+    f"random_state={hp.get('random_state')} · "
     f"{meta.get('metrics_note', 'Kaggle test set')} · "
     f"Kaggle base: MAE {base_meta['metrics']['mae']:.4f}, R² {base_meta['metrics']['r2']:.4f}")
 

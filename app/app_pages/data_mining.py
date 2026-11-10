@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 import ui
-from spk import config, crispdm, data, i18n, plots, smart
+from spk import config, crispdm, data, gform, i18n, plots, smart
 
 L = ui.lang()
 T = ui.T
@@ -28,7 +28,13 @@ def column_decisions() -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def quality() -> dict:
-    return crispdm.data_quality(data.load_dataset())
+    """Quality of the reference population (20,000 test rows, all 20 Kaggle columns)."""
+    return crispdm.data_quality(data.load_dataset(clean_rows=False))
+
+
+@st.cache_data(show_spinner=False)
+def merge_summary() -> pd.DataFrame:
+    return gform.merge_summary()
 
 
 @st.cache_data(show_spinner=False)
@@ -114,7 +120,8 @@ with st.container(border=True, key="card_dm_hero"):
 
 # ---------------------------------------------------------------- live numbers per phase
 X_test, y_test = ui.kaggle_test_set()
-n_rf = int(round(len(reference) * config.TRAIN_FRAC))
+rows = ui.load_base()[1].get("rows", {})          # row counts of each preparation step (base model)
+age_lo, age_hi = config.AGE_RANGE
 if phase == 0:
     kpis([(T("dm_k_bgoals"), "3"), (T("dm_k_dmgoals"), "4"), (T("dm_kpi_criteria"), str(len(config.CRITERIA))),
           (T("dm_k_alts"), str(len(config.ALTERNATIVES)))])
@@ -123,8 +130,9 @@ elif phase == 1:
     kpis([(T("dm_kpi_rows"), f"{q['rows']:,}"), (T("dm_columns_n"), str(q["columns"])),
           (T("dm_missing"), str(q["missing"])), (T("dm_duplicates"), str(q["duplicates"]))])
 elif phase == 2:
-    kpis([(T("dm_split_sample"), f"{len(reference):,}"), (T("dm_split_rf"), f"{n_rf:,}"),
-          (T("dm_split_train"), f"{n_rf - len(X_test):,}"), (T("dm_split_test"), f"{len(X_test):,}")])
+    kpis([(T("dm_split_full"), f"{rows.get('full', 0):,}"),
+          (T("dm_split_age", lo=age_lo, hi=age_hi), f"{rows.get('age_filtered', 0):,}"),
+          (T("dm_split_train"), f"{rows.get('train', 0):,}"), (T("dm_split_test"), f"{rows.get('test', 0):,}")])
 elif phase == 3:
     hp = meta.get("hyperparameters", {})
     rf_cv = comparison.get("Random Forest (deployed)", {}).get("cv_mae")
@@ -174,15 +182,29 @@ with main, card("main"):
 
     elif phase == 2:
         st.markdown(f"**{T('dm_pipeline')}**")
-        st.html(flow("Kaggle", ["1M", "Sampling 2%", "Seleksi 11 fitur" if L == "id" else "Select 11 features",
-                                "Encoding gender", "Split 80/20", "Random Forest"]))
+        st.html(flow("Kaggle", ["1M", T("dm_split_age", lo=age_lo, hi=age_hi),
+                                "Seleksi 11 fitur" if L == "id" else "Select 11 features", "Encoding gender",
+                                "Split 80/20 per usia" if L == "id" else "Split 80/20 by age", "Random Forest"]))
         st.html(flow("Google Form", ["Cocokkan kolom" if L == "id" else "Match columns",
                                      "Buang data pribadi" if L == "id" else "Drop personal data",
                                      "Teks → angka" if L == "id" else "Text → numbers",
                                      "11 fitur + target" if L == "id" else "11 features + target",
                                      "Imputasi" if L == "id" else "Imputation", "Holdout + CV"]))
+        st.caption(T("dm_split_note", lo=age_lo, hi=age_hi, dropped=f"{rows.get('dropped', 0):,}",
+                     amin=int(reference["age"].min()), amax=int(reference["age"].max()),
+                     ref=f"{rows.get('reference', len(reference)):,}"))
         st.space("small")
         table(p["table"])
+        with st.expander(T("dm_merge_title"), icon=":material/merge:"):
+            merged = merge_summary()
+            names = merged.index.map(lambda c: i18n.feature(c, L) if c in config.FEATURES + [config.TARGET] else c)
+            st.dataframe(pd.DataFrame({
+                T("dm_merge_n"): merged["questions"].to_list(),
+                T("dm_merge_fields"): merged["fields"].to_list(),
+                T("dm_merge_rule"): merged["rule"].to_list(),
+                T("dm_merge_role"): [T(f"dm_merge_role_{r}") for r in merged["role"]],
+            }, index=pd.Index(names, name=T("dm_merge_output"))), width="stretch")
+            st.caption(T("dm_merge_note"))
 
     elif phase == 3:
         if comparison:
@@ -195,9 +217,11 @@ with main, card("main"):
         st.caption(ui.model_note())
 
     elif phase == 4:
-        perm = ui.permutation_importance()
+        # D1-D3 judge the Kaggle base model on the Kaggle test set; D4 judges the retraining on real data.
+        perm = ui.permutation_importance(base=True)
+        base_meta = ui.load_base()[1]
         baseline = comparison.get("Mean baseline", {}).get("test_mae")
-        criteria = crispdm.success_criteria(meta["metrics"], baseline, list(perm.index), stability_a(), summary)
+        criteria = crispdm.success_criteria(base_meta["metrics"], baseline, list(perm.index), stability_a(), summary)
         criteria.loc["D3", "value"] = ", ".join(i18n.feature(f, L) for f in perm.index[:2])
         st.markdown(f"**{T('dm_success')}**")
         st.table(pd.DataFrame({

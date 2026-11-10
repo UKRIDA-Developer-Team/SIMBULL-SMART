@@ -87,7 +87,6 @@ def questionnaire_form():
         f["exam_stress"] = scale_input("exam_stress", "freq5", 3, box)
         f["fear_parents"] = scale_input("fear_parents", "freq5", 3, box)
         f["family_demand"] = scale_input("family_demand", "freq5", 3, box)
-        f["family_talk"] = scale_input("family_talk", "agree5", 4, box)
 
         box = q_section(4, T("sec_q_life"), T("sec_q_life_hint"))
         f["sleep_duration"] = box.select_slider(i18n.question("sleep_duration", L), sleep, value=7.0, key=f"q_sleep_{L}",
@@ -268,6 +267,32 @@ def xai_panel(a, features: dict, key: str):
             what_if_view(features, key)
 
 
+def compare_models(features: dict, current):
+    """Both model iterations side by side for one student: prediction, priority, recommendation."""
+    models = ui.available_models()
+    if len(models) < 2:
+        return
+    results = {}
+    for kind in models:
+        if kind == ui.model_key():
+            results[kind] = current
+        else:
+            rf_k, meta_k = ui.load_model(kind)
+            results[kind] = recommend.assess(rf_k, meta_k, features, ui.weights(), ui.reference_quantiles(kind))
+    with st.expander(T("cmp_title"), icon=":material/compare_arrows:"):
+        st.caption(T("cmp_lead"))
+        rows = []
+        for kind in ("real", "kaggle"):
+            r = results[kind]
+            name = T(f"model_short_{kind}") + (f" ({T('cmp_in_use')})" if kind == ui.model_key() else "")
+            rows.append({T("cmp_model"): name, T("cmp_pred"): f"{r.rf_score:.2f} / 10", T("cmp_pct"): f"{r.rf_percentile:.0f}",
+                         T("cmp_prio"): f"{r.priority:.3f}", T("cmp_best"): i18n.alt(r.best, L),
+                         T("cmp_safety"): "✔" if r.safety else "–"})
+        st.table(pd.DataFrame(rows).set_index(T("cmp_model")))
+        a, b = results["real"].best, results["kaggle"].best
+        st.caption(T("cmp_same") if a == b else T("cmp_diff", a=i18n.alt(a, L), b=i18n.alt(b, L)))
+
+
 def render_result(features: dict):
     rf, meta = ui.load_active()
     a = recommend.assess(rf, meta, features, ui.weights(), ui.reference_quantiles())
@@ -296,6 +321,7 @@ def render_result(features: dict):
         st.markdown(f"**{T('res_why', alt=i18n.alt(a.best, L))}**")
         st.markdown("\n".join(f"- {line}" for line in explain.narrative(a, ui.profile_label(), L)))
 
+    compare_models(features, a)
     st.space("small")
     xai_panel(a, features, "single")
 
@@ -334,12 +360,9 @@ def render_result(features: dict):
 # ---------------------------------------------------------------- whole class
 def load_batch(upload):
     """Returns (frame with FEATURES [+ target], info message) or raises ValueError with a user message."""
-    if upload is None:
-        if st.session_state.get("batch_demo_choice", "kaggle") == "kaggle":
-            return ui.load_reference()[config.FEATURES], None
-        raw = gform.read_export(config.SAMPLE_GFORM_PATH)
-    else:
-        raw = gform.read_export(upload)
+    if upload is None:   # demo data: the Kaggle test sample (no real student is ever bundled)
+        return ui.load_reference()[config.FEATURES], None
+    raw = gform.read_export(upload)
 
     if set(config.FEATURES) <= set(raw.columns):
         clean, issues = data.validate_values(raw)
@@ -376,8 +399,8 @@ def batch_view():
     with demo.container(border=True, key="card_demo"):
         st.markdown(f"**{T('batch_demo_title')}**")
         st.caption(T("batch_demo_lead"))
-        ui.stable_choice(st.radio, T("batch_default"), ["kaggle", "gform"], "batch_demo_choice",
-                         lambda k: T(f"batch_demo_{k}"), label_visibility="collapsed", disabled=upload is not None)
+        st.markdown(f":material/{'check_circle' if upload is None else 'radio_button_unchecked'}: "
+                    f"{T('batch_demo_kaggle')}")
 
     try:
         frame, note = load_batch(upload)

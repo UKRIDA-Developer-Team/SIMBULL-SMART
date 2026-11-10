@@ -52,12 +52,16 @@
       "icon": "tune",
       "question": "Bagaimana data mentah menjadi 11 fitur yang siap dipakai model?",
       "steps": [
-        {"t": "Sampling", "d": "1 juta baris → 20.000 (2%) → 10.000 untuk Random Forest, random_state 42."},
+        {"t": "Sampling dan pembersihan", "d": "1 juta baris lengkap → hanya usia pelajar 14-25 (692.545) → dibagi 80/20 per usia: 554.036 baris latih, 138.509 baris uji, random_state 42."},
         {"t": "Encoding", "d": "Gender ke kode tetap (Female 0, Male 1, Other 2); jawaban kuesioner teks → angka."},
         {"t": "Konstruksi fitur", "d": "Butir kuesioner dipetakan ke 0-1 lalu ke skala fitur Kaggle; butir Psikologis membentuk target."},
         {"t": "Privasi dan imputasi", "d": "Kolom pribadi dibuang setelah usia dihitung; nilai kosong diisi median data latih."}
       ],
       "decisions": [
+        "Hanya baris dalam rentang usia pelajar 14-25 yang dipakai. Berkas Kaggle mencakup 17-29, sehingga tersisa usia 17-25.",
+        "20.000 baris uji menjadi populasi referensi aplikasi (dataset.csv), sehingga grafik dan persentil tidak pernah memakai baris latih.",
+        "Tidak ada pembuangan outlier tambahan: data tanpa nilai hilang, duplikat, atau nilai mustahil, dan membuang baris ekstrem tidak menaikkan R².",
+        "Butir kuesioner digabung menjadi 11 fitur sebelum SMART; SMART tidak pernah membaca jawaban mentah.",
         "Butir target (P01-P07) tidak pernah menjadi fitur, sehingga tidak ada label leakage.",
         "Batas min-maks SMART disimpan dari populasi referensi agar satu siswa pun dapat dinormalisasi.",
         "Data kuesioner dibagi 80% pengembangan / 20% holdout, distratifikasi per versi formulir."
@@ -70,26 +74,27 @@
           ["exam_pressure", "tertekan ujian + nilai di bawah target → 1-10"],
           ["stress_level", "tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut × 10"],
           ["financial_stress", "kebalikan \"uang saku cukup\" × 10"],
-          ["family_expectation", "takut mengecewakan, tuntutan nilai, (dibalik) bisa bercerita × 10"],
+          ["family_expectation", "takut mengecewakan orang tua, tuntutan nilai keluarga × 10"],
           ["burnout_score", "sulit membagi waktu, kelelahan, kehilangan minat × 10"],
           ["anxiety_score (target)", "butir Psikologis P01-P07, konsentrasi dibalik → 0-10"]
         ]
       },
-      "outputs": ["dataset.csv (20.000)", "11 fitur + target", "Metadata: smart_bounds, impute_medians"],
-      "code": ["app/spk/data.py", "app/spk/model.py", "app/spk/gform.py", "app/spk/gform_mapping.json"]
+      "outputs": ["554.036 baris latih / 138.509 baris uji", "dataset.csv (20.000 baris uji)", "kaggle_retrain.csv.gz (8.000 baris latih)", "11 fitur + target", "Metadata: smart_bounds, impute_medians", "reports/question_merge_report.md"],
+      "code": ["app/spk/data.py", "app/spk/model.py", "app/spk/gform.py", "app/spk/gform_mapping.json", "app/scripts/merge_report.py"]
     },
     {
       "name": "Modeling",
       "icon": "model_training",
       "question": "Algoritma apa yang memprediksi kecemasan, dan bagaimana SMART memutuskan?",
       "steps": [
-        {"t": "Random Forest", "d": "Regresi 200 pohon: menangkap pola non-linear, tahan outlier, cocok untuk jawaban ordinal."},
+        {"t": "Random Forest", "d": "Regresi 300 pohon: menangkap pola non-linear, tahan outlier, cocok untuk jawaban ordinal. Pengaturannya dituning dengan cross-validation 5-fold."},
         {"t": "Perbandingan algoritma", "d": "RF setara regresi linear dan gradient boosting, jauh di atas baseline dan pohon tunggal."},
         {"t": "SMART", "d": "Utilitas min-maks → skor prioritas (rata-rata) dan skor tiap alternatif (bobot × utilitas)."},
         {"t": "Explainable AI", "d": "Nilai Shapley eksak per siswa, kontrafaktual \"bagaimana jika\", permutasi dan PDP/ICE."}
       ],
       "decisions": [
-        "RF dipakai walau regresi linear sedikit lebih akurat di Kaggle (selisih MAE ±0,01): data kuesioner ordinal dan latih ulang butuh warm start.",
+        "RF dipakai walau regresi linear dan gradient boosting sama akuratnya di Kaggle (R² uji 0,606-0,608): data kuesioner ordinal dan latih ulang butuh warm start.",
+        "Hyperparameter berasal dari random search (25 pengaturan, CV 5-fold pada 50.000 baris latih): kedalaman 12, daun minimal 50 siswa, 75% fitur per pemisahan, 60% baris per pohon.",
         "Tujuh strategi latih ulang dibandingkan dengan CV 5-fold × 2; MAE terendah yang dideploy.",
         "Bobot profil A dinormalisasi (bobot Olahraga di notebook berjumlah 1,05)."
       ],
@@ -104,7 +109,7 @@
           ["S4", "Data riil + butir tambahan (hanya dilaporkan)"]
         ]
       },
-      "outputs": ["rf_anxiety_model.joblib + metadata", "model_comparison.json", "Profil bobot A/B/C"],
+      "outputs": ["rf_anxiety_model.joblib + metadata", "rf_tuning.json", "model_comparison.json", "Profil bobot A/B/C"],
       "code": ["app/scripts/train.py", "app/spk/retrain.py", "app/spk/smart.py", "app/spk/xai.py"]
     },
     {

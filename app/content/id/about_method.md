@@ -2,20 +2,20 @@
 
 | Sumber | Isi | Peran |
 |---|---|---|
-| Kaggle *Student Mental Health & Burnout* (1 juta baris) | Sampel acak 2% = 20.000 baris, 20 kolom | Pralatih model; populasi referensi untuk analisis |
+| Kaggle *Student Mental Health & Burnout* (1 juta baris) | Hanya rentang usia pelajar 14-25 = 692.545 baris (berkas berisi usia 17-25), dibagi 80/20: 554.036 baris latih, 138.509 baris uji | Pralatih model; 20.000 baris uji menjadi populasi referensi untuk analisis |
 | Kuesioner Google Form siswa SMA | ±50 pertanyaan (akademik, tidur, media sosial, keluarga, aktivitas fisik, kelelahan, pertemanan, psikologis, pola makan) | Pelatihan ulang model dengan data riil; pengujian pada data baru |
 
 Data kuesioner bersifat **rahasia**: berkas mentah tidak pernah masuk repositori, kolom pribadi (waktu isi, tanggal lahir, nama sekolah, nama teman) dibuang segera setelah usia dihitung, dan aplikasi hanya memuat ringkasan agregat.
 
 ### Persiapan data
 
-- **Kaggle**: tanpa nilai hilang; `gender` dikodekan tetap (`Female=0, Male=1, Other=2`, sama dengan LabelEncoder di notebook); 50% sampel (10.000 baris) dibagi 80/20 menjadi data latih/uji (`random_state=42`).
+- **Kaggle**: tanpa nilai hilang, tanpa baris duplikat, tanpa nilai mustahil; `gender` dikodekan tetap (`Female=0, Male=1, Other=2`, sama dengan LabelEncoder di notebook). Alur: berkas lengkap 1 juta baris → hanya baris dalam rentang usia pelajar 14-25 (berkas mencakup 17-29, sehingga tersisa usia 17-25) → pembagian latih/uji 80/20, distratifikasi per usia (`random_state=42`). Model dilatih dengan seluruh 554.036 baris latih dan diuji pada seluruh 138.509 baris uji. 20.000 baris uji (`dataset.csv`) menjadi populasi referensi aplikasi, sehingga grafik dan persentil tidak pernah memakai baris latih.
 - **Google Form → 11 fitur model** (`spk/gform.py`): jawaban teks diubah ke angka, lalu diskalakan ke rentang fitur Kaggle. Setiap butir dipetakan dulu ke 0-1 (tingkat 1 → 0, tingkat teratas → 1):
   - jam belajar & jam tidur: teks rentang ("1 jam 30 menit") → jam;
   - tekanan ujian: rata-rata "tertekan karena ujian" dan "nilai di bawah target" → 1-10;
   - tingkat stres: rata-rata tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut malam × 10 (tugas terlambat dan belajar larut malam punya 5 tingkat, sampai "> 5");
   - tekanan finansial: kebalikan dari "uang saku cukup" × 10;
-  - ekspektasi keluarga: rata-rata takut mengecewakan orang tua, tuntutan keluarga, dan kebalikan dari "mampu membicarakan kesulitan dengan keluarga" × 10;
+  - ekspektasi keluarga: rata-rata takut mengecewakan orang tua dan tuntutan keluarga × 10 ("mampu membicarakan kesulitan dengan keluarga" dikeluarkan karena pada data riil menurunkan reliabilitas skor);
   - burnout: rata-rata 3 butirnya × 10;
   - **target** skor kecemasan: rata-rata 7 butir *Psikologis* (butir konsentrasi dibalik) × 10, 0-10.
   Butir pembentuk target **tidak pernah** dipakai sebagai fitur (mencegah *label leakage*).
@@ -23,7 +23,7 @@ Data kuesioner bersifat **rahasia**: berkas mentah tidak pernah masuk repositori
 
 ### Pemodelan (Data Mining)
 
-**Random Forest Regressor** (200 pohon, kedalaman maksimum 10, `min_samples_leaf=2`, `max_features="sqrt"`) memprediksi `anxiety_score`. Dengan data riil, tujuh strategi dibandingkan lewat *repeated 5-fold cross-validation*: model Kaggle apa adanya, RF hanya data riil, gabungan Kaggle + riil dengan bobot 1/10/50, dan *warm start* (menambah 200/600 pohon yang dilatih pada data riil). Strategi dengan MAE terendah dipakai.
+**Random Forest Regressor** (300 pohon, kedalaman maksimum 12, `min_samples_leaf=50`, `max_features=0.75`, `max_samples=0.6`) memprediksi `anxiety_score`. Pengaturan ini adalah yang terbaik dari 25 pengaturan pada *random search* dengan *cross-validation* 5-fold pada 50.000 baris latih; pengaturan notebook (kedalaman 10, `max_features="sqrt"`) tetap dipakai untuk data kuesioner yang kecil. Dengan data riil, tujuh strategi dibandingkan lewat *repeated 5-fold cross-validation*: model Kaggle apa adanya, RF hanya data riil, gabungan Kaggle + riil dengan bobot 1/10/50, dan *warm start* (menambah 200/600 pohon yang dilatih pada data riil). Strategi dengan MAE terendah dipakai.
 
 ### Keputusan (SPK - SMART)
 
