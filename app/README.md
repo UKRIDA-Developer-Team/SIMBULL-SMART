@@ -7,7 +7,7 @@ This app is the deployable version of `code/Copy of EskulSPK2026_SMART_Final.ipy
 
 The model is pretrained on a Kaggle sample. It can be retrained on the team's real Google Form answers when that confidential export is dropped in (see [Real questionnaire data](#real-questionnaire-data)).
 
-The UI is bilingual (Bahasa Indonesia / English) and has four pages: Home, Recommendation, Analysis, and About. Pages sit in a top navigation bar; the ID/EN switch is on the right of that bar, and the SMART weight profile is a small setting on the Recommendation and Analysis pages.
+The UI is bilingual (Bahasa Indonesia / English) and has five pages: Home, Recommendation, Analysis, Data Mining, and About. Pages sit in a top navigation bar; the ID/EN switch is on the right of that bar, and the SMART weight profile is a small setting on the Recommendation and Analysis pages.
 
 ## Layout
 
@@ -19,9 +19,10 @@ app/
 ├── app_pages/
 │   ├── home.py               # what it does, how it works, the five kinds of support, call to action
 │   ├── recommendation.py     # one student (questionnaire -> result card) / a whole class (upload -> priority list)
-│   ├── analysis.py           # data, model, SMART, sensitivity, fairness
+│   ├── analysis.py           # data, model, xAI (global), SMART, sensitivity, fairness
+│   ├── data_mining.py        # the CRISP-DM process, phase by phase, with live numbers
 │   └── about.py              # method, architecture, limitations, ethics
-├── content/{id,en}/*.md      # long About-page text per language
+├── content/{id,en}/*.md      # long page text per language (About, Data Mining phases, xAI methods)
 ├── spk/
 │   ├── config.py             # features, criteria, benefit/cost, weight profiles, paths, safety settings
 │   ├── data.py               # Kaggle download + sampling, gender encoding, CSV validation
@@ -31,15 +32,19 @@ app/
 │   ├── retrain.py            # Kaggle -> real-data retraining strategies and selection
 │   ├── smart.py              # utility, SMART score, rank, recommendation, sensitivity, stability
 │   ├── recommend.py          # assess(): one student -> prediction, percentile, ranking, safety flag
-│   ├── explain.py            # weight × utility contributions and the narrative "why"
+│   ├── explain.py            # weight × utility contributions and the narrative "why" (SMART and Shapley)
+│   ├── xai.py                # explainable AI: exact Shapley values, what-if, permutation importance, PDP/ICE
+│   ├── crispdm.py            # facts for the Data Mining page: column roles, success criteria, test counts
 │   ├── i18n.py               # UI strings (id/en)
 │   └── plots.py              # notebook charts + new ones, all bilingual
 ├── scripts/
 │   ├── train.py              # --stage kaggle | real | compare
 │   ├── inspect_gform.py      # check a form export against the mapping before training
 │   ├── evaluate.py           # score the deployed model on new labeled answers
-│   └── make_synthetic_gform.py  # SYNTHETIC export for tests and the demo
-├── tests/                    # pytest: parsing, SMART == notebook, retraining, every page in both languages
+│   ├── make_synthetic_gform.py  # SYNTHETIC export for tests and the demo
+│   └── coverage_report.py    # statement coverage of spk/ with the standard library
+├── tests/                    # pytest: black-box, white-box, SMART == notebook, retraining, every page
+│   └── TESTING.md            # test plan: every black-box and white-box case
 ├── data/
 │   ├── dataset.csv           # Kaggle 20k sample (committed)
 │   ├── sample_gform.csv      # SYNTHETIC form export, 250 rows (committed, no real people)
@@ -56,7 +61,8 @@ cd app
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-train.txt
 streamlit run streamlit_app.py
-pytest                                   # about 40 s
+pytest                                   # about 75 s; -m blackbox or -m whitebox for one suite
+python scripts/coverage_report.py        # the same, plus statement coverage of spk/
 ```
 
 The Kaggle model and data are committed. To rebuild them, run `python scripts/train.py --stage kaggle`, which downloads about 131 MB from Kaggle. To use an existing `dataset.csv` instead, add `--csv path`.
@@ -99,6 +105,20 @@ Form answers become model features as follows (see `spk/gform.py::derive`):
 | **anxiety_score** (target) | the 5 Psikologis items, concentration item reversed: 0–20 → 0–10 |
 
 The target items are never used as features. Timestamp, birth date, school, info source, and friend's name are dropped as soon as age is computed.
+
+## Explainable AI (xAI)
+
+Every result explains itself at both stages of the pipeline (`spk/xai.py`, shown on the Recommendation page):
+
+- **Why this predicted anxiety?** Exact Shapley values (interventional SHAP) for the Random Forest prediction. With 11 features there are 2,048 feature coalitions, so all of them are evaluated against 100 random reference students instead of being sampled; the values add up exactly to prediction − average. A waterfall chart and a short narrative show which answers push the score up or down.
+- **How does the prediction become a recommendation?** The predicted anxiety is one SMART criterion; the card shows its share of the winning alternative's score and the weight × utility bars of every alternative.
+- **What if?** Each factor a counselor can work on (stress, burnout, exam pressure, sleep, exercise, study hours, financial stress, family expectation) moves to a typical student's level, and RF + SMART run again. A slider lets the user try any value. These are model simulations, not causal claims, and the page says so.
+
+The whole-class view can explain any student in the priority list the same way. The Analysis page adds global explanations: Gini vs permutation importance and PDP/ICE curves. No extra package is needed (no `shap`), so Streamlit Cloud deploys as before.
+
+## Testing
+
+`tests/TESTING.md` is the test plan. Black-box tests (`pytest -m blackbox`) are designed from the specification with equivalence partitioning, boundary values, a decision table for the safety rule, metamorphic relations, and system tests of the running app. White-box tests (`pytest -m whitebox`) cover every branch of the SMART, explanation, xAI and model-selection code and check algorithm properties (Shapley efficiency, dummy, symmetry, the linear case). `scripts/coverage_report.py` reports statement coverage of `spk/` (97.5% with the whole suite).
 
 ## Look and feel
 

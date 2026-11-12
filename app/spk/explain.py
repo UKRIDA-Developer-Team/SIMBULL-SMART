@@ -38,3 +38,34 @@ def narrative(assessment, profile_label: str, lang: str = i18n.DEFAULT) -> list[
         lines.append(i18n.t("narr_gap_small", lang, alt2=i18n.alt(second, lang)))
     lines.append(i18n.t("narr_priority", lang, score=assessment.priority, p=assessment.priority_percentile))
     return lines
+
+
+# ---------------------------------------------------------------- RF stage (xAI)
+
+def _effect_items(effects, values, lang: str) -> str:
+    return ", ".join(f"{_lower_first(i18n.feature(f, lang))} {_value_text(f, values[f])} ({v:+.2f})"
+                     for f, v in effects.items())
+
+
+def _value_text(feature: str, value) -> str:
+    if feature == "gender":
+        return str(value)
+    return f"{float(value):.0f}" if feature in ("age", "academic_performance") else f"{float(value):.1f}"
+
+
+def shap_narrative(expl, link: dict | None = None, lang: str = i18n.DEFAULT) -> list[str]:
+    """Plain-language reading of a Shapley explanation (see xai.shapley_values), plus how the
+    prediction feeds the SMART result when `link` (xai.smart_link) is given."""
+    up, down = expl.raising(), expl.lowering()
+    lines = [
+        i18n.t("xai_pred_line", lang, pred=expl.prediction, base=expl.base_value,
+               diff=expl.prediction - expl.base_value),
+        i18n.t("xai_up", lang, items=_effect_items(up, expl.features, lang)) if len(up)
+        else i18n.t("xai_flat", lang),
+    ]
+    if len(down):
+        lines.append(i18n.t("xai_down", lang, items=_effect_items(down, expl.features, lang)))
+    if link:
+        lines.append(i18n.t("xai_link", lang, c=link["contribution"], alt=i18n.alt(link["alternative"], lang),
+                            score=link["score"], share=link["share"]))
+    return lines

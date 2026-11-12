@@ -35,6 +35,20 @@ def percentile(value: float, quantiles: list[float]) -> float:
     return float(np.interp(value, q, np.linspace(0, 100, len(q)), left=0.0, right=100.0))
 
 
+def cutoff(quantiles: list[float], pct: float = config.SAFETY_PERCENTILE) -> float:
+    """The value at percentile pct of the reference population (inverse of percentile()).
+
+    The safety rule compares a prediction with this value instead of comparing an interpolated
+    percentile with pct: interpolation can land a hair below pct for a prediction exactly at the
+    cutoff, and the single-student and whole-class views must flag the same students.
+    """
+    q = np.asarray(quantiles, dtype=float)
+    position = pct * (len(q) - 1) / 100
+    if float(position).is_integer():          # on a stored quantile (P90 of 101): use it exactly,
+        return float(q[int(position)])        # np.interp can round a knot down by one ulp
+    return float(np.interp(pct, np.linspace(0, 100, len(q)), q))
+
+
 def reference_quantiles(rf, df: pd.DataFrame, bounds: dict) -> dict:
     """Quantiles of predicted anxiety and SMART priority over a reference population."""
     crit = df[config.FEATURES].copy()
@@ -66,5 +80,5 @@ def assess(rf, meta: dict, features: dict | pd.Series, weights_dict: dict, ref_q
         ranking=ranking,
         contributions=explain.contributions(u.iloc[0], weights_dict),
         sensitivity=smart.sensitivity(u, weights_dict),
-        safety=rf_pct >= config.SAFETY_PERCENTILE,
+        safety=rf_score >= cutoff(ref_quantiles["rf_anxiety_score"]),
     )

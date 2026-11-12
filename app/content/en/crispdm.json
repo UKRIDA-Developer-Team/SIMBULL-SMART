@@ -1,0 +1,147 @@
+{
+  "loop": "CRISP-DM loops: findings in the Evaluation phase can send the project back to Business Understanding for the next iteration.",
+  "phases": [
+    {
+      "name": "Business Understanding",
+      "icon": "flag",
+      "question": "What problem is solved, for whom, and when is it a success?",
+      "steps": [
+        {"t": "Frame the problem", "d": "Spotting anxiety relies on the school counselor's observation: limited capacity, reactive and subjective."},
+        {"t": "Business goals", "d": "Detect early, prioritize students, and recommend support with the reasons."},
+        {"t": "Data mining goals", "d": "Predict an anxiety score from 0 to 10 and use it as a SMART criterion (where DM meets the DSS)."},
+        {"t": "Success criteria", "d": "D1-D4 for the model (such as R² ≥ 0.60) and S1-S4 for the decision (such as ≥ 90% stable)."}
+      ],
+      "decisions": [
+        "Data mining answers how high the anxiety is and which factors dominate; SMART answers who comes first and which support fits.",
+        "Five alternatives: sleep, exercise, study strategy, counseling, relaxation.",
+        "The system is a screening aid, not a clinical diagnosis."
+      ],
+      "table": {
+        "title": "Data mining goals",
+        "columns": ["Code", "Goal", "Technique"],
+        "rows": [
+          ["DM-1", "Predict the anxiety score 0-10", "Random Forest regression"],
+          ["DM-2", "Find the most influential factors", "Gini, permutation, Shapley"],
+          ["DM-3", "Use the prediction as a DSS criterion", "RF → SMART integration"],
+          ["DM-4", "Adapt the model to high-school students", "Retrain on questionnaire data"]
+        ]
+      },
+      "outputs": ["Phase 1 document", "8 criteria + their types", "5 alternatives"],
+      "code": ["PPT-Doc_CRISP-DM/fase1-business-understanding.md", "app/spk/config.py"]
+    },
+    {
+      "name": "Data Understanding",
+      "icon": "travel_explore",
+      "question": "What data exists, how good is it, and which columns help?",
+      "steps": [
+        {"t": "Two data sources", "d": "Kaggle (1M university-student rows, public) for pretraining; the high-school Google Form (confidential) for retraining."},
+        {"t": "Quality check", "d": "Missing values, duplicates, plausible ranges; for the questionnaire also unknown answers and straight-lining."},
+        {"t": "Correlation analysis", "d": "Stress level and burnout relate most strongly to the anxiety score."},
+        {"t": "Column selection", "d": "Outcome variables dropped (label leakage); near-zero-correlation columns not used."}
+      ],
+      "decisions": [
+        "mental_health_index, depression_score, dropout_risk and risk_level are outcomes, not causes: dropped to avoid leakage.",
+        "social_support, screen_time and internet_usage barely correlate: not used.",
+        "academic_year does not apply to high-school students."
+      ],
+      "outputs": ["Data dictionary", "Descriptive statistics", "Decision per column"],
+      "code": ["app/data/dataset.csv", "app/spk/crispdm.py"]
+    },
+    {
+      "name": "Data Preparation",
+      "icon": "tune",
+      "question": "How does raw data become 11 model-ready features?",
+      "steps": [
+        {"t": "Sampling", "d": "1M rows → 20,000 (2%) → 10,000 for the Random Forest, random_state 42."},
+        {"t": "Encoding", "d": "Gender to fixed codes (Female 0, Male 1, Other 2); questionnaire text answers → numbers."},
+        {"t": "Feature construction", "d": "Each item maps to 0-1, then to the Kaggle feature scale; the Psikologis items form the target."},
+        {"t": "Privacy and imputation", "d": "Personal columns dropped once age is computed; blanks filled with training medians."}
+      ],
+      "decisions": [
+        "Target items (P01-P07) are never features, so there is no label leakage.",
+        "SMART min-max bounds are saved from the reference population so a single student can be normalized.",
+        "Questionnaire data splits 80% development / 20% holdout, stratified by form version."
+      ],
+      "table": {
+        "title": "Building features from the questionnaire",
+        "columns": ["Model feature", "From the answers"],
+        "rows": [
+          ["study_hours_per_day, sleep_hours", "hour ranges (\"1 jam 30 menit\" → 1.5)"],
+          ["exam_pressure", "pressured by exams + grades below target → 1-10"],
+          ["stress_level", "too many tasks, not enough time, late tasks, late-night study × 10"],
+          ["financial_stress", "reverse of \"enough pocket money\" × 10"],
+          ["family_expectation", "fear of disappointing, grade demands, (reversed) can talk to family × 10"],
+          ["burnout_score", "time-splitting trouble, exhaustion, lost interest × 10"],
+          ["anxiety_score (target)", "Psikologis items P01-P07, concentration reversed → 0-10"]
+        ]
+      },
+      "outputs": ["dataset.csv (20,000)", "11 features + target", "Metadata: smart_bounds, impute_medians"],
+      "code": ["app/spk/data.py", "app/spk/model.py", "app/spk/gform.py", "app/spk/gform_mapping.json"]
+    },
+    {
+      "name": "Modeling",
+      "icon": "model_training",
+      "question": "Which algorithm predicts anxiety, and how does SMART decide?",
+      "steps": [
+        {"t": "Random Forest", "d": "Regression with 200 trees: captures non-linear patterns, resists outliers, suits ordinal answers."},
+        {"t": "Algorithm comparison", "d": "RF is on par with linear regression and gradient boosting, far above the baseline and a single tree."},
+        {"t": "SMART", "d": "Min-max utility → priority score (mean) and a score per alternative (weight × utility)."},
+        {"t": "Explainable AI", "d": "Exact Shapley values per student, \"what if\" counterfactuals, permutation and PDP/ICE."}
+      ],
+      "decisions": [
+        "RF is kept although linear regression is slightly more accurate on Kaggle (MAE gap about 0.01): questionnaire data is ordinal and retraining needs a warm start.",
+        "Seven retraining strategies are compared with 5-fold CV × 2; the lowest MAE is deployed.",
+        "Profile A weights are normalized (the notebook's Exercise weights sum to 1.05)."
+      ],
+      "table": {
+        "title": "Retraining strategies (Kaggle → real data)",
+        "columns": ["Code", "Strategy"],
+        "rows": [
+          ["S0", "Kaggle model as is (baseline)"],
+          ["S1", "New RF on real data only"],
+          ["S2", "Kaggle + real data, real rows weighted 1 / 10 / 50"],
+          ["S3", "Warm start: +200 / +600 trees on real data"],
+          ["S4", "Real data + extra items (reported only)"]
+        ]
+      },
+      "outputs": ["rf_anxiety_model.joblib + metadata", "model_comparison.json", "Weight profiles A/B/C"],
+      "code": ["app/scripts/train.py", "app/spk/retrain.py", "app/spk/smart.py", "app/spk/xai.py"]
+    },
+    {
+      "name": "Evaluation",
+      "icon": "fact_check",
+      "question": "Is the model accurate, the decision stable and fair, and the business goal met?",
+      "steps": [
+        {"t": "Model accuracy", "d": "MAE, RMSE, R² on the test set, compared with 4 other algorithms."},
+        {"t": "Decision stability", "d": "Weights moved ±10%/±20% per criterion and jittered 100 times."},
+        {"t": "Fairness and explanation", "d": "MAE and recommendation mix by gender; Gini vs permutation; Shapley per student."},
+        {"t": "Software testing", "d": "Black-box (from the specification) and white-box (from the code) tests, automated with pytest."}
+      ],
+      "decisions": [
+        "Profile A is the default because it is the most stable (criterion S1).",
+        "The safety rule uses a percentile, because the RF pulls extreme predictions toward the middle.",
+        "A decision-table test found the safety cutoff differed between the one-student and whole-class views; fixed."
+      ],
+      "outputs": ["Evaluation report", "Success-criteria status", "Test plan (TESTING.md)"],
+      "code": ["app/app_pages/analysis.py", "app/tests/", "app/scripts/coverage_report.py"]
+    },
+    {
+      "name": "Deployment",
+      "icon": "rocket_launch",
+      "question": "How do counselors use it, and how is it maintained?",
+      "steps": [
+        {"t": "Streamlit app", "d": "Bilingual (ID/EN), five pages, hosted on Streamlit Community Cloud from a private repository."},
+        {"t": "No training in the app", "d": "Models are trained offline; the app only loads the .joblib and metadata and runs inference."},
+        {"t": "Monitoring", "d": "Upload new responses to measure the MAE; retrain as responses grow."},
+        {"t": "Privacy", "d": "Nothing is stored, personal columns are dropped, aggregates under 5 people are hidden."}
+      ],
+      "decisions": [
+        "Streamlit was chosen (not Gradio) for multipage navigation, rich charts, caching and free hosting.",
+        "Library versions are pinned so the .joblib files load on the server.",
+        "Every release runs pytest first."
+      ],
+      "outputs": ["Online app", "User manual", "Presentation"],
+      "code": ["app/streamlit_app.py", "app/app_pages/", "app/requirements.txt", "app/scripts/evaluate.py"]
+    }
+  ]
+}

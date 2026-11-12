@@ -11,6 +11,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import seaborn as sns  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
+from matplotlib.patches import Patch  # noqa: E402
 
 from . import config, i18n  # noqa: E402
 
@@ -74,7 +75,21 @@ _T = {
     "algo": {"id": "MAE validasi silang 5-fold (lebih rendah lebih baik)", "en": "5-fold CV MAE (lower is better)"},
     "strategies": {"id": "MAE validasi silang pada data riil", "en": "CV MAE on real data"},
     "weights": {"id": "Bobot kriteria per alternatif", "en": "Criterion weights per alternative"},
+    "shap": {"id": "Mengapa prediksinya {pred:.2f}? (nilai Shapley)", "en": "Why the prediction is {pred:.2f} (Shapley values)"},
+    "shap_x": {"id": "Prediksi skor kecemasan (0-10)", "en": "Predicted anxiety score (0-10)"},
+    "shap_base": {"id": "rata-rata siswa pembanding", "en": "average reference student"},
+    "shap_pred": {"id": "prediksi siswa ini", "en": "this student's prediction"},
+    "shap_other": {"id": "{k} fitur lain", "en": "{k} other features"},
+    "gini": {"id": "Gini (struktur pohon)", "en": "Gini (tree structure)"},
+    "perm": {"id": "Permutasi (kenaikan MAE)", "en": "Permutation (MAE increase)"},
+    "perm_title": {"id": "Dua cara mengukur kepentingan fitur", "en": "Two ways to measure feature importance"},
+    "pdp_title": {"id": "Ketergantungan parsial (PDP, garis tebal) dan ICE (garis tipis per siswa)",
+                  "en": "Partial dependence (PDP, thick line) and ICE (thin line per student)"},
+    "pdp_y": {"id": "Prediksi kecemasan", "en": "Predicted anxiety"},
+    "target_corr": {"id": "Korelasi dengan skor kecemasan (Pearson r)", "en": "Correlation with the anxiety score (Pearson r)"},
 }
+
+RAISE, LOWER = "#EB6834", "#2A78D6"     # same ends as DIVERGING: orange pushes anxiety up, blue down
 
 
 def _t(key, lang, **kw):
@@ -386,5 +401,128 @@ def recommendation_mix(result: pd.DataFrame, lang="id"):
     ax.set_title(_t("mix", lang))
     ax.set_ylabel(_t("n_students", lang))
     _value_grid(ax)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------- xAI
+
+def _fmt_value(feature: str, value) -> str:
+    if feature == "gender":
+        return str(value)
+    return f"{float(value):.0f}" if feature in ("age", "academic_performance") else f"{float(value):.1f}"
+
+
+def shap_waterfall(expl, lang="id", k: int = 7):
+    """Waterfall from the average reference student (base value) to this student's prediction.
+
+    Largest effects at the top; effects beyond the top k are merged into one bar at the bottom.
+    """
+    ordered = expl.ordered()
+    top, rest = ordered.iloc[:k], ordered.iloc[k:]
+    labels = [f"{i18n.feature(f, lang)} = {_fmt_value(f, expl.features[f])}" for f in top.index]
+    values = list(top.values)
+    if len(rest):
+        labels.append(_t("shap_other", lang, k=len(rest)))
+        values.append(float(rest.sum()))
+    # draw bottom-up: the merged bar first, the largest effect last (top)
+    labels, values = labels[::-1], values[::-1]
+    fig, ax = plt.subplots(figsize=(11, 0.5 * len(values) + 1.9))
+    start = expl.base_value
+    for y, (label, v) in enumerate(zip(labels, values)):
+        color = RAISE if v >= 0 else LOWER
+        ax.barh(y, v, left=start, color=color, height=0.62)
+        end = start + v
+        ax.text(max(start, end), y, f"  {v:+.2f}", va="center", ha="left", fontsize=9, color=INK)
+        if y < len(values) - 1:   # thin connector to the next bar
+            ax.plot([end, end], [y + 0.31, y + 0.69], color=FAINT, lw=0.8)
+        start = end
+    ax.set_yticks(range(len(labels)), labels)
+    lo = min(expl.base_value, expl.prediction, *(expl.base_value + np.cumsum(values)))
+    hi = max(expl.base_value, expl.prediction, *(expl.base_value + np.cumsum(values)))
+    pad = max(0.4, 0.12 * (hi - lo))
+    ax.set_xlim(max(0, lo - pad), min(10.5, hi + pad * 1.6))
+    ax.set_ylim(-0.8, len(values) - 0.2)
+    for x, key, va, ypos in ((expl.base_value, "shap_base", "top", -0.75), (expl.prediction, "shap_pred", "bottom", len(values) - 0.25)):
+        ax.axvline(x, color=FAINT, lw=1, ls=(0, (4, 3)), zorder=0)
+        ax.text(x, ypos, f" {_t(key, lang)}: {x:.2f}", fontsize=8.5, color=MUTED, va=va, ha="left")
+    ax.set_xlabel(_t("shap_x", lang))
+    ax.set_title(_t("shap", lang, pred=expl.prediction))
+    ax.spines["left"].set_visible(False)
+    _value_grid(ax, "x")
+    fig.tight_layout()
+    return fig
+
+
+def importance_comparison(gini: pd.Series, perm: pd.DataFrame, lang="id"):
+    """Side by side: Gini importance (from the trees) and permutation importance (from the errors)."""
+    order = perm["mean"].sort_values().index
+    labels = _feat(order, lang)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.6), sharey=True)
+    g = gini.reindex(order)
+    ax1.barh(labels, g.values, color=NEUTRAL, height=0.62)
+    for y, v in enumerate(g.values):
+        ax1.text(v, y, f"  {v:.3f}", va="center", fontsize=8.5, color=MUTED)
+    ax1.set_title(_t("gini", lang), fontsize=10.5)
+    p = perm.reindex(order)
+    ax2.barh(labels, p["mean"].clip(lower=0), xerr=p["std"], color=PRIMARY, height=0.62,
+             error_kw=dict(ecolor=MUTED, lw=0.8, capsize=2))
+    for y, v in enumerate(p["mean"].values):
+        ax2.text(max(v, 0), y, f"  {v:.3f}", va="center", fontsize=8.5, color=MUTED)
+    ax2.set_title(_t("perm", lang), fontsize=10.5)
+    for ax in (ax1, ax2):
+        ax.spines["left"].set_visible(False)
+        _value_grid(ax, "x")
+        ax.set_xlim(0, ax.get_xlim()[1] * 1.15)
+    fig.suptitle(_t("perm_title", lang), x=0.01, ha="left")
+    fig.tight_layout()
+    return fig
+
+
+def pdp_grid(curves: list[dict], lang="id"):
+    """One panel per feature: ICE curves (thin) and their mean, the PDP (thick)."""
+    n = len(curves)
+    cols = min(n, 2)
+    rows = int(np.ceil(n / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(11, 3.4 * rows + 0.6), sharey=True, squeeze=False)
+    for ax, c in zip(axes.flat, curves):
+        for line in c["ice"]:
+            ax.plot(c["grid"], line, color=PRIMARY_SOFT, lw=0.7, alpha=0.6)
+        ax.plot(c["grid"], c["pdp"], color=PRIMARY, lw=2.6)
+        ax.set_title(i18n.feature(c["feature"], lang), fontsize=10.5, pad=8)
+        _value_grid(ax, "both")
+    for ax in list(axes.flat)[n:]:
+        ax.axis("off")
+    for ax in axes[:, 0]:
+        ax.set_ylabel(_t("pdp_y", lang))
+    fig.suptitle(_t("pdp_title", lang), x=0.01, ha="left")
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------- data mining page
+
+ROLE_COLORS = {"feature": PRIMARY, "leakage": "#D6456B", "weak": NEUTRAL, "not_applicable": NEUTRAL,
+               "unused": NEUTRAL}
+
+
+def target_correlation_bars(decisions: pd.DataFrame, role_labels: dict, lang="id"):
+    """Pearson r of each column with the anxiety score, coloured by the Phase 2 decision."""
+    d = decisions.dropna(subset=["r"]).sort_values("r")
+    fig, ax = plt.subplots(figsize=(6.6, 0.26 * len(d) + 1.7))
+    colors = [ROLE_COLORS.get(r, NEUTRAL) for r in d["role"]]
+    ax.barh(d.index, d["r"], color=colors, height=0.66)
+    for y, v in enumerate(d["r"]):
+        ax.text(v, y, f" {v:.2f} ", va="center", ha="left" if v >= 0 else "right",
+                fontsize=8.5, color=MUTED)
+    ax.axvline(0, color=INK, lw=0.8)
+    ax.set_xlim(-1.05, 1.05)
+    ax.set_title(_t("target_corr", lang))
+    ax.spines["left"].set_visible(False)
+    roles = list(dict.fromkeys(d["role"][::-1]))      # legend in the order the bars appear, top first
+    handles = [Patch(color=ROLE_COLORS.get(r, NEUTRAL), label=role_labels.get(r, r)) for r in roles]
+    ax.legend(handles=handles, fontsize=8.5, ncol=2, loc="upper center", bbox_to_anchor=(0.4, -0.06))
+    ax.tick_params(axis="y", labelsize=8.5)
+    _value_grid(ax, "x")
     fig.tight_layout()
     return fig

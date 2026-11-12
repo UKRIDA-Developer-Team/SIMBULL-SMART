@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from spk import config, data, gform, i18n, model, recommend, smart
+from spk import config, data, gform, i18n, model, recommend, smart, xai
 
 PROFILES = {"A": config.WEIGHTS_A, "B": config.WEIGHTS_B, "C": config.WEIGHTS_C}
 CONTENT_DIR = config.APP_DIR / "content"
@@ -27,10 +27,10 @@ def T(key: str, **fmt) -> str:
     return i18n.t(key, lang(), **fmt)
 
 
-def content(name: str) -> str:
-    path = CONTENT_DIR / lang() / f"{name}.md"
+def content(name: str, suffix: str = ".md") -> str:
+    path = CONTENT_DIR / lang() / f"{name}{suffix}"
     if not path.exists():
-        path = CONTENT_DIR / i18n.DEFAULT / f"{name}.md"
+        path = CONTENT_DIR / i18n.DEFAULT / f"{name}{suffix}"
     return path.read_text()
 
 
@@ -113,6 +113,43 @@ def score(df: pd.DataFrame, profile: str, use_reference_bounds: bool = True):
     result, utility = smart.run(crit[config.CRITERIA], PROFILES[profile], bounds)
     result = pd.concat([df[config.FEATURES], crit[["rf_anxiety_score"]], result], axis=1)
     return result.sort_values("smart_score", ascending=False), utility
+
+
+# ---------- explainable AI (cached: one Shapley explanation is ~0.4 s) ----------
+
+@st.cache_data(show_spinner=False)
+def xai_background() -> pd.DataFrame:
+    return xai.background_sample(load_reference())
+
+
+@st.cache_data(show_spinner=False)
+def xai_targets() -> dict:
+    return xai.reference_targets(load_reference())
+
+
+@st.cache_data(show_spinner=False, max_entries=256)
+def _shap(items: tuple):
+    rf, _ = load_active()
+    return xai.shapley_values(rf, dict(items), xai_background())
+
+
+def shap_explanation(features: dict | pd.Series):
+    """Exact Shapley explanation of the active model's prediction for one student."""
+    return _shap(tuple((f, features[f]) for f in config.FEATURES))
+
+
+@st.cache_data(show_spinner=False)
+def kaggle_test_set():
+    """The notebook's Kaggle test split (2,000 rows), held out from every training strategy."""
+    _, X_test, _, y_test = model.split(load_reference().reset_index(drop=True))
+    return X_test, y_test
+
+
+@st.cache_data(show_spinner=False)
+def permutation_importance() -> pd.DataFrame:
+    rf, _ = load_active()
+    X_test, y_test = kaggle_test_set()
+    return xai.permutation_importance(rf, X_test, y_test, n_repeats=5)
 
 
 def impute_medians() -> dict:
@@ -212,12 +249,22 @@ def bars(rows: list[tuple[str, float, str]], scale: float = 1.0, highlight_first
     return f"<div class='spk-bars'>{''.join(items)}</div>"
 
 
-def scroll_to_top():
-    """Bring the view back to the top, e.g. after a long form turns into its result."""
-    st.html("""<script>
-      for (const el of [document.querySelector('[data-testid="stMain"]'),
-                        document.querySelector('[data-testid="stAppViewContainer"]'),
-                        document.scrollingElement]) { if (el) el.scrollTo({top: 0}); }
+def scroll_to_top(token: object = ""):
+    """Bring the view back to the top, e.g. after a long form turns into its result.
+
+    Streamlit runs an st.html script again only when the HTML changes, so callers that scroll more
+    than once pass a token that changes each time.
+    """
+    st.html(f"""<script>/* scroll {html.escape(str(token))} */
+      (() => {{
+        const toTop = () => {{
+          for (const el of [document.querySelector('[data-testid="stMain"]'),
+                            document.querySelector('[data-testid="stAppViewContainer"]'),
+                            document.scrollingElement]) {{ if (el) el.scrollTo({{top: 0}}); }}
+        }};
+        toTop();
+        setTimeout(toTop, 150);   // again once the rest of the rerun has laid out
+      }})();
     </script>""", unsafe_allow_javascript=True)
 
 
