@@ -6,7 +6,7 @@
 
 Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
 
-Bagian bertanda ⟦ISI …⟧ diisi setelah *pipeline* dijalankan pada data kuesioner riil yang bersifat rahasia. Angka agregatnya dihasilkan otomatis oleh `scripts/train.py --stage real`.
+Laporan memakai dua sumber data: dataset publik Kaggle (1 juta baris) untuk pralatih, dan **304 respons kuesioner riil** siswa SMA yang bersifat rahasia untuk pelatihan ulang dan pengujian. Semua angka data riil adalah agregat yang dihasilkan otomatis oleh `scripts/train.py --stage real`; tidak ada baris individu yang ditampilkan. Bagian bertanda ⟦ISI …⟧ yang tersisa hanya URL aplikasi dan hasil uji pengguna.
 
 [[PAGEBREAK]]
 # 1. Business Understanding
@@ -80,16 +80,16 @@ Dalam proyek ini, **benefit** berarti nilai tinggi menaikkan utilitas, sehingga 
 
 | Kode | Kriteria | Target | Hasil |
 |---|---|---|---|
-| D1 | Model lebih baik dari baseline rata-rata | MAE < baseline | Tercapai (0,767 vs 1,237 pada data uji Kaggle) |
-| D2 | Daya jelaskan model | R² ≥ 0,60 | Tercapai (0,614 pada data uji Kaggle) |
-| D3 | Faktor dominan masuk akal secara teori | Faktor stres/kelelahan di peringkat atas | Tercapai (stres 0,43, *burnout* 0,30) |
-| D4 | Kinerja pada data riil | MAE lebih rendah dari model Kaggle tanpa latih ulang | ⟦ISI dari laporan data riil⟧ |
+| D1 | Model lebih baik dari baseline rata-rata | MAE < baseline | Tercapai (0,758 vs 1,222 pada 138.509 baris uji Kaggle) |
+| D2 | Daya jelaskan model | R² ≥ 0,60 | Tercapai (0,608 pada 138.509 baris uji Kaggle) |
+| D3 | Faktor dominan masuk akal secara teori | Faktor stres/kelelahan di peringkat atas | Tercapai (stres 0,75, *burnout* 0,21) |
+| D4 | Kinerja pada data riil | MAE lebih rendah dari model Kaggle tanpa latih ulang | Tercapai (MAE 1,113 vs 1,874 pada 59 respons *holdout*) |
 
 ### 1.5.2 SPK
 
 | Kode | Kriteria | Target | Hasil |
 |---|---|---|---|
-| S1 | Stabilitas terhadap perubahan bobot | ≥ 90% rekomendasi utama tetap saat bobot diubah acak ±10% | Profil A: 94,6%; profil B: 88,8% |
+| S1 | Stabilitas terhadap perubahan bobot | ≥ 90% rekomendasi utama tetap saat bobot diubah acak ±10% | Kaggle: profil A 94,3%, profil B 89,1%; data riil: profil A 95,5%, profil B 87,7% |
 | S2 | Setiap rekomendasi dapat dijelaskan | 100% hasil disertai kontribusi kriteria dan alasan | Tercapai di aplikasi |
 | S3 | Aturan pengaman | Siswa berisiko tinggi selalu mendapat rujukan konseling | Tercapai (10% prediksi tertinggi) |
 | S4 | Kebergunaan | Skor rata-rata evaluasi pengguna (Google Form, skala 1–5) ≥ 4 | ⟦ISI setelah uji pengguna⟧ |
@@ -122,56 +122,58 @@ Proyek memakai dua sumber data dengan peran berbeda.
 | Aspek | Data pralatih (Kaggle) | Data riil (kuesioner) |
 |---|---|---|
 | Sumber | Kaggle `sharmajicoder/student-mental-health-and-burnout`, berkas `student_mental_health_burnout_1M.csv` | Google Form yang disebarkan tim ke siswa SMA |
-| Ukuran asli | 1.000.000 baris × 20 kolom | ⟦ISI: jumlah respons⟧ baris × ±50 kolom |
-| Yang dipakai | Sampel acak 2% = **20.000 baris** (`random_state=42`) | Seluruh respons valid setelah pembersihan |
-| Populasi | Mahasiswa, usia 17–29 | Siswa SMA, usia ±15–18 |
+| Ukuran asli | 1.000.000 baris × 20 kolom | **304 respons** × 68 kolom (195 dari formulir awal, 109 dari formulir revisi) |
+| Yang dipakai | Rentang usia pelajar 14–25 = **692.545 baris** (berkas hanya berisi usia 17–25), dibagi 80/20 menjadi data latih dan uji | Usia 14–25 dengan jawaban Psikologis lengkap = **292 respons** |
+| Populasi | Mahasiswa, usia 17–29 | Siswa SMA/SMP akhir, usia 14–24 (median 15) |
 | Peran | Pralatih model; populasi referensi SPK | Pelatihan ulang dan pengujian model |
 | Kerahasiaan | Publik | **Rahasia**: tidak masuk repositori |
 
 Alasan dua sumber: data Kaggle besar dan lengkap sehingga cocok untuk membangun model awal, tetapi populasinya bukan siswa SMA. Data kuesioner sesuai populasi sasaran, tetapi jumlahnya kecil. Model dilatih lebih dulu pada Kaggle, lalu disesuaikan dengan data kuesioner.
 
-## 2.2 Deskripsi Data Kaggle (20.000 baris)
+## 2.2 Deskripsi Data Kaggle (1.000.000 baris)
 
-Tidak ada nilai hilang dan tidak ada baris duplikat pada sampel.
+Seluruh berkas dipakai. Tidak ada nilai hilang, tidak ada baris duplikat, dan tidak ada nilai mustahil (semua skor 0–10, jam tidur 3–10, nilai 42–97). Usia tersebar merata pada 17–29 tahun, sekitar 77.000 baris per usia.
 
 | Atribut | Tipe | Rata-rata | Std | Min | Median | Maks | Peran |
 |---|---|---|---|---|---|---|---|
-| age | numerik | 23,01 | 3,75 | 17 | 23 | 29 | fitur |
-| gender | kategorikal | Female 9.632 · Male 9.561 · Other 807 | | | | | fitur |
-| academic_year | ordinal | 2,51 | 1,12 | 1 | 3 | 4 | tidak dipakai |
-| study_hours_per_day | numerik | 5,03 | 1,97 | 0,00 | 5,01 | 13,23 | fitur + kriteria |
-| exam_pressure | numerik | 6,01 | 1,55 | 1,00 | 6,02 | 10,00 | fitur |
-| academic_performance | numerik | 71,10 | 5,66 | 47,56 | 71,10 | 92,89 | fitur + kriteria |
-| stress_level | numerik | 4,27 | 1,67 | 0,00 | 4,27 | 10,00 | fitur |
-| **anxiety_score** | numerik | 3,01 | 1,52 | 0,00 | 2,98 | 9,11 | **target** |
-| depression_score | numerik | 1,28 | 1,22 | 0,00 | 1,05 | 7,86 | tidak dipakai (hasil) |
-| sleep_hours | numerik | 6,50 | 1,49 | 3,00 | 6,50 | 10,00 | fitur + kriteria |
-| physical_activity | numerik | 3,02 | 1,47 | 0,00 | 3,00 | 7,00 | fitur + kriteria |
-| social_support | numerik | 5,01 | 1,98 | 0,00 | 5,00 | 10,00 | tidak dipakai |
-| screen_time | numerik | 5,04 | 1,95 | 1,00 | 5,02 | 12,00 | tidak dipakai |
-| internet_usage | numerik | 5,06 | 2,14 | 1,00 | 5,04 | 13,70 | tidak dipakai |
-| financial_stress | numerik | 5,00 | 1,99 | 0,00 | 4,99 | 10,00 | fitur + kriteria |
-| family_expectation | numerik | 6,00 | 1,94 | 0,00 | 6,02 | 10,00 | fitur + kriteria |
-| burnout_score | numerik | 1,79 | 1,67 | 0,00 | 1,51 | 9,85 | fitur + kriteria |
-| mental_health_index | numerik | 7,01 | 1,31 | 2,02 | 7,06 | 10,00 | tidak dipakai (hasil) |
-| risk_level | kategorikal | Low 15.321 · Medium 4.376 · High 303 | | | | | tidak dipakai (hasil) |
-| dropout_risk | numerik | 1,33 | 1,35 | 0,00 | 1,00 | 8,56 | tidak dipakai (hasil) |
+| age | numerik | 23,00 | 3,74 | 17 | 23 | 29 | fitur (dibersihkan ke 14–25) |
+| gender | kategorikal | Female 480.070 · Male 479.643 · Other 40.287 | | | | | fitur |
+| academic_year | ordinal | 2,50 | 1,12 | 1 | 3 | 4 | tidak dipakai |
+| study_hours_per_day | numerik | 5,00 | 1,99 | 0,00 | 5,00 | 14,00 | fitur + kriteria |
+| exam_pressure | numerik | 6,00 | 1,55 | 1,00 | 6,00 | 10,00 | fitur |
+| academic_performance | numerik | 71,00 | 5,66 | 42,37 | 71,00 | 97,25 | fitur + kriteria |
+| stress_level | numerik | 4,25 | 1,68 | 0,00 | 4,24 | 10,00 | fitur |
+| **anxiety_score** | numerik | 2,99 | 1,51 | 0,00 | 2,97 | 10,00 | **target** |
+| depression_score | numerik | 1,27 | 1,22 | 0,00 | 1,05 | 8,53 | tidak dipakai (hasil) |
+| sleep_hours | numerik | 6,50 | 1,47 | 3,00 | 6,50 | 10,00 | fitur + kriteria |
+| physical_activity | numerik | 3,01 | 1,46 | 0,00 | 3,00 | 7,00 | fitur + kriteria |
+| social_support | numerik | 5,00 | 1,98 | 0,00 | 5,00 | 10,00 | tidak dipakai |
+| screen_time | numerik | 5,02 | 1,96 | 1,00 | 5,00 | 12,00 | tidak dipakai |
+| internet_usage | numerik | 5,04 | 2,16 | 1,00 | 5,00 | 14,00 | tidak dipakai |
+| financial_stress | numerik | 5,00 | 1,98 | 0,00 | 5,00 | 10,00 | fitur + kriteria |
+| family_expectation | numerik | 5,98 | 1,96 | 0,00 | 6,00 | 10,00 | fitur + kriteria |
+| burnout_score | numerik | 1,78 | 1,66 | 0,00 | 1,50 | 10,00 | fitur + kriteria |
+| mental_health_index | numerik | 7,02 | 1,31 | 1,31 | 7,07 | 10,00 | tidak dipakai (hasil) |
+| risk_level | kategorikal | Low 766.645 · Medium 218.275 · High 15.080 | | | | | tidak dipakai (hasil) |
+| dropout_risk | numerik | 1,32 | 1,34 | 0,00 | 1,01 | 9,33 | tidak dipakai (hasil) |
 
 ### 2.2.1 Korelasi dengan skor kecemasan
 
 | Atribut | r (Pearson) | Atribut | r (Pearson) |
 |---|---|---|---|
-| stress_level | 0,761 | study_hours_per_day | 0,272 |
-| burnout_score | 0,674 | family_expectation | 0,260 |
-| depression_score | 0,474 | academic_performance | 0,056 |
-| dropout_risk | 0,470 | physical_activity | −0,122 |
-| financial_stress | 0,360 | sleep_hours | −0,205 |
-| exam_pressure | 0,351 | mental_health_index | −0,869 |
+| stress_level | 0,761 | study_hours_per_day | 0,269 |
+| burnout_score | 0,668 | family_expectation | 0,264 |
+| depression_score | 0,476 | academic_performance | 0,045 |
+| dropout_risk | 0,462 | physical_activity | −0,132 |
+| financial_stress | 0,354 | sleep_hours | −0,200 |
+| exam_pressure | 0,350 | mental_health_index | −0,869 |
+
+Korelasi pada 692.545 baris usia 14–25 hampir sama (selisih ≤ 0,002), jadi pembersihan usia tidak mengubah pola data.
 
 Temuan penting:
 
 - `stress_level` dan `burnout_score` paling kuat berhubungan dengan kecemasan.
-- `mental_health_index`, `depression_score`, `dropout_risk`, dan `risk_level` adalah **variabel hasil** yang sangat terkait dengan target. Memakainya sebagai fitur menimbulkan *label leakage*, jadi keempatnya dikeluarkan.
+- `mental_health_index`, `depression_score`, `dropout_risk`, dan `risk_level` adalah **variabel hasil** yang sangat terkait dengan target. `mental_health_index` bahkan dihitung langsung dari target: `10 − 0,4·stres − 0,3·kecemasan − 0,3·depresi` (cocok tepat). Memakainya sebagai fitur menimbulkan *label leakage*, jadi keempatnya dikeluarkan.
 - `social_support`, `screen_time`, dan `internet_usage` hampir tidak berkorelasi (|r| < 0,01) sehingga tidak dipakai.
 - `academic_year` tidak berlaku untuk siswa SMA dan juga tidak berkorelasi.
 
@@ -191,28 +193,63 @@ Kuesioner (lampiran `context.pdf`) terdiri atas bagian berikut. Bentuk jawaban: 
 | Kegiatan di luar sekolah | jumlah ekskul, jam per minggu, lomba | ekstra |
 | Kelelahan | sulit membagi waktu, kelelahan, kehilangan minat, rasa percaya diri | *burnout* |
 | Pertemanan | diterima, teman dipercaya, dukungan, tekanan konformitas, konflik | ekstra |
-| **Psikologis** | gugup/cemas, sulit mengendalikan khawatir, konsentrasi (dibalik), pikiran terganggu, sulit menyelesaikan tugas | **target skor kecemasan** |
+| **Psikologis** | gugup/cemas, sulit mengendalikan khawatir, konsentrasi (dibalik), pikiran terganggu, sulit menyelesaikan tugas; formulir revisi menambah mudah tersinggung dan menghindari kegiatan | **target skor kecemasan** |
 | Pola makan | uang saku cukup, jajan, minuman manis/berkafein, makan saat tertekan, melewatkan makan | tekanan finansial (+ ekstra) |
 
 "Ekstra" berarti butir disimpan untuk analisis korelasi dan satu eksperimen model yang diperluas. Butir ini tidak dipakai model yang dideploy, karena model harus tetap sejajar dengan 11 fitur Kaggle.
 
 ### 2.3.1 Statistik data kuesioner
 
-⟦ISI dari `app/models/real_summary.json` dan `app/reports/private/real_data_report.md` setelah pipeline dijalankan: jumlah respons, jumlah baris bersih, duplikat, *straight-lining*, sebaran gender, statistik tiap fitur, korelasi fitur dan butir ekstra dengan skor kecemasan.⟧
+Ekspor berisi **304 respons** dan 68 kolom. Satu formulir Google dipakai dalam dua versi: 195 respons dijawab pada formulir awal dan 109 pada formulir revisi (yang menambah butir seperti "nilai di bawah target", "bisa bercerita ke keluarga", kualitas tidur, dan dua butir Psikologis). Setiap skor gabungan dirata-rata dari butir yang dijawab baris itu, sehingga kedua versi dapat digabung (diperiksa di Fase 3).
+
+- **Usia** dihitung dari tanggal lahir. Ekspor tidak memuat *timestamp*, jadi tanggal acuannya adalah tanggal pemrosesan. 8 tanggal lahir tidak masuk akal (tahun 2026–2027) sehingga usianya dikosongkan. 11 respons di luar rentang 14–25 (10 berusia 13, 1 berusia 30) dibuang. 1 respons tidak lengkap pada butir Psikologis sehingga tidak memiliki target.
+- **Dipakai:** 292 respons, laki-laki 160 dan perempuan 132; usia 14 (89), 15 (97), 16 (41), 17 (35), 18 (14), 19–24 (16).
+- Tidak ada baris jawaban duplikat; 1 baris menjawab semua butir Likert sama (*straight-lining*) dan tetap dipakai.
+
+| Fitur | Rata-rata | Std | Min | Median | Maks | Rata-rata Kaggle |
+|---|---|---|---|---|---|---|
+| age | 15,39 | 1,53 | 14 | 15 | 24 | 21,00 |
+| study_hours_per_day | 2,12 | 1,99 | 0,25 | 1,50 | 10,00 | 5,01 |
+| academic_performance | 81,83 | 8,47 | 40,00 | 84,00 | 100,00 | 71,07 |
+| exam_pressure | 5,82 | 2,20 | 1,00 | 5,50 | 10,00 | 6,01 |
+| stress_level | 4,39 | 1,48 | 0,00 | 4,58 | 8,75 | 4,24 |
+| sleep_hours | 6,73 | 1,35 | 4,00 | 6,50 | 12,00 | 6,52 |
+| physical_activity | 2,73 | 1,99 | 0,00 | 1,50 | 7,00 | 3,01 |
+| financial_stress | 3,38 | 2,57 | 0,00 | 2,50 | 10,00 | 5,01 |
+| family_expectation | 4,72 | 2,46 | 0,00 | 5,00 | 10,00 | 5,97 |
+| burnout_score | 4,67 | 1,80 | 0,00 | 5,00 | 10,00 | 1,77 |
+| **anxiety_score** | **5,01** | 1,78 | 0,00 | 5,00 | 9,29 | **2,99** |
+
+Perbedaan dengan Kaggle cukup besar: siswa belajar lebih sedikit di luar sekolah (2,1 vs 5,0 jam), nilai rapor lebih tinggi, *burnout* jauh lebih tinggi (4,7 vs 1,8), dan **skor kecemasan rata-rata 5,0 dibanding 3,0**. Karena sebaran target bergeser sejauh ini, model Kaggle tidak dapat dipakai langsung untuk siswa SMA (Fase 5).
+
+**Korelasi dengan skor kecemasan (data riil).**
+
+| Fitur | r | Fitur | r |
+|---|---|---|---|
+| exam_pressure | 0,498 | financial_stress | 0,001 |
+| burnout_score | 0,490 | physical_activity | −0,027 |
+| family_expectation | 0,389 | age | −0,060 |
+| stress_level | 0,303 | academic_performance | −0,118 |
+| study_hours_per_day | 0,029 | sleep_hours | −0,126 |
+
+Pola faktor dominan berbeda dari Kaggle. Pada siswa SMA, tekanan ujian, *burnout*, dan ekspektasi keluarga paling berhubungan dengan kecemasan, sedangkan pada Kaggle tingkat stres jauh mendominasi (r 0,76). Di antara butir ekstra, kualitas tidur (r 0,55), merasa kurang tidur (0,37), mengantuk di kelas (0,37), konflik dengan teman (0,34), dan media sosial saat belajar (0,32) paling berkorelasi.
 
 ## 2.4 Kualitas Data
 
 | Dimensi | Kaggle | Kuesioner (pemeriksaan otomatis `spk/gform.py`) |
 |---|---|---|
-| Kelengkapan | 0 nilai hilang | nilai hilang per fitur dilaporkan; diisi median data latih |
-| Duplikat | 0 | baris jawaban identik dibuang |
-| Validitas | rentang wajar | nilai di luar rentang (mis. rapor > 100) dikosongkan; jawaban yang tidak dikenali dilaporkan |
-| Kesungguhan | – | *straight-lining* (semua Likert sama) dihitung |
-| Privasi | tidak ada data pribadi | kolom pribadi dibuang segera setelah usia dihitung |
+| Kelengkapan | 0 nilai hilang | 8 usia kosong (tanggal lahir tidak masuk akal), 1 nilai kosong pada 6 fitur, 1 target kosong; fitur kosong diisi median data latih |
+| Duplikat | 0 | 0 baris jawaban identik |
+| Validitas | rentang wajar | nilai di luar rentang dikosongkan; jawaban isian bebas yang tidak terbaca hanya pada butir ekstra (31 jawaban, mis. jam kegiatan ditulis dalam menit) |
+| Kesungguhan | – | 1 baris *straight-lining* |
+| Privasi | tidak ada data pribadi | tanggal lahir dan isian bebas dibuang segera setelah usia dihitung; 12 kolom pertanyaan tambahan yang tidak dipetakan tidak dipakai |
+| Konsistensi butir | – | Cronbach α: kecemasan 0,78 (7 butir) / 0,69 (5 butir); *burnout* 0,67; tingkat stres 0,32; tekanan ujian 0,38; ekspektasi keluarga 0,37 |
 
 ## 2.5 Keterbatasan
 
-- Dataset Kaggle kemungkinan besar sintetis dan berasal dari mahasiswa, bukan siswa SMA. Karena itu model dilatih ulang dengan data riil.
+- Dataset Kaggle berasal dari mahasiswa, bukan siswa SMA, dan sebaran skornya berbeda jauh dari data riil. Karena itu model dilatih ulang dengan data riil.
+- Skor gabungan tingkat stres, tekanan ujian, dan ekspektasi keluarga memiliki konsistensi butir rendah (α 0,32–0,38), jadi butir-butirnya mengukur hal yang cukup berbeda.
+- 292 respons masih kecil untuk model yang stabil; hasil *holdout* 59 respons memiliki ketidakpastian besar.
 - Tingkat stres dan tekanan finansial pada kuesioner adalah **proksi**, sehingga maknanya tidak identik dengan kolom Kaggle.
 - Data kuesioner bersifat *self-report* dan *cross-sectional*: rawan bias sosial dan tidak menunjukkan sebab-akibat.
 - Sampel kuesioner tidak acak (disebar lewat sekolah, media sosial, dan teman), sehingga generalisasinya terbatas.
@@ -231,19 +268,21 @@ Kuesioner (lampiran `context.pdf`) terdiri atas bagian berikut. Bentuk jawaban: 
 
 | # | Langkah | Data Kaggle | Data kuesioner | Kode |
 |---|---|---|---|---|
-| 1 | Sampling | 1 juta → 20.000 (2%), lalu 10.000 (50%) untuk RF | seluruh respons | `spk/data.py`, `spk/model.py::split` |
+| 1 | Pembersihan usia | 1 juta → usia 14–25 (692.545) | usia 14–25 | `data.clean`, `config.AGE_RANGE` |
 | 2 | Seleksi atribut | 11 fitur + target; buang variabel hasil | petakan ±50 kolom ke *field* | `config.FEATURES`, `gform_mapping.json` |
 | 3 | Pembersihan | tidak ada nilai hilang/duplikat | duplikat, rentang, jawaban tak dikenal, data pribadi | `spk/gform.py` |
 | 4 | Encoding | `gender` → kode tetap | teks jawaban → angka | `data.encode_gender`, `gform.encode` |
 | 5 | Konstruksi fitur | – | 11 fitur skala Kaggle + target | `gform.derive` |
 | 6 | Imputasi | – | median data latih | `gform.impute` |
-| 7 | Pembagian data | 80% latih / 20% uji | 80% pengembangan / 20% *holdout* + CV 5-fold ×2 | `model.split`, `spk/retrain.py` |
+| 7 | Pembagian data | 80% latih (554.036) / 20% uji (138.509), stratifikasi usia | 80% pengembangan / 20% *holdout* + CV 5-fold ×2 | `data.split_full`, `spk/retrain.py` |
 
 ## 3.2 Data Kaggle
 
-### 3.2.1 Sampling
+### 3.2.1 Pembersihan usia
 
-Berkas 1 juta baris terlalu besar untuk Google Colab dan deployment, jadi diambil sampel acak **2% (20.000 baris)** dengan `random_state=42`. Sampel ini disimpan sebagai `app/data/dataset.csv`. Untuk melatih RF, diambil lagi **50% (10.000 baris)**.
+Data Kaggle berasal dari mahasiswa usia 17–29, sedangkan pengguna sasaran adalah pelajar. Agar data yang ditambang mewakili usia pelajar, hanya baris dalam rentang **14–25 tahun** yang dipakai (`config.AGE_RANGE`). Batas 14 mencakup siswa SMA pengisi kuesioner, dan 25 adalah akhir masa kuliah umum. Karena berkas Kaggle mulai dari usia 17, yang tersisa adalah usia 17–25: **692.545 dari 1.000.000 baris** (307.455 baris dibuang). Model dasar karena itu tidak pernah melihat pelajar berusia 14–16; penyesuaian ke siswa SMA dilakukan dengan pelatihan ulang (§4.3).
+
+Seluruh berkas dipakai, bukan sampel. Notebook awal mengambil sampel 2% (20.000 baris) lalu 50% lagi untuk RF, sehingga hanya 8.000 baris yang melatih model dan 2.000 baris yang mengujinya.
 
 ### 3.2.2 Seleksi atribut
 
@@ -259,7 +298,25 @@ Random Forest tidak memerlukan normalisasi fitur, sehingga fitur numerik dipakai
 
 ### 3.2.4 Pembagian data
 
-Dari 10.000 baris: **8.000 latih** dan **2.000 uji** (`test_size=0.2`, `random_state=42`). Rata-rata target pada data latih 3,00 dan pada data uji 3,07, jadi sebaran keduanya seimbang.
+692.545 baris dibagi **80% latih (554.036 baris)** dan **20% uji (138.509 baris)** dengan `test_size=0.2`, `random_state=42`, dan stratifikasi per usia, sehingga setiap usia 17–25 mendapat porsi yang sama (±11,1%) di kedua bagian (`data.split_full`). Rata-rata target pada data latih 2,99 dan pada data uji 2,98.
+
+Dari data uji diambil **20.000 baris** (juga distratifikasi per usia) sebagai **populasi referensi** aplikasi (`app/data/dataset.csv`): batas SMART, persentil, grafik Analisis, dan penjelasan Shapley memakai baris ini. Karena berasal dari data uji, aplikasi tidak pernah menampilkan baris yang dipakai melatih model. Dari data latih disimpan 8.000 baris untuk strategi pelatihan ulang S2 (`kaggle_retrain.csv.gz`).
+
+### 3.2.5 Pemeriksaan outlier
+
+Selain nilai hilang dan duplikat (tidak ada), diperiksa nilai ekstrem. Tiap kolom memiliki paling banyak 0,6% baris di luar 3 simpangan baku; semuanya nilai yang masih masuk akal (misalnya 14 jam belajar atau nilai rapor 45), bukan kesalahan data. Skor *burnout* bernilai 0 pada 23% baris dan kecemasan 0 pada 2,7% baris; ini batas bawah skala, bukan galat.
+
+Untuk memastikan, baris ekstrem dibuang dari **data latih saja**, lalu model diuji pada 138.509 baris uji yang sama:
+
+| Pembersihan data latih | Baris latih | R² uji (Gradient Boosting) |
+|---|---|---|
+| Tanpa pembersihan tambahan | 554.036 | **0,6083** |
+| Buang baris dengan nilai di luar 3 simpangan baku | 547.004 | 0,6079 |
+| Buang baris di luar persentil 1–99 | 483.776 | 0,6058 |
+| Buang baris dengan kecemasan 0 atau 10 | 539.326 | 0,6049 |
+| Buang 2% outlier (*Isolation Forest*) | 542.955 | 0,6080 |
+
+Tidak ada pembersihan yang menaikkan R², jadi tidak ada baris lain yang dibuang. Data uji tidak boleh ikut dibersihkan: membuang baris uji yang sulit diprediksi menaikkan R² secara semu (0,67 bila galat > 2 simpangan baku dibuang), padahal modelnya sama.
 
 ## 3.3 Data Kuesioner (Google Form)
 
@@ -267,9 +324,11 @@ Dari 10.000 baris: **8.000 latih** dan **2.000 uji** (`test_size=0.2`, `random_s
 
 Ekspor Google Form memakai judul pertanyaan sebagai nama kolom. Pertanyaan grid tertulis sebagai `Judul grid [teks baris]`. Berkas `spk/gform_mapping.json` mencocokkan setiap *field* dengan potongan teks pertanyaan. Beberapa judul dipakai dua kali di formulir, misalnya "Rata-Rata Jam Belajar Per Hari" dan "Target pengumpulan tugas". Untuk kasus ini, sistem memilih kolom yang jawabannya paling banyak dapat dibaca oleh *parser* field tersebut. Skrip `scripts/inspect_gform.py` menampilkan hasil pencocokan sebelum pelatihan.
 
+**Dua versi formulir.** Formulir direvisi (`context_ori.pdf` → `context_new.pdf`, dikurangi butir yang dihapus). Keduanya adalah Google Form yang sama, jadi satu ekspor berisi baris dari kedua versi. Google mempertahankan kolom saat judul diubah, sehingga header memakai judul terbaru. Pertanyaan tambahan (ditandai `new_form` di `gform_mapping.json`) bersifat opsional: kosong pada baris versi lama dan tidak menggagalkan ekspor lama. Setiap baris diberi label `original` atau `revised`: revisi bila menjawab salah satu pertanyaan tambahan atau memilih opsi "> 5" yang baru ada setelah revisi. Kolom pertanyaan yang sudah dihapus dari formulir diabaikan (masuk daftar kolom tak terpakai). Bila sebuah butir opsional cocok dengan dua kolom setara, butir itu dilewati dan dilaporkan, bukan menghentikan proses.
+
 ### 3.3.2 Pembersihan
 
-- **Data pribadi dibuang:** *timestamp*, tanggal lahir, nama sekolah, sumber informasi, nama teman, dan email. Pembuangan terjadi segera setelah usia dihitung. Setiap baris diberi ID anonim `R0001…`.
+- **Data pribadi dibuang:** *timestamp*, tanggal lahir, nama sekolah, sumber informasi, nama teman, email, dan jawaban esai kondisi saat bangun tidur (teks bebas dapat memuat nama). Pembuangan terjadi segera setelah usia dihitung. Setiap baris diberi ID anonim `R0001…`.
 - **Duplikat:** baris dengan jawaban identik dibuang.
 - **Rentang:** nilai rapor di luar 0–100 dan jam di luar rentang pertanyaan dikosongkan.
 - **Jawaban tak dikenal** dihitung dan dicontohkan di laporan privat agar pemetaan dapat diperbaiki.
@@ -280,9 +339,9 @@ Ekspor Google Form memakai judul pertanyaan sebagai nama kolom. Pertanyaan grid 
 | Jenis jawaban | Contoh | Menjadi |
 |---|---|---|
 | Rentang jam | "Dibawah 30 menit", "1 jam 30 menit", "12 jam" | 0,25 · 1,5 · 12 |
-| Likert frekuensi | Tidak pernah … Sangat sering | 1 … 5 |
+| Likert frekuensi | Tidak pernah … Sangat sering (atau … Selalu) | 1 … 5 |
 | Likert persetujuan | Sangat tidak setuju … Sangat setuju | 1 … 5 |
-| Ordinal 4 tingkat | Tidak pernah / 1 kali / 2-3 kali / 4-5 kali | 1 … 4 |
+| Ordinal 5 tingkat | Tidak pernah / 1 kali / 2-3 kali / 4-5 kali / > 5 kali | 1 … 5 (versi lama tidak punya tingkat 5) |
 | Hari olahraga | 0 / 1-2 / 3-4 / 5-6 / 7 hari | 0 · 1,5 · 3,5 · 5,5 · 7 (titik tengah) |
 | Jenis kelamin | Laki-laki / Perempuan | Male / Female |
 
@@ -294,20 +353,45 @@ Agar model Kaggle dapat dipakai dan dilatih ulang, jawaban kuesioner diubah ke r
 
 | Fitur model | Rumus |
 |---|---|
-| age | ⌊(timestamp − tanggal lahir) / 365,25⌋ |
+| age | ⌊(tanggal acuan − tanggal lahir) / 365,25⌋; tanggal acuan = *timestamp*, atau tanggal pemrosesan bila ekspor tidak memuat *timestamp* (seperti ekspor riil) |
 | gender | jenis kelamin |
 | study_hours_per_day | jam belajar (jam) |
 | academic_performance | nilai rata-rata rapor |
-| exam_pressure | 1 + (tertekan ujian − 1) × 9/4 → 1–10 |
+| exam_pressure | 1 + 9 × rata-rata unit(tertekan ujian, nilai di bawah target ᴿ) → 1–10 |
 | stress_level | 10 × rata-rata unit(tugas bersamaan, waktu tidak cukup, tugas terlambat, belajar larut malam) |
 | sleep_hours | durasi tidur (jam) |
 | physical_activity | hari olahraga per minggu |
 | financial_stress | 10 × (5 − uang saku cukup) / 4 (dibalik) |
 | family_expectation | 10 × rata-rata unit(takut mengecewakan orang tua, tuntutan nilai keluarga) |
 | burnout_score | 10 × rata-rata unit(sulit membagi waktu, kelelahan, kehilangan minat) |
-| **anxiety_score** (target) | [Σ(P − 1) untuk P01, P02, P04, P05 + (5 − P03)] / 2 → 0–10 |
+| **anxiety_score** (target) | 10 × rata-rata unit(P01, P02, 1 − unit(P03), P04, P05, P06 ᴿ, P07 ᴿ) → 0–10 |
+| x_sleep_quality (tambahan) | 10 × rata-rata unit(sulit tertidur, terbangun lalu sulit tidur lagi, mimpi buruk/gelisah) ᴿ |
 
-Lima butir Psikologis (P01–P05) hanya membentuk target dan **tidak pernah** menjadi fitur, sehingga tidak ada *label leakage*. Rumus diuji otomatis di `tests/test_gform.py`.
+ᴿ = butir yang hanya ada di formulir revisi. Rata-rata diambil dari butir yang dijawab baris tersebut, sehingga pada baris versi lama rumus kembali ke rumus awal, misalnya anxiety_score = [Σ(P − 1) untuk P01, P02, P04, P05 + (5 − P03)] / 2. Target membutuhkan kelima butir P01–P05; P06–P07 ikut bila dijawab. Opsi "4-5 kali" bernilai tingkat 4 dari 5 (0,75) pada kedua versi, jadi label yang sama selalu bernilai sama.
+
+Butir Psikologis (P01–P07) hanya membentuk target dan **tidak pernah** menjadi fitur, sehingga tidak ada *label leakage*. Rumus diuji otomatis di `tests/test_gform.py`.
+
+### 3.4.1 Pemeriksaan penggabungan dua versi
+
+Laporan kualitas (`inspect_gform.py`, laporan privat pelatihan) memuat:
+
+- **Jumlah baris per versi** (`rows_by_form_version`) dan jumlah jawaban "> 5" (`answers_above_original_max`).
+- **Reliabilitas** (*Cronbach's alpha*) setiap skor gabungan, untuk semua butir dan untuk butir versi lama saja. Alpha ≥ 0,6 dianggap cukup. Bila butir tambahan menurunkan alpha suatu skor, keluarkan butir itu dari `COMPOSITES` di `spk/gform.py`.
+- **Kesetaraan versi** (`item_set_check`): pada baris revisi, korelasi *r* dan selisih rata-rata (*shift*) antara skor dari butir lama dan skor dari semua butir. *r* tinggi (≥ 0,8) dan *shift* kecil (< 0,5 poin) berarti baris lama dan baru aman digabung.
+
+**Hasil pada data riil** (195 baris formulir awal, 109 baris formulir revisi):
+
+| Skor gabungan | α semua butir | α butir lama | *r* (lama vs semua) | *shift* |
+|---|---|---|---|---|
+| anxiety_score (target) | 0,78 (7 butir) | 0,69 (5 butir) | 0,958 | −0,05 |
+| exam_pressure | 0,38 (2 butir) | – (1 butir) | 0,823 | −0,34 |
+| family_expectation (dengan "bisa bercerita") | 0,37 (3 butir) | 0,53 (2 butir, baris yang sama) | 0,898 | −0,16 |
+| burnout_score | 0,67 | 0,67 | – | – |
+| stress_level | 0,32 | 0,32 | – | – |
+
+- Ketiga skor yang mendapat butir baru lolos uji kesetaraan (*r* ≥ 0,82, |*shift*| ≤ 0,34), jadi kedua versi formulir **digabung**.
+- Butir revisi "saya mampu membicarakan kesulitan dengan keluarga" **menurunkan** α ekspektasi keluarga dari 0,53 menjadi 0,37 pada 109 baris yang sama. Sesuai aturan di atas, butir ini **dikeluarkan** dari `family_expectation` dan disimpan sebagai butir ekstra (r = −0,26 dengan kecemasan).
+- Tingkat stres (α 0,32) dan tekanan ujian (α 0,38) tetap di bawah 0,6. Butir-butirnya bukan butir revisi, jadi tetap dipakai, tetapi keterbatasan ini dicatat di Fase 2 dan Fase 5.
 
 ### 3.3.5 Imputasi
 
@@ -315,23 +399,35 @@ Fitur yang kosong diisi median data kuesioner. Untuk gender, dipakai modus. Nila
 
 ### 3.3.6 Pembagian data
 
-- **80% pengembangan dan 20% holdout** (`random_state=42`) bila respons ≥ 30.
+- **80% pengembangan dan 20% holdout** (`random_state=42`) bila respons ≥ 30, distratifikasi menurut versi formulir agar proporsi baris lama dan baru sama di kedua bagian. Laporan menampilkan galat holdout per versi.
+- Butir tambahan (`x_…`) yang kosong pada baris versi lama tidak diimputasi untuk model laporan S4; Random Forest menangani nilai kosong secara langsung, sehingga baris lama tidak tampak "rata-rata".
 - Pada data pengembangan dijalankan ***repeated k-fold cross-validation*** (5 lipatan × 2 ulangan) untuk memilih strategi pelatihan ulang (Fase 4).
 - Model akhir dilatih ulang pada seluruh respons dengan strategi terpilih.
 
-⟦ISI dari laporan data riil: jumlah baris mentah → bersih, jumlah pengembangan/holdout, jumlah nilai yang diimputasi.⟧
+**Hasil pada data riil:**
+
+| Langkah | Baris |
+|---|---|
+| Ekspor mentah | 304 |
+| Setelah buang duplikat | 304 (0 duplikat) |
+| Usia 14–25 (atau usia kosong) | 293 (11 dibuang: 10 berusia 13, 1 berusia 30) |
+| Dengan target lengkap | **292** |
+| Pengembangan / *holdout* | **233 / 59** (*holdout*: 39 formulir awal, 20 formulir revisi) |
+
+Nilai yang diimputasi: 8 usia (tanggal lahir tidak masuk akal) dan 1 nilai pada tekanan ujian, tingkat stres, aktivitas fisik, tekanan finansial, ekspektasi keluarga, dan *burnout*. Median yang disimpan antara lain usia 15, jam belajar 1,5, nilai rapor 84, jam tidur 6,5, dan *burnout* 5,0.
 
 ## 3.4 Penyiapan Data untuk SMART
 
-Matriks keputusan berisi 8 kriteria untuk setiap siswa: 7 fitur langsung ditambah `rf_anxiety_score` hasil prediksi RF. Normalisasi utilitas membutuhkan min dan maks tiap kriteria. Batas ini dihitung dari populasi referensi saat pelatihan dan disimpan di metadata (`smart_bounds`), agar satu siswa pun dapat dinilai. Batas diambil dari data Kaggle 20.000 baris, atau dari data riil bila respons ≥ 50.
+Matriks keputusan berisi 8 kriteria untuk setiap siswa: 7 fitur langsung ditambah `rf_anxiety_score` hasil prediksi RF. Normalisasi utilitas membutuhkan min dan maks tiap kriteria. Batas ini dihitung dari populasi referensi saat pelatihan dan disimpan di metadata (`smart_bounds`), agar satu siswa pun dapat dinilai. Batas diambil dari 20.000 baris referensi (bagian data uji Kaggle), atau dari data riil bila respons ≥ 50. Model aktif memakai batas dari 292 respons riil, misalnya prediksi kecemasan 1,95–7,64, jam belajar 0,25–10, dan jam tidur 4–12.
 
 ## 3.5 Keluaran Fase
 
 | Berkas | Isi | Di repositori? |
 |---|---|---|
-| `app/data/dataset.csv` | 20.000 baris sampel Kaggle | ya |
-| `app/data/private/gform_raw.csv` | ekspor kuesioner mentah | **tidak** (gitignore) |
-| `app/data/sample_gform.csv` | 250 baris ekspor **sintetis** untuk uji dan demo | ya |
+| `app/data/dataset.csv` | 20.000 baris uji Kaggle (populasi referensi) | ya |
+| `app/data/kaggle_retrain.csv.gz` | 8.000 baris latih Kaggle untuk strategi S2 | ya |
+| `app/data/private/gform_data.csv` | ekspor kuesioner riil (304 respons) | **tidak** (gitignore) |
+| `app/reports/question_merge_report.md` | pertanyaan mana digabung menjadi fitur/kriteria (agregat) | ya |
 | metadata model | `smart_bounds`, `impute_medians`, `gender_map` | ya |
 
 
@@ -370,51 +466,56 @@ Target (`anxiety_score`) kontinu, jadi masalahnya adalah **regresi**. Random For
 
 | Parameter | Nilai | Alasan |
 |---|---|---|
-| `n_estimators` | 200 | cukup banyak pohon agar prediksi stabil; waktu latih ±0,3 detik |
-| `max_depth` | 10 | membatasi kedalaman agar tidak menghafal data latih |
+| `n_estimators` | 300 | cukup banyak pohon agar prediksi stabil pada data besar |
+| `max_depth` | 12 | cukup dalam untuk 554.036 baris tanpa menghafal data latih |
 | `min_samples_split` | 2 | bawaan scikit-learn |
-| `min_samples_leaf` | 2 (3 untuk data riil) | daun minimal 2–3 sampel: mengurangi *overfitting* dan hafalan data pribadi |
-| `max_features` | `"sqrt"` | tiap pemisahan hanya melihat √11 ≈ 3 fitur, sehingga pohon lebih beragam |
+| `min_samples_leaf` | 50 (3 untuk data riil) | setiap daun mewakili minimal 50 siswa: prediksi lebih halus dan tidak menghafal |
+| `max_features` | 0,75 | tiap pemisahan melihat 75% fitur (8 dari 11) |
+| `max_samples` | 0,6 | tiap pohon dilatih pada 60% baris latih, sehingga pohon lebih beragam |
 | `random_state` | 42 | hasil dapat direproduksi |
-| `n_jobs` | −1 | memakai semua inti CPU |
+| `n_jobs` | −1 | memakai semua inti CPU saat pelatihan |
 
-Model dilatih pada 8.000 baris latih Kaggle (Fase 3) dan disimpan sebagai `app/models/rf_anxiety_model.joblib`, dengan metadata di `rf_anxiety_model_metadata.json`.
+Nilai ini dipilih dengan ***random search*** (`scripts/train.py --stage tune`, hasil di `models/rf_tuning.json`): 25 kombinasi parameter, masing-masing dinilai dengan **validasi silang 5-fold** pada 50.000 baris latih. Kombinasi terbaik mencapai R² CV 0,5996; pengaturan notebook (200 pohon, kedalaman 10, `max_features="sqrt"`) mencapai 0,5966 dan berada di peringkat 11. Data uji tidak dipakai selama pencarian. Pengaturan notebook tetap dipakai untuk data kuesioner yang kecil.
+
+Model dilatih pada seluruh 554.036 baris latih (Fase 3) dan disimpan sebagai `app/models/rf_anxiety_model.joblib` (±29 MB), dengan metadata di `rf_anxiety_model_metadata.json`.
 
 ### 4.2.3 Perbandingan dengan algoritma lain
 
-Semua algoritma dilatih pada data latih yang sama dengan validasi silang 5-fold, lalu diuji pada data uji yang sama (`scripts/train.py --stage compare`).
+Validasi silang 5-fold memakai 50.000 baris latih yang sama untuk semua algoritma. Skor uji didapat dari model yang dilatih pada seluruh 554.036 baris latih dan diuji pada 138.509 baris uji (`scripts/train.py --stage compare`).
 
 | Algoritma | MAE CV | RMSE CV | R² CV | MAE uji | R² uji |
 |---|---|---|---|---|---|
-| Baseline rata-rata | 1,2238 | 1,5134 | −0,0010 | 1,2370 | −0,0024 |
-| Regresi linear | **0,7684** | **0,9549** | **0,6014** | **0,7548** | **0,6245** |
-| Decision Tree (kedalaman 10) | 0,8814 | 1,1127 | 0,4583 | 0,8672 | 0,4955 |
-| Gradient Boosting | 0,7728 | 0,9616 | 0,5958 | 0,7667 | 0,6155 |
-| **Random Forest (dipakai)** | 0,7790 | 0,9663 | 0,5918 | 0,7668 | 0,6136 |
+| Baseline rata-rata | 1,2128 | 1,5040 | −0,0001 | 1,2217 | 0,0000 |
+| Regresi linear | **0,7604** | **0,9499** | **0,6011** | 0,7602 | 0,6064 |
+| Decision Tree (kedalaman 10) | 0,7989 | 1,0047 | 0,5537 | 0,7644 | 0,6010 |
+| Gradient Boosting | 0,7606 | 0,9505 | 0,6006 | **0,7579** | **0,6083** |
+| **Random Forest (dipakai)** | 0,7610 | 0,9515 | 0,5998 | 0,7583 | 0,6077 |
 
-Pada data Kaggle, regresi linear sedikit lebih akurat. Selisih MAE-nya 0,01 poin pada skala 0–10. Hal ini wajar karena data Kaggle tampak sintetis dengan hubungan yang hampir linear. RF tetap dipakai karena:
+Pada data uji, Random Forest, Gradient Boosting, dan regresi linear praktis setara: selisih R² paling besar 0,002. Semua jauh lebih baik dari baseline. Pohon tunggal mendekati karena data latih sangat besar, tetapi tetap paling lemah di antara model yang dilatih. RF tetap dipakai karena:
 
-1. Kinerjanya setara, jauh lebih baik dari baseline dan dari pohon tunggal.
+1. Kinerjanya setara dengan algoritma terbaik.
 2. Data kuesioner riil berbentuk ordinal dan tidak dijamin linear.
 3. Metode pelatihan ulang dengan *warm start* (M3) memerlukan model *ensemble* pohon.
+
+**Batas R².** Semua jenis model berhenti di R² ≈ 0,61. Hutan acak yang dilatih pada sisa galat regresi linear hanya mencapai R² −0,01, artinya sekitar 40% variasi skor kecemasan adalah derau yang tidak dibawa 11 fitur. Hanya `mental_health_index` yang dapat menaikkannya (ke ±0,80), tetapi kolom itu dihitung dari target dan termasuk *leakage*.
 
 ### 4.2.4 M2 — Faktor dominan
 
 | Peringkat | Fitur | *Importance* |
 |---|---|---|
-| 1 | stress_level | 0,4268 |
-| 2 | burnout_score | 0,3036 |
-| 3 | financial_stress | 0,0630 |
-| 4 | exam_pressure | 0,0493 |
-| 5 | family_expectation | 0,0386 |
-| 6 | study_hours_per_day | 0,0327 |
-| 7 | sleep_hours | 0,0273 |
-| 8 | physical_activity | 0,0228 |
-| 9 | academic_performance | 0,0211 |
-| 10 | age | 0,0113 |
-| 11 | gender | 0,0035 |
+| 1 | stress_level | 0,7512 |
+| 2 | burnout_score | 0,2080 |
+| 3 | financial_stress | 0,0128 |
+| 4 | sleep_hours | 0,0072 |
+| 5 | exam_pressure | 0,0070 |
+| 6 | family_expectation | 0,0032 |
+| 7 | study_hours_per_day | 0,0032 |
+| 8 | physical_activity | 0,0030 |
+| 9 | academic_performance | 0,0029 |
+| 10 | age | 0,0011 |
+| 11 | gender | 0,0004 |
 
-Tingkat stres dan kelelahan menyumbang 73% kepentingan, sejalan dengan korelasi di Fase 2. Gender hampir tidak berpengaruh (0,35%), sehingga risiko bias gender kecil (diperiksa di Fase 5).
+Tingkat stres dan kelelahan menyumbang 96% kepentingan, sejalan dengan korelasi di Fase 2. Dengan daun minimal 50 siswa, model hampir hanya memisahkan pada dua fitur terkuat; fitur lain tetap berperan dalam SMART sebagai kriteria tersendiri. Gender hampir tidak berpengaruh (0,04%), sehingga risiko bias gender kecil (diperiksa di Fase 5).
 
 ## 4.3 M3 — Pelatihan Ulang dengan Data Riil
 
@@ -425,12 +526,50 @@ Tujuannya adalah menyesuaikan model dari populasi mahasiswa (Kaggle) ke siswa SM
 | S0 | Kaggle saja | model M1 tanpa pelatihan ulang (pembanding) |
 | S1 | Data riil saja | RF baru hanya dari kuesioner (`min_samples_leaf=3`) |
 | S2 (w = 1, 10, 50) | Gabungan berbobot | 8.000 baris Kaggle + data riil; tiap baris riil diberi bobot w |
-| S3 (+200, +600) | *Warm start* | 200 pohon Kaggle dipertahankan, lalu ditambah 200 atau 600 pohon baru yang dilatih pada data riil |
+| S3 (+200, +600) | *Warm start* | 300 pohon Kaggle dipertahankan, lalu ditambah 200 atau 600 pohon baru yang dilatih pada data riil |
 | S4 | Data riil diperluas | S1 ditambah butir ekstra kuesioner (media sosial, pertemanan, pola makan, dll.); hanya dilaporkan, tidak dideploy |
 
 Strategi dengan **MAE validasi silang terendah** di antara S0–S3 dipilih, lalu dilatih ulang pada seluruh respons. Hasilnya disimpan sebagai `rf_real_model.joblib`, dan aplikasi otomatis memakainya.
 
-⟦ISI dari `reports/private/real_data_report.md`: tabel MAE/RMSE/R² CV dan holdout untuk S0–S4, strategi terpilih, *feature importance* model aktif.⟧
+### 4.3.1 Hasil pada data riil
+
+Validasi silang 5-fold × 2 pada 233 respons pengembangan; *holdout* 59 respons yang tidak dipakai memilih strategi.
+
+| Strategi | MAE CV (± sd) | R² CV | MAE *holdout* | R² *holdout* |
+|---|---|---|---|---|
+| S0 Kaggle saja | 1,751 ± 0,204 | −0,605 | 1,874 | −0,346 |
+| **S1 Data riil saja (dipilih)** | **1,251 ± 0,082** | **0,204** | **1,113** | **0,441** |
+| S2 gabungan, w = 1 | 1,287 ± 0,085 | 0,162 | 1,185 | 0,389 |
+| S2 gabungan, w = 10 | 1,263 ± 0,076 | 0,189 | 1,155 | 0,443 |
+| S2 gabungan, w = 50 | 1,252 ± 0,072 | 0,200 | 1,158 | 0,422 |
+| S3 *warm start* +200 | 1,444 ± 0,140 | −0,070 | 1,445 | 0,179 |
+| S3 *warm start* +600 | 1,309 ± 0,097 | 0,132 | 1,239 | 0,383 |
+| S4 riil + butir ekstra (tidak dideploy) | 1,203 ± 0,093 | 0,280 | – | – |
+
+Temuan:
+
+- **Model Kaggle tidak berlaku untuk siswa SMA.** S0 memiliki R² negatif: lebih buruk daripada menebak rata-rata. Penyebabnya pergeseran sebaran (rata-rata kecemasan riil 5,0 vs 3,0 di Kaggle) dan pola faktor yang berbeda (Fase 2).
+- **S1 dipilih**, dengan S2 w = 50 hampir sama (selisih MAE CV 0,001). Menambahkan data Kaggle tidak membantu. *Warm start* paling buruk di antara strategi latih ulang, karena 300 pohon Kaggle tetap ikut memberi suara.
+- **S4** (dengan butir ekstra seperti kualitas tidur, media sosial, dan konflik teman) paling akurat pada CV (MAE 1,203). Butir ini tidak ada di dataset Kaggle maupun di formulir aplikasi, sehingga hanya dilaporkan sebagai arah pengembangan.
+- R² *holdout* (0,44) lebih tinggi daripada R² CV (0,20). Dengan hanya 59 respons, angka *holdout* memiliki ketidakpastian besar; R² CV memberi gambaran yang lebih hati-hati.
+
+Model aktif: 200 pohon, kedalaman 10, `max_features="sqrt"`, `min_samples_leaf=3` (pengaturan notebook dengan daun lebih besar untuk data kecil), dilatih pada 292 respons.
+
+| Peringkat | Fitur | *Importance* (model aktif) |
+|---|---|---|
+| 1 | burnout_score | 0,222 |
+| 2 | exam_pressure | 0,196 |
+| 3 | family_expectation | 0,139 |
+| 4 | stress_level | 0,125 |
+| 5 | academic_performance | 0,083 |
+| 6 | sleep_hours | 0,061 |
+| 7 | study_hours_per_day | 0,049 |
+| 8 | age | 0,038 |
+| 9 | physical_activity | 0,033 |
+| 10 | financial_stress | 0,033 |
+| 11 | gender | 0,020 |
+
+Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih merata: *burnout*, tekanan ujian, dan ekspektasi keluarga paling berpengaruh, sesuai korelasi pada data riil.
 
 ## 4.4 M4 — SMART
 
@@ -467,48 +606,48 @@ Strategi dengan **MAE validasi silang terendah** di antara S0–S3 dipilih, lalu
 
 **Profil C — sama rata (kontrol).** Semua bobot 1/8. Karena kelima alternatif memakai bobot yang sama, semua skor seri. `idxmax` lalu selalu memilih alternatif pertama (Sleep). Profil C hanya menjadi pembanding.
 
-### 4.4.3 Contoh perhitungan (siswa STU00004, profil A)
+### 4.4.3 Contoh perhitungan (siswa STU00006, profil A)
 
-Siswa laki-laki, 17 tahun. Batas min/maks dari 20.000 siswa referensi.
+Siswa laki-laki, 19 tahun, dari populasi referensi. Batas min/maks dari 20.000 siswa referensi.
 
 | Kriteria | Nilai x | Min | Maks | Jenis | Utilitas u |
 |---|---|---|---|---|---|
-| Prediksi kecemasan | 4,417 | 0,367 | 7,091 | benefit | 0,602 |
-| Jam belajar | 5,594 | 0,000 | 13,227 | benefit | 0,423 |
-| Nilai rapor | 68,375 | 47,565 | 92,894 | cost | 0,541 |
-| Jam tidur | 3,146 | 3,000 | 10,000 | cost | 0,979 |
-| Aktivitas fisik | 2,539 | 0,000 | 7,000 | cost | 0,637 |
-| Tekanan finansial | 7,278 | 0,000 | 10,000 | benefit | 0,728 |
-| Ekspektasi keluarga | 2,577 | 0,000 | 10,000 | benefit | 0,258 |
-| *Burnout* | 4,609 | 0,000 | 9,855 | benefit | 0,468 |
+| Prediksi kecemasan | 3,800 | 0,333 | 7,161 | benefit | 0,508 |
+| Jam belajar | 5,360 | 0,000 | 14,000 | benefit | 0,383 |
+| Nilai rapor | 69,234 | 45,172 | 92,627 | cost | 0,493 |
+| Jam tidur | 4,194 | 3,000 | 10,000 | cost | 0,829 |
+| Aktivitas fisik | 1,674 | 0,000 | 7,000 | cost | 0,761 |
+| Tekanan finansial | 6,869 | 0,000 | 10,000 | benefit | 0,687 |
+| Ekspektasi keluarga | 5,802 | 0,000 | 10,000 | benefit | 0,580 |
+| *Burnout* | 2,587 | 0,000 | 9,855 | benefit | 0,263 |
 
-Contoh utilitas jam tidur (cost): u = (10,000 − 3,146) / (10,000 − 3,000) = 0,979.
+Contoh utilitas jam tidur (cost): u = (10,000 − 4,194) / (10,000 − 3,000) = 0,829.
 
-**Skor prioritas** P = (0,602 + 0,423 + 0,541 + 0,979 + 0,637 + 0,728 + 0,258 + 0,468) / 8 = **0,580**, lebih tinggi dari 93% siswa referensi.
+**Skor prioritas** P = (0,508 + 0,383 + 0,493 + 0,829 + 0,761 + 0,687 + 0,580 + 0,263) / 8 = **0,563**, lebih tinggi dari 91% siswa referensi.
 
 **Skor alternatif** (Σ bobot × utilitas):
 
 | Peringkat | Alternatif | Skor | Kontribusi terbesar |
 |---|---|---|---|
-| 1 | **Sleep** | **0,706** | jam tidur 0,40 × 0,979 = 0,392 |
-| 2 | Relaxation | 0,623 | jam tidur 0,196; prediksi kecemasan 0,121 |
-| 3 | Exercise | 0,588 | aktivitas fisik 0,273 |
-| 4 | Counseling | 0,564 | prediksi kecemasan 0,181; tekanan finansial 0,146 |
-| 5 | Study | 0,488 | jam belajar 0,169; nilai rapor 0,162 |
+| 1 | **Sleep** | **0,623** | jam tidur 0,40 × 0,829 = 0,332 |
+| 2 | Relaxation | 0,604 | jam tidur 0,166; tekanan finansial 0,103 |
+| 3 | Exercise | 0,590 | aktivitas fisik 0,326 |
+| 4 | Counseling | 0,539 | prediksi kecemasan 0,152; tekanan finansial 0,137 |
+| 5 | Study | 0,441 | jam belajar 0,153; nilai rapor 0,148 |
 
-Penjelasan yang dihasilkan aplikasi: *"Tidur mendapat skor tertinggi (0,706). Pendorong utama: jam tidur sedikit (3,1 jam), prediksi kecemasan tinggi (4,4/10), nilai rapor rendah (68). Selisih dengan alternatif kedua (Relaksasi) 0,083."*
+Penjelasan yang dihasilkan aplikasi: *"Tidur mendapat skor tertinggi (0,623). Pendorong utama: jam tidur sedikit (4,2 jam), prediksi kecemasan tinggi (3,8/10), nilai rapor 69,2. Selisih dengan alternatif kedua (Relaksasi) 0,020. Selisihnya kecil, jadi Relaksasi juga layak dipertimbangkan."*
 
 ### 4.4.4 Hasil pada populasi referensi (20.000 siswa)
 
 | Alternatif | Profil A (notebook, Σ=1,05) | Profil A (dinormalkan) | Profil B |
 |---|---|---|---|
-| Sleep | 4.796 | 5.356 | 5.662 |
-| Exercise | 8.866 | 6.905 | 4.673 |
-| Study | 2.323 | 2.613 | 1.940 |
-| Counseling | 1.863 | 2.202 | 7.553 |
-| Relaxation | 2.152 | 2.924 | 172 |
+| Sleep | 4.648 | 5.238 | 5.547 |
+| Exercise | 9.338 | 7.323 | 4.941 |
+| Study | 1.637 | 1.882 | 1.394 |
+| Counseling | 1.956 | 2.337 | 7.922 |
+| Relaxation | 2.421 | 3.220 | 196 |
 
-Normalisasi menurunkan dominasi Exercise dari 44% menjadi 35%. Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
+Normalisasi menurunkan dominasi Exercise dari 47% menjadi 37%. Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
 
 ## 4.5 Keluaran Fase
 
@@ -516,6 +655,7 @@ Normalisasi menurunkan dominasi Exercise dari 44% menjadi 35%. Profil B lebih ba
 |---|---|
 | `app/models/rf_anxiety_model.joblib` + metadata | model dasar (Kaggle), metrik, batas SMART |
 | `app/models/model_comparison.json` | perbandingan 5 algoritma |
+| `app/models/rf_tuning.json` | hasil *random search* 25 pengaturan RF |
 | `app/models/rf_real_model.joblib` + metadata + `real_summary.json` | model aktif setelah data riil (agregat saja) |
 | `app/spk/smart.py`, `config.py` | implementasi SMART dan profil bobot |
 
@@ -549,32 +689,37 @@ Masalahnya regresi, jadi metrik yang dipakai:
 | RMSE | √MSE | seperti MSE, dalam satuan skor |
 | R² | 1 − SS_res / SS_tot | porsi variasi target yang dijelaskan model |
 
-### 5.2.1 Model dasar (Kaggle), data uji 2.000 baris
+### 5.2.1 Model dasar (Kaggle), data uji 138.509 baris
 
 | MAE | MSE | RMSE | R² |
 |---|---|---|---|
-| **0,7668** | 0,9112 | 0,9546 | **0,6136** |
+| **0,7583** | 0,8969 | 0,9470 | **0,6077** |
 
-Rata-rata prediksi meleset ±0,77 poin pada skala 0–10, dan model menjelaskan 61% variasi skor kecemasan. Hasil ini sama persis dengan notebook Colab, yang diverifikasi otomatis di `tests/test_smart.py`.
+Rata-rata prediksi meleset ±0,76 poin pada skala 0–10, dan model menjelaskan 61% variasi skor kecemasan. Dengan 138.509 baris uji, R² hanya bergeser ±0,002 bila pembagian data diacak ulang, jadi angka ini bukan kebetulan pembagian.
+
+**Dibandingkan notebook.** Notebook melaporkan R² 0,6136 pada 2.000 baris ujinya sendiri. Angka itu tidak sebanding karena diukur pada baris yang berbeda: dengan 40 pembagian acak lain, cara notebook rata-rata hanya mencapai R² 0,599, dan hanya 8% pembagian mencapai 0,6136. Pada 137.365 baris uji yang tidak pernah dilatih oleh kedua model, model notebook mencapai R² 0,598 (MAE 0,769) dan model ini 0,608 (MAE 0,758). Jadi model baru lebih baik pada data yang identik.
 
 ### 5.2.2 Analisis galat
 
-- Grafik aktual vs prediksi (halaman Analisis) menunjukkan titik mengikuti garis diagonal. Prediksi untuk skor ekstrem cenderung **ditarik ke tengah**: rentang prediksi 0,37–7,09, sedangkan rentang aktual 0–9,11. Ini sifat umum Random Forest, yang merata-ratakan pohon.
+- Grafik aktual vs prediksi (halaman Analisis) menunjukkan titik mengikuti garis diagonal. Prediksi untuk skor ekstrem cenderung **ditarik ke tengah**: rentang prediksi 0,33–7,21, sedangkan rentang aktual 0–9,63. Ini sifat umum Random Forest, yang merata-ratakan pohon.
 - Konsekuensinya, siswa dengan kecemasan sangat tinggi dapat terprediksi lebih rendah dari sebenarnya. Karena itu aturan pengaman memakai **persentil** (10% prediksi tertinggi), bukan ambang absolut.
 
 ### 5.2.3 Perbandingan algoritma
 
-Lihat Fase 4 §2.3. RF setara dengan regresi linear dan gradient boosting (selisih MAE ≤ 0,012), jauh lebih baik dari baseline (MAE 1,237) dan pohon tunggal (MAE 0,867).
+Lihat Fase 4 §2.3. RF setara dengan regresi linear dan gradient boosting (selisih R² uji ≤ 0,002), jauh lebih baik dari baseline (MAE 1,222) dan lebih baik dari pohon tunggal (MAE 0,764).
 
 ### 5.2.4 Pelatihan ulang dan pengujian pada data riil
 
 | Uji | Data | Hasil |
 |---|---|---|
-| Pemilihan strategi | CV 5-fold × 2 pada 80% data kuesioner | ⟦ISI: MAE CV per strategi⟧ |
-| *Holdout* | 20% data kuesioner yang tidak dipakai memilih | ⟦ISI: MAE/RMSE/R² model terpilih vs model Kaggle (S0)⟧ |
-| Data baru | respons yang masuk setelah pelatihan (`scripts/evaluate.py` atau unggah di aplikasi) | ⟦ISI⟧ |
+| Pemilihan strategi | CV 5-fold × 2 pada 233 respons pengembangan | S1 (data riil saja) terbaik: MAE CV 1,251 ± 0,082, R² CV 0,204; S0 (Kaggle): MAE 1,751, R² −0,605 |
+| *Holdout* | 59 respons yang tidak dipakai memilih | S1: MAE 1,113, RMSE 1,393, R² 0,441; S0: MAE 1,874, RMSE 2,162, R² −0,346 |
 
-Kriteria D4 (Fase 1) tercapai bila MAE model terpilih lebih rendah dari S0 pada *holdout*.
+Kriteria D4 (Fase 1) **tercapai**: MAE model terpilih 41% lebih rendah daripada model Kaggle pada *holdout*. Rata-rata prediksi pada 292 respons (5,00) sama dengan rata-rata skor sebenarnya (5,01), sedangkan model Kaggle meremehkan kecemasan siswa SMA.
+
+Per versi formulir (*holdout*): formulir awal MAE 1,000 (39 respons), formulir revisi MAE 1,334 (20 respons). Galat formulir revisi lebih besar, tetapi kelompoknya kecil.
+
+**Perbandingan Kaggle dan data riil.** Pada data Kaggle, model mencapai R² 0,608; pada siswa SMA hanya 0,20 (CV) sampai 0,44 (*holdout*). Data riil jauh lebih sedikit (292 vs 554.036 baris), skor gabungannya kurang konsisten (α tingkat stres 0,32), dan jawaban *self-report* lebih bising. Dengan galat rata-rata ±1,1 poin pada skala 0–10, prediksi cukup untuk **mengurutkan** siswa (skrining), tetapi tidak untuk menetapkan skor pasti.
 
 ## 5.3 Evaluasi Modul Keputusan (SMART)
 
@@ -584,25 +729,25 @@ Kriteria D4 (Fase 1) tercapai bila MAE model terpilih lebih rendah dari S0 pada 
 
 | Kriteria (profil A) | −20% | −10% | +10% | +20% |
 |---|---|---|---|---|
-| Prediksi kecemasan | 1,5% | 0,6% | 0,7% | 1,3% |
-| Jam belajar | 2,3% | 1,1% | 1,0% | 2,0% |
-| Nilai rapor | 2,2% | 1,1% | 1,0% | 2,1% |
-| Jam tidur | 5,0% | 2,4% | 2,1% | 3,9% |
-| Aktivitas fisik | 6,5% | 3,0% | 2,8% | 5,0% |
-| Tekanan finansial | 2,6% | 1,3% | 1,3% | 2,5% |
-| Ekspektasi keluarga | 2,8% | 1,5% | 1,3% | 2,5% |
-| *Burnout* | 3,1% | 1,5% | 1,4% | 2,8% |
+| Prediksi kecemasan | 1,5% | 0,8% | 0,7% | 1,4% |
+| Jam belajar | 2,1% | 1,0% | 0,9% | 1,8% |
+| Nilai rapor | 1,8% | 1,0% | 1,0% | 1,9% |
+| Jam tidur | 5,5% | 2,5% | 2,2% | 4,1% |
+| Aktivitas fisik | 7,0% | 3,2% | 2,9% | 5,2% |
+| Tekanan finansial | 2,9% | 1,5% | 1,4% | 2,5% |
+| Ekspektasi keluarga | 2,9% | 1,6% | 1,4% | 2,7% |
+| *Burnout* | 3,2% | 1,5% | 1,6% | 3,1% |
 
-Perubahan ±10% pada satu bobot mengubah paling banyak 3% rekomendasi. Kriteria paling sensitif adalah aktivitas fisik dan jam tidur, karena keduanya menjadi bobot dominan Exercise dan Sleep.
+Perubahan ±10% pada satu bobot mengubah paling banyak 3,2% rekomendasi. Kriteria paling sensitif adalah aktivitas fisik dan jam tidur, karena keduanya menjadi bobot dominan Exercise dan Sleep.
 
 **Acak menyeluruh.** Semua bobot dikalikan faktor acak U(1 − p, 1 + p) sebanyak 100 kali.
 
 | Profil | p | Rekomendasi utama tetap | Tiga besar tetap | Iterasi terburuk |
 |---|---|---|---|---|
-| A | ±10% | **94,6%** | 94,9% | 90,9% |
-| A | ±20% | 89,4% | 90,1% | 82,2% |
-| B | ±10% | 88,8% | 83,4% | 78,4% |
-| B | ±20% | 78,5% | 68,7% | 62,5% |
+| A | ±10% | **94,3%** | 95,3% | 90,7% |
+| A | ±20% | 89,0% | 90,6% | 82,5% |
+| B | ±10% | 89,1% | 82,9% | 78,1% |
+| B | ±20% | 78,8% | 68,0% | 62,0% |
 
 Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil B hampir seimbang, sehingga lebih banyak siswa berada di dekat batas seri. Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi oleh profil A. Karena itu **profil A menjadi bawaan aplikasi**.
 
@@ -612,31 +757,55 @@ Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil 
 
 | Alternatif | A (dinormalkan) | B | C |
 |---|---|---|---|
-| Sleep | 5.356 | 5.662 | 20.000 |
-| Exercise | 6.905 | 4.673 | 0 |
-| Study | 2.613 | 1.940 | 0 |
-| Counseling | 2.202 | 7.553 | 0 |
-| Relaxation | 2.924 | 172 | 0 |
+| Sleep | 5.238 | 5.547 | 20.000 |
+| Exercise | 7.323 | 4.941 | 0 |
+| Study | 1.882 | 1.394 | 0 |
+| Counseling | 2.337 | 7.922 | 0 |
+| Relaxation | 3.220 | 196 | 0 |
 
 Profil C menunjukkan mengapa bobot khusus per alternatif diperlukan. Tanpa bobot khusus, SMART tidak dapat membedakan alternatif.
 
 ### 5.3.3 Temuan: bobot notebook tidak ternormalisasi
 
-Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 8.866 siswa (44%). Setelah dinormalkan, angkanya 6.905 siswa (35%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap profil berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
+Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap profil berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
 
 ### 5.3.4 Contoh kasus
 
-Contoh STU00004 (Fase 4 §4.3) direkomendasikan **Sleep**. Jam tidurnya 3,1 jam, termasuk yang terendah pada populasi (utilitas 0,979). Hasil ini masuk akal secara domain. Skor prioritasnya 0,580 (persentil 93), jadi siswa ini termasuk yang perlu ditangani lebih dulu.
+Contoh STU00006 (Fase 4 §4.3) direkomendasikan **Sleep**. Jam tidurnya 4,2 jam, jauh di bawah rata-rata 6,5 jam (utilitas 0,829). Hasil ini masuk akal secara domain. Relaksasi hanya terpaut 0,020, dan aplikasi menyebutkannya sebagai pilihan yang juga layak. Skor prioritasnya 0,563 (persentil 91), jadi siswa ini termasuk yang perlu ditangani lebih dulu.
+
+### 5.3.5 Hasil SPK pada siswa SMA (data riil)
+
+Model aktif (S1) dan batas SMART dari 292 respons riil, dihitung untuk setiap responden:
+
+| Alternatif | Profil A | Profil B |
+|---|---|---|
+| Sleep | 92 | 38 |
+| Exercise | 159 | 140 |
+| Study | 6 | 5 |
+| Counseling | 18 | 30 |
+| Relaxation | 17 | 79 |
+
+- Olahraga paling sering direkomendasikan (54% pada profil A): median aktivitas fisik responden hanya 1,5 hari per minggu.
+- Strategi belajar jarang muncul (2%), karena jam belajar di luar sekolah rendah (median 1,5 jam) sehingga utilitasnya kecil.
+- **Stabilitas** pada data riil (100 kali bobot diacak ±10%): profil A 95,5% rekomendasi utama tetap (iterasi terburuk 91,8%), profil B 87,7%. Kriteria S1 tetap terpenuhi oleh profil A.
+- **Aturan pengaman:** batas persentil 90 prediksi riil adalah 6,28; 30 dari 292 responden (10%) mendapat rekomendasi konseling dan rujukan.
 
 ## 5.4 Keadilan (*Fairness*)
 
 | Gender | n (uji) | MAE |
 |---|---|---|
-| Female | 964 | 0,768 |
-| Male | 948 | 0,767 |
-| Other | 88 | 0,751 |
+| Female | 66.677 | 0,760 |
+| Male | 66.303 | 0,756 |
+| Other | 5.529 | 0,765 |
 
-Selisih MAE antar gender < 0,02 poin. Sebaran rekomendasi profil A per gender juga hampir sama: Exercise 34–35%, Sleep 25–27%, Counseling 11–13%. Jadi tidak ditemukan bias gender yang berarti. Untuk data riil, pemeriksaan yang sama dijalankan pada *holdout* ⟦ISI⟧. Kelompok dengan kurang dari 5 orang tidak ditampilkan demi privasi.
+Selisih MAE antar gender < 0,01 poin. Sebaran rekomendasi profil A per gender pada 20.000 siswa referensi juga hampir sama: Exercise 35–37%, Sleep 26–27%, Counseling 10–12%. Jadi tidak ditemukan bias gender yang berarti. Pada *holdout* data riil:
+
+| Gender | n (*holdout*) | MAE | Rata-rata prediksi | Rata-rata sebenarnya |
+|---|---|---|---|---|
+| Female | 29 | 1,262 | 5,33 | 5,10 |
+| Male | 30 | 0,969 | 5,02 | 5,10 |
+
+Galat pada siswa perempuan 0,29 poin lebih besar, dan prediksinya sedikit lebih tinggi daripada skor sebenarnya. Kelompoknya kecil (29 dan 30 orang), jadi selisih ini belum pasti, tetapi perlu dipantau saat respons bertambah. Gender hanya menyumbang 2% kepentingan model. Kelompok dengan kurang dari 5 orang tidak ditampilkan demi privasi.
 
 ## 5.5 Evaluasi terhadap Tujuan Bisnis
 
@@ -645,15 +814,16 @@ Selisih MAE antar gender < 0,02 poin. Sebaran rekomendasi profil A per gender ju
 | Deteksi dini | prediksi skor dari faktor non-gejala; persentil terhadap populasi | tercapai |
 | Prioritas siswa | skor prioritas + unggah banyak siswa + unduh daftar | tercapai |
 | Rekomendasi beralasan | tiga teratas, grafik kontribusi, kalimat alasan, uji sensitivitas | tercapai |
-| Sesuai populasi SMA | pelatihan ulang dengan kuesioner | ⟦ISI setelah data riil⟧ |
+| Sesuai populasi SMA | pelatihan ulang dengan 292 respons kuesioner; MAE *holdout* 1,113 vs 1,874 model Kaggle | tercapai, dengan akurasi sedang (R² 0,20–0,44) |
 | Diterima pengguna | Google Form evaluasi (pemahaman, kesesuaian, manfaat, stabilitas, tampilan) | ⟦ISI setelah uji pengguna⟧ |
 
 ## 5.6 Keputusan Lanjutan
 
-1. **Lanjut ke deployment** dengan model Kaggle sebagai model awal dan profil A sebagai bawaan.
-2. Jalankan pipeline data riil begitu ekspor kuesioner tersedia, lalu perbarui metrik di laporan ini.
-3. Validasi bobot profil A dengan guru BK atau psikolog, yaitu kesesuaian rekomendasi pertama pada 20–30 kasus.
-4. Pengembangan lanjutan (dari rancangan awal): segmentasi siswa (*clustering*), aturan asosiasi kebiasaan, dan bobot yang diturunkan dari *feature importance*.
+1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan profil A sebagai bawaan. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
+2. Kumpulkan respons baru dan uji dengan `scripts/evaluate.py` atau unggah di aplikasi; latih ulang bila respons bertambah banyak.
+3. Perbaiki butir tingkat stres dan tekanan ujian (α < 0,4), dan pertimbangkan butir kualitas tidur, konflik teman, dan media sosial saat belajar sebagai fitur (S4 terbaik pada CV).
+4. Validasi bobot profil A dengan guru BK atau psikolog, yaitu kesesuaian rekomendasi pertama pada 20–30 kasus.
+5. Pengembangan lanjutan (dari rancangan awal): segmentasi siswa (*clustering*), aturan asosiasi kebiasaan, dan bobot yang diturunkan dari *feature importance*.
 
 
 [[PAGEBREAK]]
@@ -681,7 +851,7 @@ Selisih MAE antar gender < 0,02 poin. Sebaran rekomendasi profil A per gender ju
 ```
  Pelatihan offline (laptop / Colab)                    Streamlit Community Cloud
  ─────────────────────────────────                     ─────────────────────────────────────────────
- Kaggle 1M ─► 20k sampel ─┐                             streamlit_app.py (navigasi, bahasa, profil bobot)
+ Kaggle 1M ─► 14–25 80/20 ┐                             streamlit_app.py (navigasi, bahasa, profil bobot)
                           ├─► scripts/train.py ─► models/   │
  Google Form (rahasia) ───┘   kaggle | real |     *.joblib  ├─ Beranda
                               compare              + meta   ├─ Rekomendasi ─► spk/gform.py  (jawaban → fitur)
@@ -702,10 +872,11 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 | `app/app_pages/home.py` | masalah, pengguna, alur kerja, tombol mulai |
 | `app/app_pages/recommendation.py` | input satu siswa (kuesioner/lanjutan), hasil + alasan + sensitivitas; unggah banyak siswa + evaluasi data baru |
 | `app/app_pages/analysis.py` | data, model, SMART, sensitivitas, keadilan |
+| `app/app_pages/data_mining.py` | proses CRISP-DM per fase dengan angka dari data dan model |
 | `app/app_pages/about.py` | metode, arsitektur, keterbatasan, etika |
 | `app/spk/*.py` | logika murni tanpa Streamlit, diuji dengan `pytest` |
-| `app/scripts/*.py` | pelatihan, inspeksi kuesioner, evaluasi, data sintetis |
-| `app/tests/` | 39 uji otomatis: *parsing* kuesioner, kesamaan dengan notebook, pelatihan ulang, setiap halaman di kedua bahasa |
+| `app/scripts/*.py` | pelatihan (`kaggle`, `tune`, `compare`, `real`), inspeksi kuesioner, evaluasi data baru, laporan penggabungan pertanyaan |
+| `app/tests/` | 155 uji otomatis (*black-box* dan *white-box*): *parsing* kuesioner, perhitungan SMART, pelatihan ulang, setiap halaman di kedua bahasa |
 
 ## 6.4 Fitur Aplikasi
 
@@ -715,15 +886,16 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 | Rekomendasi — satu siswa | mode kuesioner (pertanyaan Google Form) atau 11 nilai fitur; prediksi + persentil; skor prioritas; tiga alternatif teratas; grafik kontribusi bobot × utilitas; kalimat alasan; uji sensitivitas per siswa; aturan pengaman | *Implementation*, *Explainability* |
 | Rekomendasi — banyak siswa | unggah ekspor Google Form (.csv/.xlsx) atau CSV 11 kolom; kolom pribadi dibuang otomatis; peringkat prioritas; unduh hasil; evaluasi MAE/RMSE/R² bila jawaban Psikologis tersedia | *Implementation*, *Evaluation* |
 | Analisis | statistik data Kaggle dan agregat data riil; metrik, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi; grafik SMART dari notebook; stabilitas ±10%/±20%; peta sensitivitas; keadilan per gender | *Evaluation & Sensitivity*, *Data & Criteria* |
+| Data Mining | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji | *Data Mining process* |
 | Tentang | data, *preprocessing*, pemetaan kuesioner, RF, SMART, keterbatasan, etika | *Algorithm*, *Architecture*, *Ethics* |
 | Sidebar | ID/EN, profil bobot A/B/C (hasil langsung berubah), versi model | *Sensitivity* |
 
 ## 6.5 Langkah Deployment
 
-1. Pastikan `app/models/` berisi model aktif dan metadata. Setelah data riil dijalankan, tambahkan `rf_real_model.joblib`, metadatanya, dan `real_summary.json`. Data mentah **tidak** ikut di-*commit*.
+1. Pastikan `app/models/` berisi model dasar Kaggle (`rf_anxiety_model.joblib`, ±29 MB) dan model aktif data riil (`rf_real_model.joblib`, ±0,4 MB) beserta metadata dan `real_summary.json` (agregat saja). Ekspor kuesioner mentah **tidak** ikut di-*commit*.
 2. *Push* ke GitHub (repositori privat `UKRIDA-Developer-Team/SIMBULL-SMART`, cabang `main`).
 3. Di share.streamlit.io, pilih *Create app* → repositori → cabang `main` → berkas `app/streamlit_app.py` → Python 3.12. Beri Streamlit akses ke repositori privat.
-4. Uji URL publik: setiap halaman dalam ID dan EN, satu penilaian siswa, dan unggah `data/sample_gform.csv`.
+4. Uji URL publik: setiap halaman dalam ID dan EN, satu penilaian siswa, dan unggah ekspor kuesioner (aplikasi membuang kolom pribadi dan tidak menyimpan apa pun).
 
 Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan versi pembuat model) agar berkas `.joblib` dapat dimuat di server.
 
@@ -741,9 +913,9 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 
 ## 6.7 Peninjauan Proyek
 
-**Yang berhasil:** integrasi RF → SMART berjalan dari satu siswa hingga 20.000 siswa, dengan hasil identik dengan notebook. Setiap rekomendasi dapat ditelusuri ke kontribusi kriteria. Pipeline data riil siap pakai begitu ekspor tersedia.
+**Yang berhasil:** integrasi RF → SMART berjalan dari satu siswa hingga 20.000 siswa referensi; perhitungan SMART identik dengan notebook. Setiap rekomendasi dapat ditelusuri ke kontribusi kriteria. Pipeline data riil siap pakai begitu ekspor tersedia.
 
-**Yang diperbaiki selama deployment:** bobot Exercise profil A yang berjumlah 1,05; *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi.
+**Yang diperbaiki selama deployment:** bobot Exercise profil A yang berjumlah 1,05; *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi; pembersihan usia 14–25; pelatihan pada seluruh data (bukan sampel 8.000 baris) dengan data uji 138.509 baris; *tuning* parameter dengan validasi silang.
 
 **Pengembangan lanjutan:** validasi bobot oleh pakar BK; segmentasi siswa (*clustering*) dan aturan asosiasi dari rancangan awal; bobot SMART yang diturunkan dari *feature importance*; pengumpulan data berkala (longitudinal).
 
@@ -768,11 +940,13 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 cd app
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-train.txt
-python scripts/train.py --stage kaggle --csv data/dataset.csv     # model dasar (MAE 0,7668)
+python scripts/train.py --stage kaggle                            # model dasar (berkas Kaggle 1 juta baris; R² 0,6077)
+python scripts/train.py --stage tune                              # random search parameter (CV 5-fold)
 python scripts/train.py --stage compare                           # perbandingan algoritma
-python scripts/inspect_gform.py data/private/gform_raw.csv        # cek pemetaan kuesioner
-python scripts/train.py --stage real --gform data/private/gform_raw.csv
-python scripts/evaluate.py --gform data/private/gform_new.csv     # uji data baru
+python scripts/inspect_gform.py data/private/gform_data.csv       # cek pemetaan kuesioner
+python scripts/train.py --stage real --gform data/private/gform_data.csv   # model aktif (S1)
+python scripts/merge_report.py data/private/gform_data.csv        # pertanyaan mana digabung
+python scripts/evaluate.py --gform data/private/<respons_baru>.csv   # uji respons baru
 pytest                                                            # uji otomatis
 streamlit run streamlit_app.py
 ```

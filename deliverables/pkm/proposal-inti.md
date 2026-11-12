@@ -52,9 +52,9 @@ Pelaksanaan terdiri atas enam tahap berulang (Gambar 1). Hasil uji pada tahap 6 
 
 ## 3.1 Tahap 1: Pengumpulan Data
 
-**Data sekunder.** Dataset publik *Student Mental Health and Burnout* dari Kaggle (sharmajicoder, t.t.) berisi 1 juta baris dan diambil sampel acak 2% (20.000 baris, `random_state` = 42). Data ini dipakai untuk pralatih model dan sebagai populasi pembanding SMART.
+**Data sekunder.** Dataset publik *Student Mental Health and Burnout* dari Kaggle (sharmajicoder, t.t.) berisi 1 juta baris. Hanya baris dalam rentang usia pelajar 14–25 yang dipakai (692.545 baris; berkas berisi usia 17–25), lalu dibagi 80% latih (554.036) dan 20% uji (138.509) dengan stratifikasi usia (`random_state` = 42). Data ini dipakai untuk pralatih model, dan 20.000 baris uji menjadi populasi pembanding SMART.
 
-**Data primer.** Kuesioner Google Form disebarkan kepada siswa SMA melalui sekolah mitra, dengan izin sekolah dan persetujuan orang tua. Kuesioner memuat sekitar 50 butir dalam delapan domain: kebiasaan belajar, tidur, media sosial, tuntutan dan tekanan, aktivitas fisik, kegiatan di luar sekolah, kelelahan, pertemanan, dan pola makan. Selain itu ada lima butir psikologis pembentuk label. Jawaban berupa rentang (mis. jam belajar), skala Likert 5 titik, dan isian angka (nilai rapor). Target minimal 200 respons valid. Jumlah respons yang telah terkumpul: ⟦ISI⟧.
+**Data primer.** Kuesioner Google Form disebarkan kepada siswa SMA melalui sekolah mitra, dengan izin sekolah dan persetujuan orang tua. Kuesioner memuat sekitar 50 butir dalam delapan domain: kebiasaan belajar, tidur, media sosial, tuntutan dan tekanan, aktivitas fisik, kegiatan di luar sekolah, kelelahan, pertemanan, dan pola makan. Selain itu ada lima butir psikologis pembentuk label (tujuh pada formulir revisi). Jawaban berupa rentang (mis. jam belajar), skala Likert 5 titik, dan isian angka (nilai rapor). Target minimal 200 respons valid. Telah terkumpul **304 respons**; setelah pembersihan usia 14–25 dan kelengkapan butir psikologis, 292 respons dipakai.
 
 ## 3.2 Tahap 2: Persiapan Data
 
@@ -66,9 +66,9 @@ Pelaksanaan terdiri atas enam tahap berulang (Gambar 1). Hasil uji pada tahap 6 
 
 ## 3.3 Tahap 3: Pemodelan Random Forest
 
-Model dikonfigurasi dengan 200 pohon, kedalaman maksimum 10, `min_samples_leaf` = 2, dan `max_features` = √n. Pada data Kaggle, model mencapai MAE 0,767 dan R² 0,614 pada 2.000 data uji. Model ini jauh lebih baik dari baseline rata-rata (MAE 1,237) dan setara dengan regresi linear serta *gradient boosting* (selisih MAE ≤ 0,012). Faktor dominannya adalah tingkat stres (0,43) dan kelelahan (0,30).
+Model dikonfigurasi dengan 300 pohon, kedalaman maksimum 12, `min_samples_leaf` = 50, `max_features` = 0,75, dan `max_samples` = 0,6, hasil *random search* 25 pengaturan dengan validasi silang 5-*fold* pada data latih. Pada data Kaggle, model mencapai MAE 0,758 dan R² 0,608 pada 138.509 data uji. Model ini jauh lebih baik dari baseline rata-rata (MAE 1,222) dan setara dengan regresi linear serta *gradient boosting* (selisih R² ≤ 0,002). Faktor dominannya adalah tingkat stres (0,75) dan kelelahan (0,21).
 
-Untuk menyesuaikan model dengan siswa SMA, tujuh strategi pelatihan ulang dibandingkan dengan validasi silang: model Kaggle tanpa latih ulang; model hanya dari data riil; gabungan Kaggle dan data riil dengan bobot data riil 1, 10, atau 50; serta *warm start* yang menambah 200 atau 600 pohon baru dari data riil. Strategi dengan MAE terendah dipakai aplikasi. Hasil pada data riil: ⟦ISI: strategi terpilih, MAE dan R² holdout⟧.
+Untuk menyesuaikan model dengan siswa SMA, tujuh strategi pelatihan ulang dibandingkan dengan validasi silang: model Kaggle tanpa latih ulang; model hanya dari data riil; gabungan Kaggle dan data riil dengan bobot data riil 1, 10, atau 50; serta *warm start* yang menambah 200 atau 600 pohon baru dari data riil. Strategi dengan MAE terendah dipakai aplikasi. Hasil pada data riil: model Kaggle tanpa latih ulang gagal (MAE *holdout* 1,87; R² −0,35) karena siswa SMA rata-rata jauh lebih cemas (5,0 vs 3,0). Strategi terpilih adalah model dari data riil saja, dengan MAE *holdout* 1,11 dan R² 0,44 pada 59 respons; faktor dominannya *burnout*, tekanan ujian, dan ekspektasi keluarga.
 
 ## 3.4 Tahap 4: Pengolahan Algoritma Keputusan SMART
 
@@ -93,7 +93,7 @@ Pelatihan berjalan terpisah dari aplikasi, sehingga aplikasi hanya melakukan inf
 
 ## 3.6 Tahap 6: Pengujian Keandalan dan Penerimaan
 
-**Uji teknis.** Uji teknis mencakup: (1) MAE, RMSE, dan R² pada data *holdout* dan pada respons baru; (2) 39 uji otomatis yang memastikan hasil identik dengan perhitungan manual; (3) uji sensitivitas, yaitu bobot tiap kriteria diubah ±10% dan ±20%, serta seluruh bobot diacak 100 kali; dan (4) uji keadilan berupa perbandingan MAE dan sebaran rekomendasi antargender. Hasil sementara pada data referensi: rekomendasi utama tetap pada 94,6% siswa saat bobot diacak ±10%; perubahan satu bobot ±10% mengubah paling banyak 3% rekomendasi; dan selisih MAE antargender di bawah 0,02 poin.
+**Uji teknis.** Uji teknis mencakup: (1) MAE, RMSE, dan R² pada data *holdout* dan pada respons baru; (2) 155 uji otomatis yang memastikan hasil identik dengan perhitungan manual; (3) uji sensitivitas, yaitu bobot tiap kriteria diubah ±10% dan ±20%, serta seluruh bobot diacak 100 kali; dan (4) uji keadilan berupa perbandingan MAE dan sebaran rekomendasi antargender. Hasil sementara: rekomendasi utama tetap pada 94,3% siswa referensi Kaggle dan 95,5% responden riil saat bobot diacak ±10%; perubahan satu bobot ±10% mengubah paling banyak 3,2% rekomendasi; selisih MAE antargender di bawah 0,01 poin pada data Kaggle, tetapi 0,29 poin pada *holdout* riil (29 dan 30 siswa) sehingga perlu dipantau.
 
 **Uji penerimaan.** Guru BK dan siswa di sekolah mitra mencoba aplikasi, lalu menilainya pada skala 1–5 untuk lima aspek: pemahaman fitur, kesesuaian hasil, manfaat dan efisiensi, stabilitas sistem, serta kenyamanan tampilan. Guru BK juga memeringkat alternatif penanganan secara manual untuk 20 kasus uji. Target: kesesuaian rekomendasi pertama ≥ 80% dan skor rata-rata penerimaan ≥ 4.
 

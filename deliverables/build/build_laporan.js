@@ -31,7 +31,7 @@ const intro = `[[TOC]]
 
 Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
 
-Bagian bertanda ⟦ISI …⟧ diisi setelah *pipeline* dijalankan pada data kuesioner riil yang bersifat rahasia. Angka agregatnya dihasilkan otomatis oleh \`scripts/train.py --stage real\`.
+Laporan memakai dua sumber data: dataset publik Kaggle (1 juta baris) untuk pralatih, dan **304 respons kuesioner riil** siswa SMA yang bersifat rahasia untuk pelatihan ulang dan pengujian. Semua angka data riil adalah agregat yang dihasilkan otomatis oleh \`scripts/train.py --stage real\`; tidak ada baris individu yang ditampilkan. Bagian bertanda ⟦ISI …⟧ yang tersisa hanya URL aplikasi dan hasil uji pengguna.
 
 [[PAGEBREAK]]
 `;
@@ -56,11 +56,13 @@ const lampiran = `[[PAGEBREAK]]
 cd app
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements-train.txt
-python scripts/train.py --stage kaggle --csv data/dataset.csv     # model dasar (MAE 0,7668)
+python scripts/train.py --stage kaggle                            # model dasar (berkas Kaggle 1 juta baris; R² 0,6077)
+python scripts/train.py --stage tune                              # random search parameter (CV 5-fold)
 python scripts/train.py --stage compare                           # perbandingan algoritma
-python scripts/inspect_gform.py data/private/gform_raw.csv        # cek pemetaan kuesioner
-python scripts/train.py --stage real --gform data/private/gform_raw.csv
-python scripts/evaluate.py --gform data/private/gform_new.csv     # uji data baru
+python scripts/inspect_gform.py data/private/gform_data.csv       # cek pemetaan kuesioner
+python scripts/train.py --stage real --gform data/private/gform_data.csv   # model aktif (S1)
+python scripts/merge_report.py data/private/gform_data.csv        # pertanyaan mana digabung
+python scripts/evaluate.py --gform data/private/<respons_baru>.csv   # uji respons baru
 pytest                                                            # uji otomatis
 streamlit run streamlit_app.py
 \`\`\`

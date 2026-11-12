@@ -69,16 +69,16 @@ Dalam proyek ini, **benefit** berarti nilai tinggi menaikkan utilitas, sehingga 
 
 | Kode | Kriteria | Target | Hasil |
 |---|---|---|---|
-| D1 | Model lebih baik dari baseline rata-rata | MAE < baseline | Tercapai (0,767 vs 1,237 pada data uji Kaggle) |
-| D2 | Daya jelaskan model | R² ≥ 0,60 | Tercapai (0,614 pada data uji Kaggle) |
-| D3 | Faktor dominan masuk akal secara teori | Faktor stres/kelelahan di peringkat atas | Tercapai (stres 0,43, *burnout* 0,30) |
-| D4 | Kinerja pada data riil | MAE lebih rendah dari model Kaggle tanpa latih ulang | ⟦ISI dari laporan data riil⟧ |
+| D1 | Model lebih baik dari baseline rata-rata | MAE < baseline | Tercapai (0,758 vs 1,222 pada 138.509 baris uji Kaggle) |
+| D2 | Daya jelaskan model | R² ≥ 0,60 | Tercapai (0,608 pada 138.509 baris uji Kaggle) |
+| D3 | Faktor dominan masuk akal secara teori | Faktor stres/kelelahan di peringkat atas | Tercapai (stres 0,75, *burnout* 0,21) |
+| D4 | Kinerja pada data riil | MAE lebih rendah dari model Kaggle tanpa latih ulang | Tercapai (MAE 1,113 vs 1,874 pada 59 respons *holdout*) |
 
 ### 5.2 SPK
 
 | Kode | Kriteria | Target | Hasil |
 |---|---|---|---|
-| S1 | Stabilitas terhadap perubahan bobot | ≥ 90% rekomendasi utama tetap saat bobot diubah acak ±10% | Profil A: 94,6%; profil B: 88,8% |
+| S1 | Stabilitas terhadap perubahan bobot | ≥ 90% rekomendasi utama tetap saat bobot diubah acak ±10% | Kaggle: profil A 94,3%, profil B 89,1%; data riil: profil A 95,5%, profil B 87,7% |
 | S2 | Setiap rekomendasi dapat dijelaskan | 100% hasil disertai kontribusi kriteria dan alasan | Tercapai di aplikasi |
 | S3 | Aturan pengaman | Siswa berisiko tinggi selalu mendapat rujukan konseling | Tercapai (10% prediksi tertinggi) |
 | S4 | Kebergunaan | Skor rata-rata evaluasi pengguna (Google Form, skala 1–5) ≥ 4 | ⟦ISI setelah uji pengguna⟧ |
