@@ -8,7 +8,7 @@
 
 **SPK SMART Kecemasan Siswa** adalah aplikasi web yang membantu guru Bimbingan Konseling (BK) melakukan tiga hal:
 
-1. **Memperkirakan tingkat kecemasan** siswa (skor 0–10) dari 11 faktor gaya hidup dan akademik, memakai model *Random Forest*.
+1. **Memperkirakan tingkat kecemasan** siswa (skor 0–10) dari 11 faktor gaya hidup dan akademik, memakai model *Random Forest* yang dilatih dengan jawaban kuesioner 292 siswa.
 2. **Menyusun prioritas**: siswa mana yang perlu ditangani lebih dulu (skor prioritas SMART).
 3. **Merekomendasikan penanganan** dari lima bentuk dukungan, yaitu Tidur, Olahraga, Strategi belajar, Konseling, dan Relaksasi, lengkap dengan alasannya.
 
@@ -36,8 +36,8 @@ Saat dibuka pertama kali, server mungkin memerlukan 20–40 detik untuk "bangun"
 
 | No. | Bagian | Fungsi |
 |---|---|---|
-| 1 | Menu halaman | Bilah di bagian atas, di samping logo **SPK SMART**. Klik **Beranda**, **Rekomendasi**, **Analisis**, atau **Tentang** untuk berpindah halaman. Halaman yang sedang dibuka diberi latar abu-abu |
-| 2 | Bahasa | Tombol **ID** / **EN** di pojok kanan atas. **ID** = Bahasa Indonesia, **EN** = English. Seluruh teks, label, dan grafik ikut berganti (Bab 7) |
+| 1 | Menu halaman | Bilah di bagian atas, di samping logo **SPK SMART**. Klik **Beranda**, **Rekomendasi**, **Analisis**, **Data Mining**, atau **Tentang** untuk berpindah halaman. Halaman yang sedang dibuka diberi latar abu-abu |
+| 2 | Bahasa | Tombol **ID** / **EN** di pojok kanan atas. **ID** = Bahasa Indonesia, **EN** = English. Seluruh teks, label, dan grafik ikut berganti (Bab 8) |
 | 3 | **Mulai penilaian** | Membuka halaman Rekomendasi pada tampilan **Satu siswa** (Bab 3) |
 | 4 | **Nilai satu kelas sekaligus** | Membuka halaman Rekomendasi pada tampilan **Satu kelas (unggah berkas)** (Bab 4) |
 | 5 | Contoh hasil | Gambaran bentuk hasil: rekomendasi utama, tingkat kecemasan, dan prioritas. Kartu ini hanya contoh, bukan hasil siswa mana pun |
@@ -46,7 +46,7 @@ Saat dibuka pertama kali, server mungkin memerlukan 20–40 detik untuk "bangun"
 | 8 | Untuk siapa? / Perlu diingat | Sasaran pengguna dan tiga pengingat penting: hasil bukan diagnosis, siswa di 10% kecemasan tertinggi selalu diarahkan ke konseling, dan data tidak disimpan |
 | 9 | Catatan kaki | Penafian (bukan alat diagnosis klinis) dan pernyataan privasi. Catatan ini tampil di bagian bawah setiap halaman |
 
-Pengaturan **profil bobot SMART** tidak ada di Beranda. Pengaturan ini ada di tombol **Profil bobot** pada halaman Rekomendasi dan Analisis (subbab 3.8).
+Pengaturan **profil bobot SMART** tidak ada di Beranda. Pengaturan ini ada di tombol **Profil · Model** pada halaman Rekomendasi dan Analisis (subbab 3.9).
 
 > Pada layar sempit (ponsel), menu halaman diringkas menjadi tombol **»** di samping logo. Ketuk tombol itu untuk membuka daftar halaman.
 
@@ -63,7 +63,7 @@ Klik **Mulai penilaian** di Beranda (Gambar 1, no. 3), atau klik **Rekomendasi**
 | No. | Bagian | Keterangan |
 |---|---|---|
 | 1 | Pilihan tampilan | **Satu siswa** untuk menilai satu orang; **Satu kelas (unggah berkas)** untuk menilai satu kelas atau sekolah (Bab 4) |
-| 2 | **Profil bobot** | Membuka pengaturan profil bobot SMART. Huruf di tombol (A, B, atau C) adalah profil yang sedang dipakai (subbab 3.8) |
+| 2 | **Profil · Model** | Membuka pengaturan model prediksi dan profil bobot SMART. Teks tombol menunjukkan profil (A, B, atau C) dan model yang sedang dipakai, mis. "Profil A · Model riil" (subbab 3.9) |
 | 3 | Mode lanjutan | Sakelar **Mode lanjutan: isi 11 nilai fitur model**. Dalam keadaan mati (bawaan), formulir berisi kuesioner yang sama dengan Google Form. Nyalakan untuk mengisi nilai fitur secara langsung (subbab 3.3) |
 | 4 | Kartu bagian bernomor | Pertanyaan dikelompokkan dalam lima kartu: **1 Tentang siswa**, **2 Belajar & nilai**, **3 Tuntutan & tekanan**, **4 Tidur, olahraga & uang saku**, dan **5 Kelelahan**. Di bawah judul kartu ada petunjuk singkat. Tidak ada nama atau data pribadi yang diminta |
 | 5 | Penggeser (*slider*) | Untuk jam belajar dan durasi tidur. Geser titiknya ke kiri/kanan; jawaban terpilih tampil di atas titik (mis. "2 jam") |
@@ -81,9 +81,10 @@ Isi setiap pertanyaan sesuai kondisi siswa dalam seminggu atau sebulan terakhir.
 | 1 Tentang siswa | Jenis kelamin; usia | Laki-laki / Perempuan; 12–30 tahun |
 | 2 Belajar & nilai | Jam belajar mandiri per hari | Penggeser: Dibawah 30 menit … 11 jam 30 menit |
 | | Nilai rata-rata rapor terakhir | 0–100 |
-| | Belajar sampai larut malam (seminggu) | Tidak pernah / 1 kali / 2–3 kali / 4–5 kali |
+| | Belajar sampai larut malam (seminggu) | Tidak pernah / 1 kali / 2–3 kali / 4–5 kali / > 5 kali |
 | | Waktu belajar tidak cukup | Tidak pernah / Jarang / Kadang-kadang / Sering |
-| | Tugas terlambat (sebulan) | Tidak pernah / 1 / 2–3 / 4–5 |
+| | Tugas terlambat (sebulan) | Tidak pernah / 1 / 2–3 / 4–5 / > 5 |
+| | Nilai di bawah target | Tidak pernah / Jarang / Kadang-kadang / Sering / Selalu |
 | 3 Tuntutan & tekanan | Terlalu banyak tugas bersamaan; tertekan karena ujian; takut mengecewakan orang tua; keluarga menuntut nilai tinggi | Tidak pernah / Jarang / Kadang-kadang / Sering / Sangat sering |
 | 4 Tidur, olahraga & uang saku | Durasi tidur malam | Penggeser: 4 jam … 12 jam |
 | | Hari berolahraga minimal 20–30 menit (seminggu) | 0 hari / 1–2 hari / 3–4 hari / 5–6 hari / 7 hari |
@@ -100,7 +101,7 @@ Nyalakan sakelar **Mode lanjutan: isi 11 nilai fitur model** (Gambar 2, no. 3) b
 
 ![Gambar 3. Tombol proses di bagian bawah formulir](figures/fig03_form_submit.png)
 
-Klik **Lihat rekomendasi** (no. 10) di bawah kartu terakhir. Formulir berganti menjadi layar hasil dalam 1–2 detik, dan halaman kembali ke atas. Jawaban hanya dikirim saat tombol ini diklik, jadi mengubah jawaban tidak langsung mengubah hasil.
+Klik **Lihat rekomendasi** (no. 10) di bawah kartu terakhir. Formulir berganti menjadi layar hasil dalam beberapa detik (penjelasan AI dihitung paling akhir), dan halaman kembali ke atas. Jawaban hanya dikirim saat tombol ini diklik, jadi mengubah jawaban tidak langsung mengubah hasil.
 
 [[PAGEBREAK]]
 
@@ -118,19 +119,37 @@ Klik **Lihat rekomendasi** (no. 10) di bawah kartu terakhir. Formulir berganti m
 | 6 | **Prioritas penanganan** | Skor prioritas SMART (0–1). Makin tinggi, makin perlu didahulukan. Labelnya: *Rendah*, *Sedang*, *Tinggi*, atau *Sangat tinggi* |
 | 7 | **Urutan lima pilihan** | Kelima bentuk dukungan diurutkan dari skor tertinggi. Makin panjang batang, makin cocok untuk siswa ini. Guru BK tetap bebas memilih di antara pilihan teratas |
 | 8 | **Mengapa …?** | Kalimat alasan: alternatif pemenang dan profil bobotnya, **pendorong utama** (kriteria yang paling menyumbang), selisih dengan alternatif kedua, dan posisi skor prioritas |
-| 9 | **Rincian perhitungan** | Panel yang dapat dibuka untuk melihat perhitungan lengkap (subbab 3.6) |
+| 9 | **Bandingkan dua model** | Panel yang menampilkan hasil siswa ini dari kedua iterasi model, berdampingan (lihat di bawah) |
+| 10 | **Penjelasan AI (xAI)** | Tiga tab yang menjelaskan prediksi, hubungannya dengan rekomendasi, dan skenario "bagaimana jika" (subbab 3.6) |
+| 11 | **Rincian perhitungan** | Panel yang dapat dibuka untuk melihat nilai kriteria dan uji sensitivitas (subbab 3.7–3.8) |
+
+**Bandingkan dua model.** Klik **Bandingkan dua model untuk siswa ini** (no. 9). Tabel menampilkan hasil siswa yang sama dari **model riil** (iterasi 2, dilatih ulang dengan jawaban siswa SMA) dan **model Kaggle** (iterasi 1, dilatih dengan data mahasiswa): prediksi kecemasan, persentil, prioritas, rekomendasi utama, dan aturan pengaman. Kalimat di bawahnya menyebut apakah rekomendasi kedua model sama.
+
+![Gambar 4b. Hasil satu siswa dari kedua model](figures/fig04b_compare.png)
 
 **Tips membaca selisih.** Bila selisih skor alternatif pertama dan kedua kecil (< 0,02), kotak **Mengapa …?** menambahkan kalimat "Selisihnya kecil, jadi … juga layak dipertimbangkan". Kedua alternatif sama-sama layak dipertimbangkan.
 
-## 3.6 Rincian perhitungan
+## 3.6 Penjelasan AI (xAI)
 
-Klik **Rincian perhitungan** (Gambar 4, no. 9). Panel terbuka dengan tiga tab (no. 1 pada Gambar 5).
+Kartu **Penjelasan AI (xAI)** (Gambar 4, no. 10) memiliki tiga tab (no. 1 pada Gambar 5–7).
 
-![Gambar 5. Tab Kontribusi tiap kriteria](figures/fig05_contrib.png)
+![Gambar 5. Tab Prediksi kecemasan: nilai Shapley](figures/fig05_xai_pred.png)
 
-**Kontribusi tiap kriteria (bobot × utilitas).** Setiap batang adalah satu alternatif. Panjang batang = skor SMART, dan setiap warna = sumbangan satu kriteria (bobot × utilitas). Warna yang lebar menunjukkan alasan utama.
+**Prediksi kecemasan.** Grafik air terjun nilai Shapley: setiap batang adalah satu faktor. Batang **oranye** menaikkan prediksi, batang **biru** menurunkannya, dibanding rata-rata siswa pembanding. Panjang semua batang dijumlahkan = prediksi − rata-rata. Dua kalimat di atas grafik menyebut selisih dengan rata-rata dan faktor yang paling menaikkan prediksi.
 
-![Gambar 6. Tab Nilai fitur model & utilitas](figures/fig06_inputs.png)
+![Gambar 6. Tab Dari prediksi ke rekomendasi](figures/fig06_xai_link.png)
+
+**Dari prediksi ke rekomendasi.** Rantai tiga langkah (Random Forest → SMART → hasil) dan berapa bagian skor rekomendasi utama yang berasal dari prediksi kecemasan. Grafik batang menunjukkan skor SMART setiap alternatif; setiap warna adalah sumbangan satu kriteria (bobot × utilitas). Warna yang lebar adalah alasan utama.
+
+![Gambar 7. Tab Bagaimana jika?](figures/fig07_xai_whatif.png)
+
+**Bagaimana jika?** Setiap baris memindahkan satu faktor yang dapat diupayakan (mis. jam tidur, kelelahan) ke tingkat tipikal, lalu menghitung ulang prediksi, prioritas, dan rekomendasi. Baris berwarna berarti rekomendasi berubah. Di bagian **Coba sendiri**, pilih satu faktor dan geser nilainya untuk melihat hasilnya langsung. Ini simulasi model, bukan bukti sebab-akibat; gunakan sebagai bahan diskusi dengan siswa.
+
+## 3.7 Rincian perhitungan
+
+Klik **Rincian perhitungan** (Gambar 4, no. 11). Panel terbuka dengan dua tab (no. 1 pada Gambar 8 dan 9).
+
+![Gambar 8. Tab Nilai fitur model & utilitas](figures/fig08_inputs.png)
 
 **Nilai fitur model & utilitas.** Tabel delapan kriteria SMART:
 
@@ -140,26 +159,29 @@ Klik **Rincian perhitungan** (Gambar 4, no. 9). Panel terbuka dengan tiga tab (n
 
 Di bawah tabel tercantum fitur model lain yang bukan kriteria SMART (usia, jenis kelamin, tekanan ujian, dan tingkat stres).
 
-## 3.7 Uji sensitivitas bobot
+## 3.8 Uji sensitivitas bobot
 
 Buka tab **Uji sensitivitas bobot** di panel **Rincian perhitungan**.
 
-![Gambar 7. Uji sensitivitas untuk siswa yang sedang dinilai](figures/fig07_sensitivity.png)
+![Gambar 9. Uji sensitivitas untuk siswa yang sedang dinilai](figures/fig09_sensitivity.png)
 
-Setiap baris adalah satu kriteria. Setiap kolom adalah perubahan bobotnya: −20%, −10%, +10%, +20%. Isi sel adalah rekomendasi utama setelah bobot diubah. **Sel berwarna oranye muda** berarti rekomendasi berubah. Kotak hijau "Stabil" berarti rekomendasi kokoh. Kotak kuning berarti rekomendasi berubah pada sebagian skenario, sehingga hasil siswa ini sebaiknya ditinjau bersama alternatif kedua.
+Setiap baris adalah satu kriteria. Setiap kolom adalah perubahan bobotnya: −20%, −10%, +10%, +20%. Isi sel adalah rekomendasi utama setelah bobot diubah. **Sel berwarna oranye muda** berarti rekomendasi berubah. Kotak hijau "Stabil" berarti rekomendasi kokoh. Kotak biru atau kuning menyebut berapa skenario yang mengubah rekomendasi, sehingga hasil siswa ini sebaiknya ditinjau bersama alternatif kedua.
 
-## 3.8 Mengubah profil bobot
+## 3.9 Mengubah model dan profil bobot
 
-![Gambar 8. Pengaturan profil bobot SMART](figures/fig08_profile.png)
+![Gambar 10. Pengaturan model prediksi dan profil bobot SMART](figures/fig10_profile.png)
 
-1. Klik tombol **Profil bobot** (no. 1) di kanan atas halaman Rekomendasi atau Analisis.
-2. Pilih salah satu profil (no. 2):
+1. Klik tombol **Profil · Model** (no. 1) di kanan atas halaman Rekomendasi atau Analisis.
+2. Pilih **model prediksi** (no. 2):
+   - **Iterasi 2 · Data kuesioner riil (bawaan)**: dilatih ulang dengan 292 respons siswa SMA. Disarankan untuk siswa sungguhan; rata-rata meleset ±1,1 poin pada siswa riil.
+   - **Iterasi 1 · Kaggle (model dasar)**: dilatih dengan data mahasiswa. Akurat pada data Kaggle, tetapi meleset ±1,9 poin pada siswa SMA. Pilih untuk membandingkan atau menunjukkan perkembangan model.
+3. Pilih **profil bobot** (no. 3):
    - **A - Berbasis domain** (bawaan, disarankan): tiap dukungan menekankan kriteria yang paling relevan. Profil ini paling stabil.
    - **B - Hampir seimbang**: bobot hampir sama untuk semua kriteria.
    - **C - Sama rata (kontrol)**: semua bobot sama, hanya untuk pembanding.
-3. Klik di luar panel untuk menutupnya. Hasil langsung dihitung ulang, dan huruf pada tombol berganti.
+4. Klik di luar panel untuk menutupnya. Hasil di semua halaman langsung dihitung ulang, dan teks tombol berganti.
 
-Baris paling bawah panel (no. 3) menunjukkan **model aktif**: sumber data model (Kaggle, atau Kaggle → data kuesioner riil) dan jumlah data. Bila profil **C** dipilih, semua alternatif mendapat bobot sama sehingga skornya selalu seri, dan aplikasi menampilkan peringatan di bawah judul halaman.
+Baris paling bawah panel (no. 4) menunjukkan **model aktif**: sumber data model dan jumlah data. Pilihan model dan profil tetap berlaku saat berpindah halaman selama sesi berjalan. Bila profil **C** dipilih, semua alternatif mendapat bobot sama sehingga skornya selalu seri, dan aplikasi menampilkan peringatan di bawah judul halaman.
 
 [[PAGEBREAK]]
 
@@ -178,25 +200,28 @@ Ukuran maksimum berkas 50 MB.
 
 ## 4.2 Mengunggah dan membaca hasil
 
-![Gambar 9a. Unggah berkas, ringkasan kelas, dan daftar prioritas](figures/fig09_batch_a.png)
+Setelah berkas diunggah, kotak biru di bawah kotak unggah menyebut jenis berkas yang terdeteksi, jumlah baris, dan **kolom pribadi yang dibuang** (waktu isi, tanggal lahir, nama sekolah, sumber informasi, nama teman). Gambar 11 memakai data contoh, sehingga kotak itu tidak tampil.
+
+![Gambar 11a. Unggah berkas, ringkasan kelas, dan daftar prioritas](figures/fig11_batch_a.png)
 
 | No. | Bagian | Keterangan |
 |---|---|---|
 | 1 | **Berkas data siswa** | Klik **Upload** lalu pilih berkas .csv/.xlsx, atau seret berkas ke kotak ini |
-| 2 | **Belum punya berkas?** | Tanpa unggahan, aplikasi memakai data contoh: **Sampel Kaggle (20.000 baris)** atau **Ekspor Google Form SINTETIS** (250 baris data buatan, bukan siswa nyata). Unggahan selalu dipakai lebih dulu; pilihan ini nonaktif selama ada berkas |
-| 3 | Deteksi berkas | Jenis berkas yang terdeteksi, jumlah baris, dan **kolom pribadi yang dibuang** (waktu isi, tanggal lahir, nama sekolah, sumber informasi, nama teman) |
-| 4 | Ringkasan kelas | **Jumlah siswa**; **Perlu perhatian segera** (prediksi kecemasan di 10% teratas populasi referensi); **Paling sering disarankan**; **Rata-rata prediksi kecemasan** |
-| 5 | **Daftar prioritas** dan **Tampilkan** | Pilih jumlah baris yang ditampilkan (10, 20, 50, …) |
-| 6 | Tabel prioritas | Diurutkan dari **skor prioritas SMART** tertinggi. Kolom: ID siswa, peringkat, skor prioritas (dengan batang), rekomendasi utama dan skornya, prediksi kecemasan (dengan batang), dan skor kelima alternatif. Klik judul kolom untuk mengurutkan |
-| 7 | **Unduh peringkat lengkap (CSV)** | Mengunduh hasil semua siswa sebagai CSV tanpa data pribadi. Pada ekspor Google Form, setiap siswa diberi ID anonim (R0001, …) sesuai urutan baris berkas |
+| 2 | **Belum punya berkas?** | Tanpa unggahan, aplikasi memakai data contoh: **sampel data uji Kaggle (usia pelajar)**, 20.000 siswa. Unggahan selalu dipakai lebih dulu |
+| 3 | Ringkasan kelas | **Jumlah siswa**; **Perlu perhatian segera** (prediksi kecemasan di 10% teratas populasi referensi); **Paling sering disarankan**; **Rata-rata prediksi kecemasan** |
+| 4 | **Daftar prioritas** dan **Tampilkan** | Pilih jumlah baris yang ditampilkan (10, 20, 50, …) |
+| 5 | Tabel prioritas | Diurutkan dari **skor prioritas SMART** tertinggi. Kolom: ID siswa, peringkat, skor prioritas (dengan batang), rekomendasi utama dan skornya, prediksi kecemasan (dengan batang), dan skor kelima alternatif. Klik judul kolom untuk mengurutkan |
+| 6 | **Unduh peringkat lengkap (CSV)** | Mengunduh hasil semua siswa sebagai CSV tanpa data pribadi. Pada ekspor Google Form, setiap siswa diberi ID anonim (R0001, …) sesuai urutan baris berkas |
 
-![Gambar 9b. Grafik sebaran, opsi lanjutan, dan evaluasi pada data baru](figures/fig09_batch_b.png)
+![Gambar 11b. Grafik sebaran, penjelasan AI per siswa, dan opsi lanjutan](figures/fig11_batch_b.png)
 
 | No. | Bagian | Keterangan |
 |---|---|---|
-| 8 | Grafik sebaran | **Sebaran rekomendasi** (jumlah siswa per bentuk dukungan) dan **Sebaran skor prioritas SMART** |
+| 7 | Grafik sebaran | **Sebaran rekomendasi** (jumlah siswa per bentuk dukungan) dan **Sebaran skor prioritas SMART** |
+| 8 | **Jelaskan satu siswa** | Pilih satu ID siswa dari daftar untuk melihat tiga tab penjelasan AI yang sama seperti pada subbab 3.6 |
 | 9 | **Opsi lanjutan** | Klik untuk membuka. Kotak **Normalisasi dengan batas referensi** dicentang secara bawaan: siswa dibandingkan dengan populasi referensi. Tanpa centang: siswa dibandingkan antarsiswa dalam berkas itu saja, seperti di notebook |
-| 10 | **Evaluasi model pada data baru** | Muncul bila berkas memuat jawaban bagian **Psikologis** (P01–P05). Aplikasi menghitung skor kecemasan sebenarnya dan membandingkannya dengan prediksi (MAE, RMSE, R²) untuk model aktif dan model dasar Kaggle, lengkap dengan grafik aktual vs prediksi |
+
+**Evaluasi model pada data baru.** Bila ekspor Google Form memuat jawaban bagian **Psikologis** (P01–P05), muncul bagian **Evaluasi model**: aplikasi menghitung skor kecemasan sebenarnya dan membandingkannya dengan prediksi (MAE, RMSE, R²) untuk model aktif dan model dasar Kaggle, lengkap dengan grafik aktual vs prediksi. Gunakan hanya respons yang **baru**, yang belum dipakai melatih model.
 
 ## 4.3 Pesan kesalahan yang mungkin muncul
 
@@ -211,69 +236,103 @@ Ukuran maksimum berkas 50 MB.
 
 # 5. Halaman Analisis
 
-Halaman **Analisis** menampilkan bukti kinerja model dan SPK. Semua grafik memakai populasi referensi 20.000 siswa (Gambar 10, no. 1) dan mengikuti profil bobot yang dipilih lewat tombol **Profil bobot** (no. 2). Isinya dibagi dalam lima tab (no. 3): **Data**, **Model**, **SMART**, **Sensitivitas**, dan **Keadilan**.
+Halaman **Analisis** menampilkan bukti kinerja model dan SPK. Grafik populasi memakai 20.000 siswa dari data uji Kaggle yang dinilai dengan model aktif (Gambar 12, no. 1) dan mengikuti model dan profil bobot yang dipilih lewat tombol **Profil · Model** (no. 2). Isinya dibagi dalam enam tab (no. 3): **Data**, **Model**, **xAI**, **SMART**, **Sensitivitas**, dan **Keadilan**.
 
 ## 5.1 Tab Data
 
-![Gambar 10. Tab Data: sebaran kriteria pada data referensi](figures/fig10_an_data.png)
+![Gambar 12a. Tab Data: data pralatih Kaggle dan ringkasan data kuesioner riil](figures/fig12_an_data_a.png)
 
-Menampilkan jumlah data, rata-rata skor kecemasan, rentang usia, jumlah fitur model, komposisi gender, dan histogram delapan kriteria SMART. Setelah model dilatih dengan data kuesioner riil, bagian **Data kuesioner riil** juga menampilkan ringkasan agregat: jumlah respons, *box plot* tiap fitur, dan korelasi dengan skor kecemasan. Tidak ada data per siswa yang ditampilkan.
+![Gambar 12b. Tab Data: sebaran fitur data riil dan awal korelasi butir](figures/fig12_an_data_b.png)
+
+![Gambar 12c. Tab Data: korelasi butir kuesioner dengan skor kecemasan dan komposisi gender](figures/fig12_an_data_c.png)
+
+Bagian atas menampilkan data pralatih Kaggle: jumlah baris, rata-rata skor kecemasan, rentang usia, jumlah fitur, komposisi gender, dan histogram delapan kriteria SMART. Bagian **Data kuesioner riil** menampilkan ringkasan agregat 292 respons siswa: jumlah respons, duplikat, *straight-lining*, *box plot* setiap fitur, korelasi setiap butir dengan skor kecemasan, dan komposisi gender. Tidak ada data per siswa yang ditampilkan.
 
 ## 5.2 Tab Model (Data Mining)
 
-![Gambar 11a. Metrik, grafik aktual vs prediksi, sebaran galat, dan kepentingan fitur](figures/fig11_an_model_a.png)
+![Gambar 13a. Metrik model aktif, iterasi model Kaggle → data riil, aktual vs prediksi, dan sebaran galat](figures/fig13_an_model_a.png)
 
-![Gambar 11b. Perbandingan algoritma](figures/fig11_an_model_b.png)
+![Gambar 13b. Kepentingan fitur, perbandingan algoritma, dan strategi pelatihan ulang](figures/fig13_an_model_b.png)
 
-- **MAE / MSE / RMSE / R²**: akurasi prediksi pada data uji. MAE 0,77 berarti rata-rata prediksi meleset ±0,77 poin pada skala 0–10.
-- **Aktual vs prediksi**: titik yang dekat garis diagonal berarti prediksi tepat.
-- **Sebaran galat**: selisih aktual − prediksi; makin terpusat di 0 makin baik.
-- **Kepentingan fitur**: faktor yang paling memengaruhi prediksi. Tingkat stres akademik dan kelelahan adalah yang terbesar.
-- **Perbandingan algoritma**: alasan pemilihan Random Forest dibanding regresi linear, pohon keputusan, gradient boosting, dan baseline. Panel **Hyperparameter & metadata** di bawahnya memuat detail teknis model.
+![Gambar 13c. MAE validasi silang tiap strategi pelatihan ulang](figures/fig13_an_model_c.png)
 
-## 5.3 Tab SMART (SPK)
+- **MAE / MSE / RMSE / R²**: akurasi model aktif pada data *holdout* kuesioner (59 siswa yang tidak dipakai melatih). MAE 1,11 berarti rata-rata prediksi meleset ±1,1 poin pada skala 0–10. Model dasar Kaggle mencapai MAE 0,76 pada data Kaggle, tetapi 1,87 pada siswa SMA.
+- **Aktual vs prediksi** dan **sebaran galat**: dihitung untuk model dasar pada sampel data uji Kaggle; titik dekat garis diagonal dan galat yang terpusat di 0 berarti prediksi tepat.
+- **Iterasi model: Kaggle → data riil**: tabel yang menguji kedua model pada data uji Kaggle dan pada *holdout* siswa riil. Model Kaggle unggul pada data Kaggle (R² 0,61) tetapi gagal pada siswa SMA (R² −0,35); model riil memperbaikinya (R² 0,44).
+- **Kepentingan fitur**: faktor yang paling memengaruhi prediksi model aktif. Pada siswa SMA yang terbesar adalah kelelahan (*burnout*), tekanan ujian, dan ekspektasi keluarga.
+- **Perbandingan algoritma** dan **strategi pelatihan ulang**: alasan pemilihan Random Forest, dan hasil tujuh strategi penyesuaian model ke data riil. Panel **Hyperparameter & metadata** memuat detail teknis model.
 
-![Gambar 12a. Kriteria, batas normalisasi, bobot per alternatif, sebaran skor prioritas, dan profil utilitas](figures/fig12_an_smart_a.png)
+## 5.3 Tab xAI
 
-![Gambar 12b. Sebaran skor per alternatif dan frekuensi rekomendasi](figures/fig12_an_smart_b.png)
+![Gambar 14. Kepentingan fitur Gini vs permutasi, dan ketergantungan parsial (PDP dan ICE)](figures/fig14_an_xai_a.png)
 
-![Gambar 12c. 20 siswa prioritas teratas dan korelasi kriteria](figures/fig12_an_smart_c.png)
+Penjelasan global model. **Gini vs permutasi** membandingkan dua cara mengukur kepentingan fitur; fitur dengan Gini tinggi tetapi permutasi hampir nol dipakai untuk memecah data, tetapi informasinya sudah dibawa fitur lain. **PDP/ICE** menunjukkan bagaimana prediksi berubah bila satu faktor dinaikkan: garis tebal adalah rata-rata, garis tipis adalah siswa satu per satu. Pilih faktor yang ditampilkan di kotak **Faktor yang ditampilkan**. Penjelasan per siswa ada di halaman Rekomendasi (subbab 3.6).
+
+## 5.4 Tab SMART (SPK)
+
+![Gambar 15a. Kriteria, batas normalisasi, bobot per alternatif, sebaran skor prioritas, dan profil utilitas](figures/fig15_an_smart_a.png)
+
+![Gambar 15b. Sebaran skor per alternatif, frekuensi rekomendasi, siswa prioritas teratas, dan korelasi kriteria](figures/fig15_an_smart_b.png)
 
 Tab ini menjelaskan bagaimana SMART bekerja pada seluruh populasi. Isinya: jenis dan batas normalisasi setiap kriteria, bobot tiap alternatif (peta warna), sebaran skor prioritas, profil utilitas kelompok atas/tengah/bawah, sebaran skor per alternatif, frekuensi rekomendasi beserta rata-rata skornya, skor rekomendasi 20 siswa dengan prioritas tertinggi, dan korelasi antara kriteria dan skor SMART.
 
-## 5.4 Tab Sensitivitas
+## 5.5 Tab Sensitivitas
 
-![Gambar 13. Stabilitas global, peta sensitivitas per kriteria, dan perbandingan profil bobot](figures/fig13_an_sens.png)
+![Gambar 16. Stabilitas global, peta sensitivitas per kriteria, dan perbandingan profil bobot](figures/fig16_an_sens.png)
 
-- **Stabilitas global**: persentase siswa yang rekomendasi utamanya (dan tiga besarnya) tetap saat semua bobot diacak ±10% atau ±20% sebanyak 100 kali. Profil A: 94,6% tetap pada ±10%.
+- **Stabilitas global**: persentase siswa yang rekomendasi utamanya (dan tiga besarnya) tetap saat semua bobot diacak ±10% atau ±20% sebanyak 100 kali. Profil A paling stabil: sekitar 94–96% tetap pada ±10%.
 - **Per kriteria**: persentase siswa yang rekomendasinya berubah bila satu kriteria diubah bobotnya. Makin gelap warnanya makin sensitif.
 - **Perbandingan profil bobot**: jumlah siswa per rekomendasi untuk profil A, B, dan C.
 
-## 5.5 Tab Keadilan
+## 5.6 Tab Keadilan
 
-![Gambar 14. Pemeriksaan keadilan per gender](figures/fig14_an_fair.png)
+![Gambar 17. Pemeriksaan keadilan per gender](figures/fig17_an_fair.png)
 
-Membandingkan kesalahan prediksi (MAE) dan sebaran rekomendasi antar gender. Selisih kecil (< 0,02 poin) menunjukkan model tidak bias terhadap gender tertentu.
+Membandingkan kesalahan prediksi (MAE) dan sebaran rekomendasi antar gender. Pada data uji Kaggle selisihnya di bawah 0,01 poin. Pada *holdout* kuesioner riil, galat siswa perempuan 0,29 poin lebih besar (29 dan 30 siswa), sehingga perlu dipantau saat data bertambah.
 
 [[PAGEBREAK]]
 
-# 6. Halaman Tentang
+# 6. Halaman Data Mining
 
-![Gambar 15a. Tujuan, arsitektur sistem, data, dan persiapan data](figures/fig15_about_a.png)
+Halaman **Data Mining** menjelaskan proses CRISP-DM proyek ini, satu fase per layar, dengan angka yang dihitung langsung dari data, model, dan uji otomatis.
 
-![Gambar 15b. Metode, kriteria, bentuk dukungan, dan model aktif](figures/fig15_about_b.png)
+![Gambar 18. Halaman Data Mining, fase 1](figures/fig18_dm.png)
 
-![Gambar 15c. Keterbatasan, etika, dan tim](figures/fig15_about_c.png)
+| No. | Bagian | Keterangan |
+|---|---|---|
+| 1 | Pilihan fase | Enam fase CRISP-DM: Business Understanding, Data Understanding, Data Preparation, Modeling, Evaluation, Deployment. Klik untuk berpindah |
+| 2 | Judul fase | Nomor fase dan pertanyaan yang dijawab fase itu |
+| 3 | Angka kunci | Empat angka langsung dari data atau model, mis. jumlah baris, R², stabilitas |
+| 4 | **Yang dikerjakan** | Empat langkah utama fase tersebut |
+| 5 | Bukti | Tabel atau grafik pendukung, mis. korelasi kolom, alur penyiapan data, perbandingan algoritma, atau status kriteria keberhasilan |
+| 6 | Keputusan, keluaran, kode | Keputusan penting, berkas yang dihasilkan, dan letak kodenya |
+| 7 | **Berikutnya / Sebelumnya** | Tombol untuk berpindah ke fase berikutnya atau sebelumnya |
+
+![Gambar 19a. Fase Data Preparation: angka kunci dan langkah](figures/fig19_dm_prep_a.png)
+
+![Gambar 19b. Fase Data Preparation: panel penggabungan pertanyaan](figures/fig19_dm_prep_b.png)
+
+Fase **Data Preparation** menampilkan jumlah baris tiap langkah (no. 1): berkas Kaggle, baris usia 14–25, data latih, dan data uji. Panel **Pertanyaan mana digabung menjadi apa** (no. 2, dibuka) menunjukkan butir kuesioner yang digabung menjadi setiap fitur dan kriteria SMART, beserta aturan dan perannya.
+
+[[PAGEBREAK]]
+
+# 7. Halaman Tentang
+
+![Gambar 20a. Arsitektur sistem, data, dan persiapan data](figures/fig20_about_a.png)
+
+![Gambar 20b. Metode, kriteria, dan model aktif](figures/fig20_about_b.png)
+
+![Gambar 20c. Keterbatasan, etika, dan tim](figures/fig20_about_c.png)
 
 Halaman ini menjelaskan tujuan, arsitektur, sumber data, persiapan data, metode Random Forest dan SMART, evaluasi, kriteria dan bentuk dukungan, metrik model aktif, keterbatasan, serta prinsip etika dan privasi aplikasi.
 
-# 7. Mengganti Bahasa
+# 8. Mengganti Bahasa
 
-![Gambar 16. Tampilan dalam bahasa Inggris](figures/fig16_en.png)
+![Gambar 21. Tampilan dalam bahasa Inggris](figures/fig21_en.png)
 
 Klik **EN** (no. 1) di pojok kanan atas untuk beralih ke bahasa Inggris, atau **ID** untuk kembali ke Bahasa Indonesia. Menu halaman (no. 2) dan seluruh isi halaman ikut berganti. Hasil yang sudah diproses, profil bobot, dan pilihan tampilan (satu siswa atau satu kelas) tetap tersimpan selama sesi berjalan. Jawaban formulir yang belum diproses akan kembali ke nilai bawaan.
 
-# 8. Privasi dan Etika
+# 9. Privasi dan Etika
 
 - Aplikasi **tidak menyimpan** data yang diketik atau diunggah. Data hanya diproses di memori selama sesi.
 - Kolom pribadi pada ekspor Google Form dibuang otomatis. Hasil unduhan hanya memakai ID anonim.
@@ -281,17 +340,19 @@ Klik **EN** (no. 1) di pojok kanan atas untuk beralih ke bahasa Inggris, atau **
 - Siswa dengan kotak **Perlu perhatian segera** perlu ditindaklanjuti dengan konseling dan, bila perlu, rujukan profesional.
 - Bicarakan hasil dengan siswa secara pribadi dan suportif.
 
-# 9. Tanya Jawab
+# 10. Tanya Jawab
 
 | Pertanyaan | Jawaban |
 |---|---|
-| Di mana pengaturan profil bobot? | Klik tombol **Profil bobot** di kanan atas halaman Rekomendasi atau Analisis (subbab 3.8) |
+| Di mana pengaturan profil bobot dan model? | Klik tombol **Profil · Model** di kanan atas halaman Rekomendasi atau Analisis (subbab 3.9) |
+| Mengapa ada dua model? | Untuk menunjukkan iterasi: model Kaggle (dasar) dan model yang dilatih ulang dengan data siswa SMA. Gunakan model riil (bawaan) untuk siswa sungguhan |
 | Mengapa rekomendasi berbeda saat profil bobot diganti? | Setiap profil menimbang kriteria secara berbeda. Profil A adalah bawaan karena paling stabil (lihat Analisis → Sensitivitas) |
 | Apakah skor 6/10 berarti siswa mengalami gangguan kecemasan? | Tidak. Skor adalah perkiraan dari kebiasaan dan tekanan, bukan hasil pemeriksaan klinis |
 | Mengapa semua hasil "Tidur" pada profil C? | Profil C memberi bobot sama pada semua alternatif sehingga skornya seri. Profil C hanya pembanding |
 | Bagaimana kembali ke formulir setelah hasil tampil? | Klik **Ubah jawaban** untuk memperbaiki jawaban, atau **Penilaian baru** untuk siswa lain |
 | Halaman lama memuat atau kosong? | Muat ulang halaman. Saat pertama dibuka, server mungkin sedang "bangun" |
 | Bisakah data siswa disimpan di aplikasi? | Tidak, demi privasi. Unduh hasil peringkat (CSV) bila perlu disimpan oleh sekolah |
+| Seberapa akurat perkiraan kecemasannya? | Pada siswa yang tidak dipakai melatih, rata-rata meleset ±1,1 poin dari skala 0–10. Cukup untuk mengurutkan siswa, bukan untuk skor pasti |
 
 [[PAGEBREAK]]
 
