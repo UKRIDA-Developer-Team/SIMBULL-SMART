@@ -4,7 +4,8 @@
 
 ```
 NOTE:
-Keluaran pada tahap ini masih menggunakan GForm sebelum penambahan pertanyaan serta belum menggunakan data GForm asli (masih merupakan sintetis).
+Spreadsheet memakai model dasar Kaggle (1 juta baris, usia 14-25, R² 0,608 pada 138.509 baris uji) dan siswa dari data uji Kaggle.
+Model yang dipakai aplikasi untuk siswa SMA dilatih ulang dengan 292 respons Google Form asli (MAE holdout 1,11; model Kaggle 1,87).
 
 Bobot perhitungan yang digunakan juga masih berupa estimasi, bukan hasil pertimbangan ahli (Psikolog).
 ```
@@ -37,10 +38,10 @@ Keluaran UTS mata kuliah Sistem Pendukung Keputusan, UKRIDA 2026. Folder ini ber
 ## Alasan Pemilihan Metode
 
 1. **Transparan.** Skor adalah jumlah bobot × utilitas, sehingga kontribusi setiap kriteria dapat ditunjukkan kepada guru BK, siswa, dan orang tua. Ini penting untuk masalah kesehatan mental.
-2. **Dapat menilai satu siswa.** Normalisasi memakai batas min–maks referensi dari 20.000 siswa. Skor seorang siswa tidak berubah ketika siswa lain ditambahkan. Pada TOPSIS, skor bergantung pada kelompok yang dinilai bersama.
+2. **Dapat menilai satu siswa.** Normalisasi memakai batas min–maks referensi dari 20.000 siswa data uji. Skor seorang siswa tidak berubah ketika siswa lain ditambahkan. Pada TOPSIS, skor bergantung pada kelompok yang dinilai bersama.
 3. **Mendukung kriteria benefit dan cost** secara langsung.
 4. **Tidak membutuhkan panel ahli** untuk perbandingan berpasangan seperti AHP. Bobot ditetapkan langsung, lalu diuji dengan analisis sensitivitas.
-5. **Ringan dan stabil.** Pada 20.000 siswa, perubahan acak ±10% pada semua bobot profil A mempertahankan 94,6% rekomendasi utama.
+5. **Ringan dan stabil.** Pada 20.000 siswa data uji Kaggle, perubahan acak ±10% pada semua bobot profil A mempertahankan 94,3% rekomendasi utama (95,5% pada 292 responden riil).
 
 ## Rumus Utama
 
@@ -76,9 +77,9 @@ Notasi: i = siswa, j = kriteria (1..8), k = alternatif (1..5), x_ij = nilai sisw
 
 | Kode | Kriteria | Jenis | Arti | Min–maks referensi |
 |---|---|---|---|---|
-| C1 | Prediksi skor kecemasan (Random Forest) | benefit | Makin tinggi prediksi kecemasan, makin perlu ditangani | 0,367–7,091 |
-| C2 | Jam belajar per hari | benefit | Beban belajar panjang menambah tekanan | 0–13,227 |
-| C3 | Nilai rata-rata rapor | cost | Nilai rendah menandakan kesulitan akademik | 47,565–92,894 |
+| C1 | Prediksi skor kecemasan (Random Forest) | benefit | Makin tinggi prediksi kecemasan, makin perlu ditangani | 0,333–7,161 |
+| C2 | Jam belajar per hari | benefit | Beban belajar panjang menambah tekanan | 0–14 |
+| C3 | Nilai rata-rata rapor | cost | Nilai rendah menandakan kesulitan akademik | 45,172–92,627 |
 | C4 | Jam tidur per malam | cost | Tidur pendek memperburuk kondisi | 3–10 |
 | C5 | Hari olahraga per minggu | cost | Jarang olahraga berarti kurang penyaluran stres | 0–7 |
 | C6 | Tekanan finansial (0–10) | benefit | Tekanan ekonomi menambah beban | 0–10 |
@@ -101,28 +102,28 @@ Spreadsheet menghitung 10 siswa: S01–S02 adalah contoh profil di aplikasi, S03
 
 | Prioritas | Siswa | Skor P_i | Rekomendasi SMART | Rekomendasi akhir |
 |---|---|---|---|---|
-| 1 | S01 | 0,8259 | Olahraga | **Konseling + rujukan** (persentil prediksi 99,7 ≥ 90) |
-| 2 | S06 | 0,5235 | Tidur | Tidur |
-| 3 | S08 | 0,4841 | Tidur | Tidur |
-| 4 | S10 | 0,4400 | Strategi belajar | Strategi belajar |
-| 5 | S05 | 0,4188 | Relaksasi | Relaksasi |
-| 6 | S03 | 0,4151 | Strategi belajar | Strategi belajar |
-| 7 | S07 | 0,3788 | Olahraga | Olahraga |
-| 8 | S09 | 0,3782 | Konseling | Konseling |
-| 9 | S04 | 0,3625 | Olahraga | Olahraga |
-| 10 | S02 | 0,2310 | Relaksasi | Relaksasi |
+| 1 | S01 | 0,8099 | Olahraga | **Konseling + rujukan** (persentil prediksi 99,4 ≥ 90) |
+| 2 | S07 | 0,5629 | Tidur | Tidur |
+| 3 | S04 | 0,5175 | Relaksasi | Relaksasi |
+| 4 | S05 | 0,5006 | Relaksasi | Relaksasi |
+| 5 | S09 | 0,4916 | Olahraga | Olahraga |
+| 6 | S06 | 0,4618 | Olahraga | Olahraga |
+| 7 | S08 | 0,4614 | Tidur | Tidur |
+| 8 | S03 | 0,2951 | Konseling | Konseling |
+| 9 | S10 | 0,2837 | Strategi belajar | Strategi belajar |
+| 10 | S02 | 0,2333 | Relaksasi | Relaksasi |
 
 Cara membaca:
 
 - **Skor prioritas** (0–1) menentukan urutan pemanggilan siswa oleh guru BK. Makin tinggi, makin banyak kriteria yang menunjukkan kebutuhan perhatian.
-- **Rekomendasi SMART** adalah alternatif dengan skor tertinggi. Contoh: S01 hanya berolahraga 0,5 hari per minggu (utilitas C5 = 0,93), sehingga Olahraga mendapat skor 0,8730.
+- **Rekomendasi SMART** adalah alternatif dengan skor tertinggi. Contoh: S01 hanya berolahraga 0,5 hari per minggu (utilitas C5 = 0,93), sehingga Olahraga mendapat skor 0,8621.
 - **Aturan pengaman** mengganti rekomendasi menjadi Konseling + rujukan bila prediksi kecemasan berada di 10% teratas. Program dari SMART tetap dijalankan sesudahnya.
-- Bila selisih skor dengan alternatif kedua kecil (< 0,02, misalnya S03, S05, S07), guru BK sebaiknya mempertimbangkan kedua program.
+- Bila selisih skor dengan alternatif kedua kecil (< 0,02, misalnya S04, S05, S10), guru BK sebaiknya mempertimbangkan kedua program.
 - Sistem ini adalah alat bantu skrining, **bukan diagnosis klinis**. Keputusan akhir tetap pada guru BK dan tenaga profesional.
 
 ## Konsistensi dengan Aplikasi
 
-Sheet **Validasi** membandingkan setiap skor spreadsheet dengan keluaran fungsi `spk.recommend.assess()` di aplikasi. Hasilnya **10 dari 10 siswa cocok** untuk profil bobot A, B, dan C, dengan selisih maksimum 3,3E−16 (pembulatan bilangan titik mengambang). Uji sensitivitas di sheet StudiKasus juga sama dengan tabel di aplikasi (S01: 32 dari 32 skenario stabil; S03: 23 dari 32).
+Sheet **Validasi** membandingkan setiap skor spreadsheet dengan keluaran fungsi `spk.recommend.assess()` di aplikasi. Hasilnya **10 dari 10 siswa cocok** untuk profil bobot A, B, dan C, dengan selisih maksimum 6,7E−16 (pembulatan bilangan titik mengambang). Uji sensitivitas di sheet StudiKasus juga sama dengan tabel di aplikasi (S01: 32 dari 32 skenario stabil; S04: 22 dari 32).
 
 ## Cara Memakai Spreadsheet
 

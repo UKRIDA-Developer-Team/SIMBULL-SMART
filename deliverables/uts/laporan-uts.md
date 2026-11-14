@@ -10,7 +10,7 @@ Sekolah karena itu menjadi garda depan, dan tumpuan utamanya adalah guru Bimbing
 2. **Reaktif.** Penanganan biasanya dimulai setelah gejala terlihat jelas atau prestasi sudah menurun.
 3. **Subjektif.** Bentuk penanganan sering dipilih berdasarkan pengalaman pribadi, tanpa dasar multikriteria yang terdokumentasi dan dapat ditelusuri.
 
-Bukti bahwa masalah ini dapat diukur dan dipetakan datang dari data. Pada sampel 20.000 baris dataset *Student Mental Health and Burnout* (sharmajicoder, t.t.), skor kecemasan berkorelasi kuat dengan tingkat stres (r = 0,761) dan skor kelelahan atau *burnout* (r = 0,674), berkorelasi sedang dengan tekanan finansial (r = 0,360), tekanan ujian (r = 0,351), jam belajar (r = 0,272), dan ekspektasi keluarga (r = 0,260), serta berkorelasi negatif dengan jam tidur (r = −0,205) dan aktivitas fisik (r = −0,122). Faktor-faktor pemicu ini dapat ditanyakan melalui kuesioner singkat tanpa menanyakan gejala secara langsung. Penelitian terdahulu juga menunjukkan bahwa *machine learning* mampu mengenali tingkat kecemasan dari data kuesioner (Bhatnagar, Agarwal dan Sharma, 2023; Wang *et al.*, 2025), tetapi penelitian tersebut berhenti pada prediksi dan belum menjawab pertanyaan praktis guru BK.
+Bukti bahwa masalah ini dapat diukur dan dipetakan datang dari data. Pada 1.000.000 baris dataset *Student Mental Health and Burnout* (sharmajicoder, t.t.), skor kecemasan berkorelasi kuat dengan tingkat stres (r = 0,761) dan skor kelelahan atau *burnout* (r = 0,668), berkorelasi sedang dengan tekanan finansial (r = 0,354), tekanan ujian (r = 0,350), jam belajar (r = 0,269), dan ekspektasi keluarga (r = 0,264), serta berkorelasi negatif dengan jam tidur (r = −0,200) dan aktivitas fisik (r = −0,132). Pada 292 respons kuesioner siswa SMA, faktor terkuatnya tekanan ujian (r = 0,50), *burnout* (r = 0,49), dan ekspektasi keluarga (r = 0,39). Faktor-faktor pemicu ini dapat ditanyakan melalui kuesioner singkat tanpa menanyakan gejala secara langsung. Penelitian terdahulu juga menunjukkan bahwa *machine learning* mampu mengenali tingkat kecemasan dari data kuesioner (Bhatnagar, Agarwal dan Sharma, 2023; Wang *et al.*, 2025), tetapi penelitian tersebut berhenti pada prediksi dan belum menjawab pertanyaan praktis guru BK.
 
 Rumusan masalah yang dicari solusinya adalah:
 
@@ -28,7 +28,7 @@ Tabel 1. Aktivitas fase Intelligence
 |---|---|---|---|
 | 1 | Studi literatur masalah | Menelaah laporan WHO, survei I-NAMHS, regulasi BK, dan penelitian prediksi kecemasan | Bukti bahwa kecemasan remaja tinggi dan layanan terbatas |
 | 2 | Perumusan masalah dan tujuan | Diskusi kelompok; dokumen *business understanding* | Tiga rumusan masalah, lima alternatif, delapan kriteria |
-| 3 | Penelusuran data sekunder | Mencari dataset publik di Kaggle yang memuat faktor pemicu dan skor kecemasan | Dataset 1 juta baris, diambil sampel 20.000 baris |
+| 3 | Penelusuran data sekunder | Mencari dataset publik di Kaggle yang memuat faktor pemicu dan skor kecemasan | Dataset 1 juta baris; dipakai 692.545 baris usia pelajar 14–25 |
 | 4 | Penyusunan instrumen data primer | Menyusun kuesioner Google Form untuk siswa SMA (±50 butir, 12 bagian) | Kuesioner dan pemetaan jawaban ke 11 fitur model |
 | 5 | Analisis data eksploratif | Statistik deskriptif, korelasi, pemeriksaan kualitas data | Faktor dominan dan kolom yang harus dikeluarkan (*leakage*) |
 | 6 | Kategorisasi masalah dan pengguna | Analisis karakteristik keputusan | Masalah semi-terstruktur; pengguna utama guru BK |
@@ -42,35 +42,35 @@ Tabel 2. Sumber data
 | Aspek | Data sekunder (Kaggle) | Data primer (kuesioner) |
 |---|---|---|
 | Sumber | Kaggle `sharmajicoder/student-mental-health-and-burnout` | Google Form yang disebarkan kelompok kepada siswa SMA |
-| Cara memperoleh | Unduh dengan `kagglehub`, sampel acak 2% (`random_state` = 42) | Penyebaran tautan melalui sekolah, media sosial, dan teman |
-| Jumlah data | 1.000.000 baris × 20 kolom; dipakai 20.000 baris | ⟦ISI: jumlah respons valid⟧ baris × ±50 kolom |
+| Cara memperoleh | Unduh dengan `kagglehub`; seluruh berkas dibersihkan ke usia 14–25 lalu dibagi 80/20 per usia (`random_state` = 42) | Penyebaran tautan melalui sekolah, media sosial, dan teman |
+| Jumlah data | 1.000.000 baris × 20 kolom; dipakai 692.545 baris (554.036 latih, 138.509 uji) | 304 respons × 68 kolom; dipakai 292 respons (usia 14–25, butir psikologis lengkap) |
 | Jenis data | Numerik kontinu dan kategorikal | Pilihan rentang, skala Likert 5 titik, isian angka |
-| Populasi | Mahasiswa usia 17–29 tahun | Siswa SMA usia ±15–18 tahun |
+| Populasi | Mahasiswa usia 17–29 tahun | Siswa usia 14–24 tahun (median 15) |
 | Peran | Pralatih model; populasi referensi batas SMART | Pelatihan ulang dan pengujian model |
 | Kerahasiaan | Publik | Rahasia, tidak masuk repositori; data pribadi dibuang saat diunggah |
 
-Dari 20 kolom Kaggle, dipakai 11 fitur dan satu target (Tabel 3). Sampel tidak memiliki nilai hilang maupun baris duplikat. Empat kolom (`mental_health_index`, `depression_score`, `dropout_risk`, `risk_level`) adalah variabel hasil yang sangat terkait dengan target, sehingga dikeluarkan untuk mencegah *label leakage*. Kolom `social_support`, `screen_time`, dan `internet_usage` hampir tidak berkorelasi dengan kecemasan (|r| < 0,01), dan `academic_year` tidak berlaku untuk siswa SMA.
+Dari 20 kolom Kaggle, dipakai 11 fitur dan satu target (Tabel 3). Berkas tidak memiliki nilai hilang, baris duplikat, maupun nilai mustahil; membuang *outlier* tidak menaikkan akurasi model sehingga tidak ada baris lain yang dibuang. Empat kolom (`mental_health_index`, `depression_score`, `dropout_risk`, `risk_level`) adalah variabel hasil yang sangat terkait dengan target, sehingga dikeluarkan untuk mencegah *label leakage*. Kolom `social_support`, `screen_time`, dan `internet_usage` hampir tidak berkorelasi dengan kecemasan (|r| < 0,01), dan `academic_year` tidak berlaku untuk siswa SMA.
 
-Tabel 3. Variabel yang dipakai (data Kaggle, 20.000 baris)
+Tabel 3. Variabel yang dipakai (data Kaggle, 1.000.000 baris)
 
 | Variabel | Arti | Rata-rata | Min | Maks | Peran |
 |---|---|---|---|---|---|
-| age | usia (tahun) | 23,01 | 17 | 29 | fitur |
-| gender | jenis kelamin | Female 9.632 · Male 9.561 · Other 807 | | | fitur |
-| study_hours_per_day | jam belajar per hari | 5,03 | 0,00 | 13,23 | fitur + kriteria C2 |
-| academic_performance | nilai rata-rata (0–100) | 71,10 | 47,56 | 92,89 | fitur + kriteria C3 |
-| exam_pressure | tekanan ujian (1–10) | 6,01 | 1,00 | 10,00 | fitur |
-| stress_level | tingkat stres (0–10) | 4,27 | 0,00 | 10,00 | fitur |
+| age | usia (tahun) | 23,00 | 17 | 29 | fitur (dibersihkan ke 14–25) |
+| gender | jenis kelamin | Female 480.070 · Male 479.643 · Other 40.287 | | | fitur |
+| study_hours_per_day | jam belajar per hari | 5,00 | 0,00 | 14,00 | fitur + kriteria C2 |
+| academic_performance | nilai rata-rata (0–100) | 71,00 | 42,37 | 97,25 | fitur + kriteria C3 |
+| exam_pressure | tekanan ujian (1–10) | 6,00 | 1,00 | 10,00 | fitur |
+| stress_level | tingkat stres (0–10) | 4,25 | 0,00 | 10,00 | fitur |
 | sleep_hours | jam tidur per malam | 6,50 | 3,00 | 10,00 | fitur + kriteria C4 |
-| physical_activity | hari olahraga per minggu | 3,02 | 0,00 | 7,00 | fitur + kriteria C5 |
+| physical_activity | hari olahraga per minggu | 3,01 | 0,00 | 7,00 | fitur + kriteria C5 |
 | financial_stress | tekanan finansial (0–10) | 5,00 | 0,00 | 10,00 | fitur + kriteria C6 |
-| family_expectation | ekspektasi keluarga (0–10) | 6,00 | 0,00 | 10,00 | fitur + kriteria C7 |
-| burnout_score | skor kelelahan (0–10) | 1,79 | 0,00 | 9,85 | fitur + kriteria C8 |
-| **anxiety_score** | skor kecemasan (0–10) | 3,01 | 0,00 | 9,11 | **target** |
+| family_expectation | ekspektasi keluarga (0–10) | 5,98 | 0,00 | 10,00 | fitur + kriteria C7 |
+| burnout_score | skor kelelahan (0–10) | 1,78 | 0,00 | 10,00 | fitur + kriteria C8 |
+| **anxiety_score** | skor kecemasan (0–10) | 2,99 | 0,00 | 10,00 | **target** |
 
-Kuesioner memuat 12 bagian: identitas, kebiasaan belajar, tidur, akademik, media sosial, tuntutan dan tekanan, aktivitas fisik, kegiatan di luar sekolah, kelelahan, pertemanan, butir psikologis, dan pola makan. Lima butir psikologis (gugup/cemas, sulit mengendalikan khawatir, konsentrasi, pikiran terganggu, sulit menyelesaikan tugas) mengadaptasi pendekatan skrining GAD-7 (Spitzer *et al.*, 2006) dan hanya dipakai untuk membentuk label skor kecemasan. Jawaban lain dipetakan ke 11 fitur yang sama dengan skala Kaggle oleh modul `spk/gform.py`. Kolom identitas (nama sekolah, nama teman, tanggal lahir) dibuang segera setelah usia dihitung. Statistik data kuesioner: ⟦ISI dari `app/models/real_summary.json` setelah pipeline dijalankan⟧.
+Kuesioner memuat 12 bagian: identitas, kebiasaan belajar, tidur, akademik, media sosial, tuntutan dan tekanan, aktivitas fisik, kegiatan di luar sekolah, kelelahan, pertemanan, butir psikologis, dan pola makan. Lima butir psikologis (gugup/cemas, sulit mengendalikan khawatir, konsentrasi, pikiran terganggu, sulit menyelesaikan tugas) mengadaptasi pendekatan skrining GAD-7 (Spitzer *et al.*, 2006) dan hanya dipakai untuk membentuk label skor kecemasan. Jawaban lain dipetakan ke 11 fitur yang sama dengan skala Kaggle oleh modul `spk/gform.py`. Kolom identitas (nama sekolah, nama teman, tanggal lahir) dibuang segera setelah usia dihitung. Pada 292 respons yang dipakai, rata-rata skor kecemasan 5,01 (Kaggle 2,99), *burnout* 4,67 (Kaggle 1,78), dan jam belajar di luar sekolah 2,1 jam (Kaggle 5,0). Sebaran yang berbeda ini membuat model Kaggle tidak dapat dipakai langsung untuk siswa SMA, sehingga model dilatih ulang dengan data kuesioner.
 
-Data dipakai untuk memahami masalah dengan tiga cara: (1) korelasi menunjukkan faktor mana yang paling berkaitan dengan kecemasan, sehingga menjadi dasar kriteria SPK; (2) sebaran nilai (min–maks) dari 20.000 baris menjadi batas referensi normalisasi SMART; dan (3) model yang dilatih pada data ini menghasilkan prediksi kecemasan yang menjadi kriteria utama keputusan.
+Data dipakai untuk memahami masalah dengan tiga cara: (1) korelasi menunjukkan faktor mana yang paling berkaitan dengan kecemasan, sehingga menjadi dasar kriteria SPK; (2) sebaran nilai (min–maks) dari 20.000 baris data uji menjadi batas referensi normalisasi SMART; dan (3) model yang dilatih pada data ini menghasilkan prediksi kecemasan yang menjadi kriteria utama keputusan.
 
 ## 1.4 Kategorisasi Permasalahan
 
@@ -149,19 +149,23 @@ Tabel 6. Kandidat algoritma data mining
 - **R²** = 1 − SS_res / SS_tot, porsi variasi skor yang dijelaskan model.
 - **Interpretabilitas**, waktu latih, dan kemampuan dilatih ulang dengan data riil.
 
-Semua algoritma dilatih pada data latih yang sama (8.000 baris) dengan validasi silang 5-*fold*, lalu diuji pada data uji yang sama (2.000 baris) dengan pustaka scikit-learn (Pedregosa *et al.*, 2011). Hasilnya ada pada Tabel 7.
+Validasi silang 5-*fold* dijalankan pada 50.000 baris latih yang sama untuk semua algoritma. Setiap algoritma lalu dilatih pada seluruh 554.036 baris latih dan diuji pada 138.509 baris uji yang sama, dengan pustaka scikit-learn (Pedregosa *et al.*, 2011). Hasilnya ada pada Tabel 7.
 
 Tabel 7. Perbandingan performa model (data Kaggle)
 
 | Algoritma | MAE CV | RMSE CV | R² CV | MAE uji | R² uji | Waktu latih (s) | Interpretabilitas |
 |---|---|---|---|---|---|---|---|
-| Baseline rata-rata | 1,2238 | 1,5134 | −0,0010 | 1,2370 | −0,0024 | 0,004 | – |
-| Regresi linear | **0,7684** | **0,9549** | **0,6014** | **0,7548** | **0,6245** | 0,003 | tinggi |
-| Decision Tree (kedalaman 10) | 0,8814 | 1,1127 | 0,4583 | 0,8672 | 0,4955 | 0,027 | tinggi |
-| Gradient Boosting | 0,7728 | 0,9616 | 0,5958 | 0,7667 | 0,6155 | 1,088 | sedang |
-| **Random Forest (dipakai)** | 0,7790 | 0,9663 | 0,5918 | 0,7668 | 0,6136 | 0,282 | sedang (*feature importance*) |
+| Baseline rata-rata | 1,2128 | 1,5040 | −0,0001 | 1,2217 | 0,0000 | 0,007 | – |
+| Regresi linear | **0,7604** | **0,9499** | **0,6011** | 0,7602 | 0,6064 | 0,041 | tinggi |
+| Decision Tree (kedalaman 10) | 0,7989 | 1,0047 | 0,5537 | 0,7644 | 0,6010 | 0,689 | tinggi |
+| Gradient Boosting | 0,7606 | 0,9505 | 0,6006 | **0,7579** | **0,6083** | 7,439 | sedang |
+| **Random Forest (dipakai)** | 0,7610 | 0,9515 | 0,5998 | 0,7583 | 0,6077 | 20,241 | sedang (*feature importance*) |
 
-Regresi linear sedikit lebih akurat pada data Kaggle (selisih MAE 0,01 poin pada skala 0–10), karena data Kaggle tampak sintetis dengan hubungan yang hampir linear. Random Forest tetap dipilih karena (1) kinerjanya setara dan jauh lebih baik dari baseline dan pohon tunggal; (2) data kuesioner riil berbentuk ordinal dan tidak dijamin linear; (3) strategi pelatihan ulang *warm start* memerlukan model *ensemble* pohon; dan (4) *feature importance* menunjukkan faktor dominan yang masuk akal, yaitu tingkat stres (0,43) dan *burnout* (0,30).
+Waktu latih adalah rata-rata satu lipatan validasi silang (40.000 baris). Random Forest memakai 300 pohon, kedalaman 12, dan daun minimal 50 siswa, hasil *random search* 25 pengaturan dengan validasi silang 5-*fold*.
+
+Regresi linear, Gradient Boosting, dan Random Forest praktis setara pada data Kaggle (selisih R² uji ≤ 0,002); semua jenis model berhenti di R² ±0,61 karena ±40% variasi skor adalah derau yang tidak dibawa 11 fitur. Random Forest tetap dipilih karena (1) kinerjanya setara dengan algoritma terbaik dan jauh lebih baik dari baseline; (2) data kuesioner riil berbentuk ordinal dan tidak dijamin linear; (3) strategi pelatihan ulang memerlukan model *ensemble* pohon; dan (4) *feature importance* menunjukkan faktor dominan yang masuk akal, yaitu tingkat stres (0,75) dan *burnout* (0,21).
+
+**Pada data riil.** Dari tujuh strategi pelatihan ulang, model Random Forest yang dilatih hanya dengan data kuesioner terpilih: MAE 1,113 dan R² 0,441 pada 59 respons *holdout*, dibanding MAE 1,874 dan R² −0,346 untuk model Kaggle tanpa latih ulang. Model inilah yang dipakai aplikasi untuk siswa SMA.
 
 ## 2.4 Alternatif Tindakan
 
@@ -186,13 +190,13 @@ Tabel 9. Kriteria keputusan
 | Kode | Kriteria | Definisi dan satuan | Jenis | Dasar penetapan |
 |---|---|---|---|---|
 | C1 | Prediksi kecemasan | keluaran Random Forest, 0–10 | benefit | inti masalah yang ditangani |
-| C2 | Jam belajar | jam per hari | benefit | korelasi +0,272 |
+| C2 | Jam belajar | jam per hari | benefit | korelasi +0,269 |
 | C3 | Nilai rapor | rata-rata 0–100 | cost | kesulitan akademik memicu kecemasan |
-| C4 | Jam tidur | jam per malam | cost | korelasi −0,205 |
-| C5 | Aktivitas fisik | hari olahraga per minggu | cost | korelasi −0,122 |
-| C6 | Tekanan finansial | skala 0–10 | benefit | korelasi +0,360 |
-| C7 | Ekspektasi keluarga | skala 0–10 | benefit | korelasi +0,260 |
-| C8 | *Burnout* | skala 0–10 | benefit | korelasi +0,674 |
+| C4 | Jam tidur | jam per malam | cost | korelasi −0,200 |
+| C5 | Aktivitas fisik | hari olahraga per minggu | cost | korelasi −0,132 |
+| C6 | Tekanan finansial | skala 0–10 | benefit | korelasi +0,354 |
+| C7 | Ekspektasi keluarga | skala 0–10 | benefit | korelasi +0,264 (riil +0,389) |
+| C8 | *Burnout* | skala 0–10 | benefit | korelasi +0,668 (riil +0,490) |
 
 Ada dua jenis bobot. **Bobot prioritas** sama untuk semua kriteria (w_j = 1/8), karena prioritas siswa harus netral terhadap jenis masalah. **Bobot alternatif** berbeda untuk tiap alternatif: setiap alternatif memberi bobot terbesar pada kriteria yang langsung ditanganinya. Contohnya, Tidur menekankan jam tidur (0,40) dan Strategi belajar menekankan jam belajar (0,40) serta nilai rapor (0,30). Bobot ditetapkan secara langsung (*direct rating*) seperti pada SMART (Edwards dan Barron, 1994), lalu dinormalisasi agar berjumlah 1. Pada notebook awal, bobot Olahraga berjumlah 1,05, sehingga aplikasi membagi setiap bobotnya dengan 1,05. Tabel 10 memuat bobot profil A yang dipakai aplikasi secara default.
 
@@ -219,7 +223,7 @@ Tabel 11. Perbandingan metode MCDM
 SMART dipilih karena:
 
 1. **Transparan.** Skor adalah jumlah bobot × utilitas, sehingga kontribusi setiap kriteria dapat ditampilkan dan dijelaskan. Hal ini penting di bidang sensitif seperti kesehatan mental.
-2. **Dapat menilai satu siswa.** Dengan batas min–maks referensi dari 20.000 siswa, skor seorang siswa tidak bergantung pada siswa lain yang dinilai bersamaan.
+2. **Dapat menilai satu siswa.** Dengan batas min–maks referensi dari 20.000 siswa data uji, skor seorang siswa tidak bergantung pada siswa lain yang dinilai bersamaan.
 3. **Mendukung benefit dan cost** secara langsung lewat dua rumus utilitas.
 4. **Ringan dan stabil.** Perhitungan cepat untuk ribuan siswa, dan stabil terhadap perubahan bobot kecil (diuji pada §2.7).
 5. **Tidak memerlukan panel ahli** untuk perbandingan berpasangan pada tahap awal. Bobot dapat disempurnakan bersama guru BK kemudian.
@@ -265,7 +269,7 @@ Notasi: i = siswa (i = 1..m), j = kriteria (j = 1..8), k = alternatif (k = 1..5)
 7. **Aturan pengaman:** jika persentil prediksi kecemasan siswa ≥ 90, rekomendasi akhir = Konseling + rujukan profesional.
 8. **Sensitivitas:** bila bobot kriteria c diubah dengan faktor (1 + d) lalu dinormalisasi ulang, skor baru S'_ik = (S_ik + w_kc · d · u_ic) / (1 + w_kc · d).
 
-Rumus 1–3 adalah fungsi utilitas linear min–maks SMART. Batas min_j dan maks_j diambil dari 20.000 siswa referensi, bukan dari kelompok yang sedang dinilai, agar satu siswa pun dapat dinilai dan hasilnya tidak berubah ketika siswa lain ditambahkan.
+Rumus 1–3 adalah fungsi utilitas linear min–maks SMART. Batas min_j dan maks_j diambil dari 20.000 siswa referensi (data uji Kaggle), bukan dari kelompok yang sedang dinilai, agar satu siswa pun dapat dinilai dan hasilnya tidak berubah ketika siswa lain ditambahkan.
 
 ## 3.3 Implementasi Perhitungan Spreadsheet
 
@@ -299,7 +303,7 @@ Tabel 15. Jenis kriteria dan batas referensi normalisasi
 
 {{TAB_BOUNDS}}
 
-Hasil normalisasi menjadi utilitas ada pada Tabel 16. Contoh untuk S01 pada C4 jam tidur (cost): u = (10,0000 − 4,5000) / (10,0000 − 3,0000) = 0,7857. Contoh pada C1 prediksi kecemasan (benefit): u = (6,6264 − 0,3670) / (7,0912 − 0,3670) = 0,9309.
+Hasil normalisasi menjadi utilitas ada pada Tabel 16. Contoh untuk S01 pada C4 jam tidur (cost): u = (10,0000 − 4,5000) / (10,0000 − 3,0000) = 0,7857. Contoh pada C1 prediksi kecemasan (benefit): u = (6,3433 − 0,3327) / (7,1611 − 0,3327) = 0,8802.
 
 Tabel 16. Matriks utilitas U (u_ij)
 
@@ -328,21 +332,21 @@ Tabel 19. Matriks kontribusi w_kj × u_j siswa S01 (profil A)
 
 ![Gambar 2. Kontribusi kriteria terhadap skor alternatif siswa S01 (profil A)](figures/gambar_kontribusi_s01.png)
 
-Olahraga mendapat skor tertinggi (0,8730) karena S01 hanya berolahraga 0,5 hari per minggu (u = 0,9286) dan bobot C5 pada Olahraga besar (0,4286), sehingga C5 menyumbang 0,3980. Konseling berada di urutan kedua (0,8543) karena prediksi kecemasan S01 sangat tinggi (u = 0,9309). Uji sensitivitas pada sheet StudiKasus menunjukkan rekomendasi S01 tidak berubah pada 32 dari 32 skenario perubahan bobot ±10% dan ±20%, sama dengan tabel sensitivitas di aplikasi. Sebagai pembanding, S03 hanya stabil pada 23 dari 32 skenario karena selisih skor Strategi belajar dan Konseling sangat kecil (0,0014).
+Olahraga mendapat skor tertinggi (0,8621) karena S01 hanya berolahraga 0,5 hari per minggu (u = 0,9286) dan bobot C5 pada Olahraga besar (0,4286), sehingga C5 menyumbang 0,3980. Konseling berada di urutan kedua (0,8352) karena prediksi kecemasan S01 sangat tinggi (u = 0,8802, menyumbang 0,2641). Uji sensitivitas pada sheet StudiKasus menunjukkan rekomendasi S01 tidak berubah pada 32 dari 32 skenario perubahan bobot ±10% dan ±20%, sama dengan tabel sensitivitas di aplikasi. Sebagai pembanding, S04 hanya stabil pada 22 dari 32 skenario karena skor Relaksasi dan Konseling hampir sama (selisih 0,00002).
 
 ## 3.6 Interpretasi Hasil
 
 Hasil peringkat dipakai guru BK dengan tiga langkah:
 
-1. **Urutan penanganan.** Siswa dipanggil sesuai peringkat prioritas (Tabel 17). S01 (P = 0,8259) ditangani pertama, diikuti S06 (0,5235) dan S08 (0,4841). S02 (0,2310) berada di urutan terakhir.
-2. **Bentuk penanganan.** Setiap siswa mendapat program sesuai alternatif dengan skor tertinggi (Tabel 18). Bila selisih dengan alternatif kedua sangat kecil (< 0,02), seperti pada S02, S03, S05, S07, dan S09, guru BK sebaiknya mempertimbangkan kedua program.
-3. **Aturan pengaman.** Prediksi kecemasan S01 (6,63) lebih tinggi dari 99,7% populasi referensi, melewati ambang persentil 90. Rekomendasi akhirnya menjadi **Konseling dan rujukan profesional**, sedangkan program Olahraga menyusul. Ini mencegah siswa berisiko tinggi hanya diberi program ringan.
+1. **Urutan penanganan.** Siswa dipanggil sesuai peringkat prioritas (Tabel 17). S01 (P = 0,8099) ditangani pertama, diikuti S07 (0,5629) dan S04 (0,5175). S02 (0,2333) berada di urutan terakhir.
+2. **Bentuk penanganan.** Setiap siswa mendapat program sesuai alternatif dengan skor tertinggi (Tabel 18). Bila selisih dengan alternatif kedua sangat kecil (< 0,02), seperti pada S02, S03, S04, S05, S06, S07, dan S10, guru BK sebaiknya mempertimbangkan kedua program.
+3. **Aturan pengaman.** Prediksi kecemasan S01 (6,34) lebih tinggi dari 99,4% populasi referensi, melewati ambang persentil 90. Rekomendasi akhirnya menjadi **Konseling dan rujukan profesional**, sedangkan program Olahraga menyusul. Ini mencegah siswa berisiko tinggi hanya diberi program ringan.
 
 Tabel 20. Rekomendasi akhir
 
 {{TAB_FINAL}}
 
-Spreadsheet menghasilkan skor yang sama dengan aplikasi untuk ketiga profil bobot: **10 dari 10 siswa cocok**, dengan selisih maksimum 3,3E−16 atau praktis nol (pembulatan bilangan titik mengambang) dan rekomendasi utama yang identik. Pada populasi referensi 20.000 siswa, perubahan acak ±10% pada semua bobot profil A mempertahankan 94,6% rekomendasi utama. Dengan demikian, perhitungan SMART pada aplikasi dapat ditelusuri dan diulang secara manual.
+Spreadsheet menghasilkan skor yang sama dengan aplikasi untuk ketiga profil bobot: **10 dari 10 siswa cocok**, dengan selisih maksimum 6,7E−16 atau praktis nol (pembulatan bilangan titik mengambang) dan rekomendasi utama yang identik. Pada populasi referensi 20.000 siswa, perubahan acak ±10% pada semua bobot profil A mempertahankan 94,3% rekomendasi utama; pada 292 responden riil, 95,5%. Dengan demikian, perhitungan SMART pada aplikasi dapat ditelusuri dan diulang secara manual.
 
 [[PAGEBREAK]]
 
@@ -370,6 +374,10 @@ Tabel 21. Logbook kegiatan
 | 28/09 | Triemas Putra | Proposal PKM-KC | Menyusun draf proposal format PKM-KC 2026 | Node.js (docx), Claude Code | Draf proposal | Data riil belum tersedia | Bagian angka ditandai untuk diisi | Git commit b73fb79 |
 | 30/09–10/10 | ⟦ISI: anggota⟧ | Simulasi pembersihan data | Simulasi data kotor (teks, nilai hilang), pembersihan, rekayasa fitur | Python, Google Colab | Notebook `SimulasiClean-FEngineering.ipynb` | Jawaban berupa kalimat tidak dapat dibaca | Baris tak terbaca diisi median | Berkas notebook |
 | 10/10 | Triemas Putra | Laporan UTS SPK | Spreadsheet SMART dengan rumus, README, laporan UTS | Python (openpyxl), Node.js (docx), Claude Code | Spreadsheet cocok 10/10 dengan aplikasi | LibreOffice tidak tersedia untuk menghitung ulang rumus | Diverifikasi dengan ONLYOFFICE | Berkas spreadsheet |
+| 16/11 | Triemas Putra | Pembersihan usia & latih ulang model dasar | Data Kaggle 1 juta baris dibersihkan ke usia pelajar 14–25 (692.545 baris), dibagi 80/20 per usia, RF dituning dengan *random search* + CV 5-fold | Python, scikit-learn, Claude Code | R² 0,608, MAE 0,758 pada 138.509 baris uji | R² berhenti di ±0,61 (derau data); membuang *outlier* tidak membantu | Validasi dengan data kuesioner riil | ⟦ISI: commit⟧ |
+| 16/11 | Triemas Putra | Laporan penggabungan pertanyaan | Menelusuri butir kuesioner mana yang digabung menjadi fitur dan kriteria SMART | Python, Claude Code | `reports/question_merge_report.md`, tabel di halaman Data Mining | – | Jalankan pada ekspor riil | ⟦ISI: commit⟧ |
+| 17/11 | Triemas Putra | Validasi & latih ulang dengan data riil | 304 respons Google Form divalidasi (pemetaan kolom, kualitas, reliabilitas); 7 strategi latih ulang dibandingkan | Python, scikit-learn, Claude Code | Model data riil: MAE *holdout* 1,113 vs 1,874 model Kaggle | α ekspektasi keluarga turun oleh butir 'bisa bercerita'; tingkat stres α 0,32 | Butir 'bisa bercerita' dikeluarkan; perbaiki butir stres | ⟦ISI: commit⟧ |
+| 17/11 | Triemas Putra | Pembaruan laporan & tangkapan layar | Laporan DM, UTS, PKM, presentasi, dan user manual memakai hasil Kaggle dan data riil; tangkapan layar diambil ulang untuk tampilan terbaru | Node.js (docx, pptxgenjs, puppeteer), Claude Code | Seluruh dokumen diperbarui | Skrip tangkapan layar lama tidak cocok dengan tampilan baru | Skrip diperbarui | ⟦ISI: commit⟧ |
 
 ## 4.2 Jadwal Kegiatan
 
