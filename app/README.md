@@ -1,4 +1,4 @@
-# SPK SMART Kecemasan – Streamlit app
+# SI SMART Kecemasan – Streamlit app
 
 This app is the deployable version of `code/Copy of EskulSPK2026_SMART_Final.ipynb`. A Random Forest predicts a student's `anxiety_score` (0–10). SMART then uses that score and seven other criteria to:
 

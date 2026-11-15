@@ -4,7 +4,7 @@
 
 # Pendahuluan
 
-Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
+Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web **SI SMART** berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
 
 Laporan memakai dua sumber data: dataset publik Kaggle (1 juta baris) untuk pralatih, dan **304 respons kuesioner riil** siswa SMA yang bersifat rahasia untuk pelatihan ulang dan pengujian. Semua angka data riil adalah agregat yang dihasilkan otomatis oleh `scripts/train.py --stage real`; tidak ada baris individu yang ditampilkan. Bagian bertanda ⟦ISI …⟧ yang tersisa hanya URL aplikasi dan hasil uji pengguna.
 
@@ -888,7 +888,7 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 | Analisis | statistik data Kaggle dan agregat data riil; metrik, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi; grafik SMART dari notebook; stabilitas ±10%/±20%; peta sensitivitas; keadilan per gender | *Evaluation & Sensitivity*, *Data & Criteria* |
 | Data Mining | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji | *Data Mining process* |
 | Tentang | data, *preprocessing*, pemetaan kuesioner, RF, SMART, keterbatasan, etika | *Algorithm*, *Architecture*, *Ethics* |
-| Sidebar | ID/EN, profil bobot A/B/C (hasil langsung berubah), versi model | *Sensitivity* |
+| Pengaturan | ID/EN; pilihan model (iterasi 1 Kaggle atau iterasi 2 data riil) dan profil bobot A/B/C, hasil di semua halaman langsung berubah; perbandingan kedua model untuk satu siswa dan tabel iterasi model di Analisis | *Sensitivity*, *Evaluation* |
 
 ## 6.5 Langkah Deployment
 

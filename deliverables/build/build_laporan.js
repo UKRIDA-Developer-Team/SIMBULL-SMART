@@ -29,7 +29,7 @@ const intro = `[[TOC]]
 
 # Pendahuluan
 
-Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
+Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web **SI SMART** berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
 
 Laporan memakai dua sumber data: dataset publik Kaggle (1 juta baris) untuk pralatih, dan **304 respons kuesioner riil** siswa SMA yang bersifat rahasia untuk pelatihan ulang dan pengujian. Semua angka data riil adalah agregat yang dihasilkan otomatis oleh \`scripts/train.py --stage real\`; tidak ada baris individu yang ditampilkan. Bagian bertanda ⟦ISI …⟧ yang tersisa hanya URL aplikasi dan hasil uji pengguna.
 

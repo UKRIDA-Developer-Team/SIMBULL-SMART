@@ -1,4 +1,4 @@
-"""SPK SMART - student anxiety screening & intervention recommendation.
+"""SI SMART - student anxiety screening & intervention recommendation.
 
 Run locally:  streamlit run streamlit_app.py   (from the app/ folder)
 Pages live in app_pages/; shared helpers in ui.py; styles in assets/style.css; logic in spk/.
@@ -7,7 +7,7 @@ import streamlit as st
 
 import ui
 
-st.set_page_config(page_title="SPK SMART", page_icon=str(ui.ASSETS_DIR / "mark.svg"), layout="wide")
+st.set_page_config(page_title="SI SMART", page_icon=str(ui.ASSETS_DIR / "mark.svg"), layout="wide")
 
 if not ui.artifacts_ok():
     st.error(ui.T("missing_artifacts"))

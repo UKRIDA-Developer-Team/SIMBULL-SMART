@@ -1,4 +1,4 @@
-# SPK SMART Kecemasan Siswa
+# SI SMART Kecemasan Siswa
 
 **Sistem Rekomendasi Penangan Kecemasan Siswa SMA Menggunakan Metode Simple Multi-Attribute Rating Technique (SMART)**
 
@@ -14,7 +14,7 @@ Keluaran UTS mata kuliah Sistem Pendukung Keputusan, UKRIDA 2026. Folder ini ber
 
 | Berkas | Isi |
 |---|---|
-| `Laporan-UTS-SPK-SMART-Kecemasan.docx` | Laporan UTS (Bab 1 Intelligence, Bab 2 Perancangan, Bab 3 Bukti Perhitungan, Bab 4 Logbook dan Jadwal, Daftar Pustaka) |
+| `Laporan-UTS-SI-SMART-Kecemasan.docx` | Laporan UTS (Bab 1 Intelligence, Bab 2 Perancangan, Bab 3 Bukti Perhitungan, Bab 4 Logbook dan Jadwal, Daftar Pustaka) |
 | `Perhitungan-SMART-SPK-Kecemasan.xlsx` | Perhitungan SMART lengkap dengan rumus Excel yang dapat ditelusuri |
 | `README.md` | Berkas ini |
 

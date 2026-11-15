@@ -1,4 +1,4 @@
-// Laporan UTS SPK -> deliverables/uts/Laporan-UTS-SPK-SMART-Kecemasan.docx
+// Laporan UTS SPK -> deliverables/uts/Laporan-UTS-SI-SMART-Kecemasan.docx
 // Format (RubrikPenilaianUTSSPKUkrida20261): docx, Times New Roman 12 (page numbers too), line spacing 1.15,
 // justified, A4, one column, margins left 4 cm and right/top/bottom 3 cm. Harvard references with hanging indent.
 // Source: deliverables/uts/laporan-uts.md; {{TAB_*}} tables are filled from deliverables/uts/uts_data.json.
@@ -13,14 +13,14 @@ const {
 const md = require('./md2docx');
 
 const DIR = path.resolve(__dirname, '..', 'uts');
-const OUT = path.join(DIR, 'Laporan-UTS-SPK-SMART-Kecemasan.docx');
+const OUT = path.join(DIR, 'Laporan-UTS-SI-SMART-Kecemasan.docx');
 const PY = path.resolve(__dirname, '..', '..', 'app', '.venv', 'bin', 'python');
 const cm = c => Math.round(c * 567);
 const PAGE_W = 11906, PAGE_H = 16838;
 const MARGIN = { left: cm(4), right: cm(3), top: cm(3), bottom: cm(3), header: cm(1.5), footer: cm(1.5) };
 const FONT = 'Times New Roman', SIZE = 24, LINE = 276;   // 12 pt, 1.15 spacing
 
-const TITLE = 'SPK SMART Kecemasan Siswa';
+const TITLE = 'SI SMART Kecemasan Siswa';
 const SUBTITLE = 'Sistem Pendukung Keputusan Prioritas dan Rekomendasi Penanganan Kecemasan Siswa SMA Berbasis Random Forest dan Metode SMART';
 const MEMBERS = [['Steven Feryanta', '412025028'], ['Steven Iwan', '412024008'], ['Triemas Putra', '412024018'], ['Davidson Rafael', '412024030']];
 
