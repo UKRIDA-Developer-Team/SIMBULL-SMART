@@ -19,7 +19,7 @@ Algorithm comparison (5-fold CV on 50,000 training rows, then every model on the
     python scripts/train.py --stage compare
 
 Stage 2 - retrain on the real Google Form answers (confidential, never committed):
-    python scripts/train.py --stage real --gform data/private/gform_raw.csv
+    python scripts/train.py --stage real --gform data/private/gform_data.csv
 
 The kaggle, tune and compare stages read the full Kaggle file (about 131 MB, cached by kagglehub).
 

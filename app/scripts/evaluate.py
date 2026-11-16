@@ -1,6 +1,6 @@
 """Test the deployed model on NEW Google Form answers (collected after training).
 
-    python scripts/evaluate.py --gform data/private/gform_new.csv
+    python scripts/evaluate.py --gform data/private/new_answers.csv
 
 Compares the active model (real, if trained) with the Kaggle base model on the
 new rows, overall and by gender. Prints aggregates only; nothing is saved

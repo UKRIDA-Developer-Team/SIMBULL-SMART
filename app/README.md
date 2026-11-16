@@ -75,11 +75,11 @@ The Kaggle model and data are committed. To rebuild them, run `python scripts/tr
 The Google Form export is confidential. Keep it under `app/data/private/`, which git ignores.
 
 ```bash
-cp "<Google Form export>.csv" data/private/gform_raw.csv
-python scripts/inspect_gform.py data/private/gform_raw.csv        # 1. check the column mapping
-python scripts/train.py --stage real --gform data/private/gform_raw.csv   # 2. retrain
+cp "<Google Form export>.csv" data/private/gform_data.csv
+python scripts/inspect_gform.py data/private/gform_data.csv        # 1. check the column mapping
+python scripts/train.py --stage real --gform data/private/gform_data.csv   # 2. retrain
 streamlit run streamlit_app.py                                    # 3. the app now uses the real model
-python scripts/evaluate.py --gform data/private/gform_new.csv     # 4. later: test on new answers
+python scripts/evaluate.py --gform data/private/new_answers.csv   # 4. later: test on new answers
 ```
 
 1. **Inspect.** Every field in `spk/gform_mapping.json` must resolve to exactly one column. If a field is missing or ambiguous, copy the exact column name into its `"header"` and run the inspect step again. The report also lists answers that could not be parsed.
