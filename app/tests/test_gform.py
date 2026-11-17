@@ -117,8 +117,9 @@ def test_revised_items_join_their_composites():
     }])
     d = gform.derive(fields).iloc[0]
     assert d["exam_pressure"] == pytest.approx(1 + 9 * 0.5)
-    # family_talk is reversed: talking freely (5) adds no family pressure
-    assert d["family_expectation"] == pytest.approx(10 * (0 + 0.5 + 0) / 3)
+    # family_talk is an extra since the real-data reliability check: it no longer moves the score
+    assert d["family_expectation"] == pytest.approx(10 * (0 + 0.5) / 2)
+    assert d["x_family_talk"] == 5
     assert d[config.TARGET] == pytest.approx(10 * 5 / 7)
     assert d["x_sleep_quality"] == pytest.approx(5.0)
 
@@ -140,7 +141,7 @@ def test_mixed_export_tags_versions_and_pools(export):
     # revised-only extras stay empty for original rows (no fake medians)
     assert df.loc[versions == "original", "x_sleep_quality"].isna().all()
     assert df.loc[versions == "revised", "x_sleep_quality"].notna().all()
-    assert {"exam_pressure", "family_expectation", config.TARGET} <= set(out.report["item_set_check"])
+    assert set(out.report["item_set_check"]) == {"exam_pressure", config.TARGET}   # family_talk is an extra now
     assert out.report["reliability"][config.TARGET]["items"] == 7
     assert out.report["reliability"][f"{config.TARGET} (original items)"]["items"] == 5
     # the ">5" options exist only on the revised form
@@ -175,3 +176,35 @@ def test_removed_question_columns_do_not_block(export):
     assert "sleep_restless" in res.skipped
     out = gform.prepare(raw, reference_date="2026-09-01")
     assert "sleep_restless" in out.report["skipped_ambiguous_fields"]
+
+
+def test_merge_trace_matches_derive(export):
+    """The question -> output trace (merge report) is what derive really does: blanking the
+    questions listed for one output empties that output and no other."""
+    mapping = gform.load_mapping()
+    raw = pd.read_csv(pd.io.common.StringIO(export.to_csv(index=False)), dtype=str)
+    res = gform.resolve_columns(raw, mapping)
+    fields = gform.encode(raw, res, mapping)
+    full = gform.derive(fields, mapping=mapping)
+    items = gform.output_items()
+    assert set(items) == set(config.FEATURES) | {config.TARGET, "sleep_quality"}
+    for name, questions in items.items():
+        column = "x_sleep_quality" if name == "sleep_quality" else name
+        empty = {q: pd.NaT if pd.api.types.is_datetime64_any_dtype(fields[q]) else np.nan for q in questions}
+        blank = gform.derive(fields.assign(**empty), mapping=mapping)
+        assert blank[column].isna().all(), name
+        others = [c for c in full.columns if c != column and not c.startswith("x_")]
+        pd.testing.assert_frame_equal(blank[others], full[others])
+
+    summary, table = gform.merge_summary(mapping), gform.merge_table(mapping, res)
+    assert summary.loc["burnout_score", ["questions", "merged", "role"]].to_list() == [3, True, "criterion"]
+    assert summary.loc["sleep_hours", ["questions", "merged"]].to_list() == [1, False]
+    assert summary.loc["stress_level", "role"] == "model_only" and summary.loc[config.TARGET, "role"] == "target"
+    assert summary.loc["family_expectation", ["questions", "questions_original"]].to_list() == [2, 2]
+    assert summary.loc["anxiety_score", ["questions", "questions_original"]].to_list() == [7, 5]
+    assert set(summary.index[summary["role"] == "criterion"]) == set(config.CRITERIA) - {"rf_anxiety_score"}
+    assert len(table) == summary["questions"].sum() and table["question"].ne("").all()
+    # A target question is never a model feature (no label leakage).
+    target_fields = set(table.loc[table["role"] == "target", "field"])
+    assert not target_fields & set(table.loc[table["role"] != "target", "field"])
+

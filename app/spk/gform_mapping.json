@@ -54,7 +54,7 @@
     "exam_stress":      {"kind": "scale", "scale": "freq5", "match": ["tertekan karena ujian"]},
     "fear_parents":     {"kind": "scale", "scale": "freq5", "match": ["takut mengecewakan orang tua"]},
     "family_demand":    {"kind": "scale", "scale": "freq5", "match": ["menuntut saya untuk mendapatkan nilai"]},
-    "family_talk":      {"kind": "scale", "scale": "agree5", "new_form": true, "optional": true, "reverse": true, "match": ["membicarakan kesulitan"]},
+    "family_talk":      {"kind": "scale", "scale": "agree5", "extra": true, "new_form": true, "optional": true, "match": ["membicarakan kesulitan"]},
     "exercise_days":    {"kind": "map", "map": "exercise_days", "match": ["berapa hari anda melakukan aktivitas fisik"]},
     "pocket_money":     {"kind": "scale", "scale": "jajan5", "match": ["uang saku yang cukup"]},
     "time_split":       {"kind": "scale", "scale": "agree5", "match": ["kesulitan membagi waktu"]},

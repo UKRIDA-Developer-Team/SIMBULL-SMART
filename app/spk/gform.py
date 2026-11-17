@@ -45,10 +45,34 @@ TARGET_FIELDS = ["p1_nervous", "p2_worry", "p3_focus", "p4_distracted", "p5_hard
 COMPOSITES = {
     "exam_pressure": ["exam_stress", "below_target"],
     "stress_level": ["many_tasks", "time_insufficient", "late_tasks", "late_night"],
-    "family_expectation": ["fear_parents", "family_demand", "family_talk"],
+    # "family_talk" (revised form) was dropped from family_expectation after the real data: on the
+    # 109 revised rows it lowered Cronbach's alpha from 0.53 to 0.37. It stays as an extra (x_family_talk).
+    "family_expectation": ["fear_parents", "family_demand"],
     "burnout_score": ["time_split", "exhausted", "lost_interest"],
     "sleep_quality": ["sleep_onset", "night_waking", "sleep_restless"],
     config.TARGET: TARGET_FIELDS + ["p6_irritable", "p7_avoid"],
+}
+# Model features that come from one question (nothing is merged).
+SINGLE_ITEM = {
+    "age": "birth_date", "gender": "gender", "study_hours_per_day": "study_hours",
+    "academic_performance": "report_grade", "sleep_hours": "sleep_duration",
+    "physical_activity": "exercise_days", "financial_stress": "pocket_money",
+}
+# How the question(s) of each output become its value (shown in the merge report).
+MERGE_RULES = {
+    "age": "floor((answer time - birth date) / 365.25)",
+    "gender": "text -> Female / Male",
+    "study_hours_per_day": "hours as answered",
+    "academic_performance": "grade as answered (0-100)",
+    "exam_pressure": "1 + 9 x mean of the items (1-10)",
+    "stress_level": "10 x mean of the items (0-10)",
+    "sleep_hours": "hours as answered",
+    "physical_activity": "day band -> days per week (0-7)",
+    "financial_stress": "10 x (5 - answer) / 4, reversed (0-10)",
+    "family_expectation": "10 x mean of the items (0-10)",
+    "burnout_score": "10 x mean of the items (0-10)",
+    config.TARGET: "10 x mean of the items (0-10)",
+    "sleep_quality": "10 x mean of the items (0-10)",
 }
 
 
@@ -292,8 +316,7 @@ def derive(fields: pd.DataFrame, reference_date=None, mapping: dict | None = Non
       stress_level       = 10 * mean(unit(many_tasks), unit(time_insufficient),
                                      unit(late_tasks), unit(late_night))   (proxy, 0-10)
       financial_stress   = 10 * (5 - pocket_money) / 4                     (reversed, 0-10)
-      family_expectation = 10 * mean(unit(fear_parents), unit(family_demand),
-                                     unit(family_talk)(r)[rev])
+      family_expectation = 10 * mean(unit(fear_parents), unit(family_demand))
       burnout_score      = 10 * mean(unit(time_split), unit(exhausted), unit(lost_interest))
       anxiety_score      = 10 * mean(unit(p1..p5), p3 (r), unit(p6, p7)[rev])          (0-10)
       x_sleep_quality    = 10 * mean(unit(sleep_onset, night_waking, sleep_restless))[rev]
@@ -309,14 +332,15 @@ def derive(fields: pd.DataFrame, reference_date=None, mapping: dict | None = Non
         out["age"] = age_from(fields, reference_date)
     else:
         out["age"] = np.nan
-    out["gender"] = get("gender")
-    out["study_hours_per_day"] = get("study_hours")
-    out["academic_performance"] = get("report_grade")
+    one = lambda feature: get(SINGLE_ITEM[feature])  # noqa: E731
+    out["gender"] = one("gender")
+    out["study_hours_per_day"] = one("study_hours_per_day")
+    out["academic_performance"] = one("academic_performance")
     out["exam_pressure"] = 1 + 9 * composite(fields, "exam_pressure", mapping)
     out["stress_level"] = 10 * composite(fields, "stress_level", mapping)
-    out["sleep_hours"] = get("sleep_duration")
-    out["physical_activity"] = get("exercise_days")
-    out["financial_stress"] = 10 * (5 - get("pocket_money")) / 4
+    out["sleep_hours"] = one("sleep_hours")
+    out["physical_activity"] = one("physical_activity")
+    out["financial_stress"] = 10 * (5 - one("financial_stress")) / 4
     out["family_expectation"] = 10 * composite(fields, "family_expectation", mapping)
     out["burnout_score"] = 10 * composite(fields, "burnout_score", mapping)
     out = out[config.FEATURES]
@@ -332,6 +356,53 @@ def derive(fields: pd.DataFrame, reference_date=None, mapping: dict | None = Non
     if any(c in fields for c in COMPOSITES["sleep_quality"]):
         out["x_sleep_quality"] = 10 * composite(fields, "sleep_quality", mapping)
     return out
+
+
+# ---------- question -> feature -> criterion trace ----------
+
+def output_items() -> dict[str, list[str]]:
+    """Every derived output (11 features, target, sleep_quality extra) -> the fields it is built from."""
+    out = {f: COMPOSITES[f] if f in COMPOSITES else [SINGLE_ITEM[f]] for f in config.FEATURES}
+    out[config.TARGET] = COMPOSITES[config.TARGET]
+    out["sleep_quality"] = COMPOSITES["sleep_quality"]
+    return out
+
+
+def output_role(name: str) -> str:
+    """Where a derived output goes in the DSS: criterion, model_only, target or extra."""
+    if name == config.TARGET:
+        return "target"
+    if name in config.CRITERIA:
+        return "criterion"
+    return "model_only" if name in config.FEATURES else "extra"
+
+
+def merge_summary(mapping: dict | None = None) -> pd.DataFrame:
+    """One row per derived output: how many questions it merges, the rule, and its DSS role."""
+    mapping = mapping or load_mapping()
+    rows = []
+    for name, items in output_items().items():
+        added = [i for i in items if mapping["fields"][i].get("new_form")]
+        rows.append({"output": name, "role": output_role(name), "questions": len(items),
+                     "questions_original": len(items) - len(added), "merged": len(items) > 1,
+                     "rule": MERGE_RULES[name], "fields": ", ".join(items)})
+    return pd.DataFrame(rows).set_index("output")
+
+
+def merge_table(mapping: dict | None = None, resolution: Resolution | None = None) -> pd.DataFrame:
+    """One row per question that feeds a derived output. `resolution` adds the export's question text."""
+    mapping = mapping or load_mapping()
+    headers = resolution.columns if resolution else {}
+    rows = []
+    for name, items in output_items().items():
+        for item in items:
+            spec = mapping["fields"][item]
+            levels = len(mapping["scales"][spec["scale"]]) if spec["kind"] == "scale" else None
+            rows.append({"output": name, "role": output_role(name), "field": item,
+                         "question": headers.get(item, ""), "kind": spec["kind"], "levels": levels,
+                         "reversed": bool(spec.get("reverse")) or name == "financial_stress",
+                         "form": "revised" if spec.get("new_form") else "both"})
+    return pd.DataFrame(rows)
 
 
 @dataclass
