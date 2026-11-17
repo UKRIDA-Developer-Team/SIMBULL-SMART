@@ -4,7 +4,7 @@ The app is tested at two levels, and every case is an automated pytest test.
 
 - **Black-box tests** (`test_blackbox.py`, marker `blackbox`) are designed from the specification: what a counselor enters and what the system must answer. They do not depend on how the code is written.
 - **White-box tests** (`test_whitebox.py`, marker `whitebox`) are designed from the code: every branch of the decision logic, every path of small functions, and the mathematical properties the algorithms must satisfy.
-- **Regression and integration tests** (`test_smart.py`, `test_gform.py`, `test_pipeline.py`, `test_app.py`) existed before this split. They check that the app reproduces the Colab notebook, that every questionnaire answer parses, that retraining works end to end, and that every page loads in both languages.
+- **Regression and integration tests** (`test_smart.py`, `test_gform.py`, `test_pipeline.py`, `test_app.py`) existed before this split. They check that the retrained base model and the SMART counts stay as recorded, that every questionnaire answer parses, that retraining works end to end, and that every page loads in both languages.
 
 ## How to run
 
@@ -20,16 +20,16 @@ python scripts/coverage_report.py -m whitebox --out reports/coverage.md
 
 `scripts/coverage_report.py` measures statement coverage with the standard library (`sys.monitoring`, Python 3.12+), so no extra package is needed.
 
-## Results (2026-11-12)
+## Results (2026-11-17)
 
 | Suite | Test cases collected | Result |
 |---|---|---|
 | Black-box | 58 | all pass |
-| White-box | 46 | all pass |
-| Regression / integration | 49 | all pass |
-| **Total** | **153** | **all pass** |
+| White-box | 47 | all pass |
+| Regression / integration | 50 | all pass |
+| **Total** | **155** | **all pass** |
 
-Statement coverage of `spk/` with the whole suite: **97.5%** (2,042 of 2,094 statements). `smart.py`, `xai.py`, `explain.py`, `recommend.py`, `crispdm.py`, `config.py` and `i18n.py` are at 100%. The lines not run are the Kaggle download (offline only), model saving, and a chart that needs real questionnaire data.
+Statement coverage of `spk/` with the whole suite: **98.2%** (2,176 of 2,217 statements). `smart.py`, `xai.py`, `explain.py`, `recommend.py`, `crispdm.py`, `config.py` and `i18n.py` are at 100%. The lines not run are the Kaggle download (offline only), model saving, and a chart that needs real questionnaire data.
 
 ## Black-box cases
 
@@ -54,7 +54,7 @@ Techniques: **EP** equivalence partitioning, **BVA** boundary value analysis, **
 | BB-15 | ST | result page, ID and EN | xAI card with three tabs, Shapley narrative, two charts, the what-if slider and metrics |
 | BB-16 | ST | what-if slider moved from 8.5 to 4.0 (stress) | the simulated prediction drops |
 | BB-17 | ST | Data Mining page, each of the six phases, ID and EN | the phase renders with its name and key decisions; phase 5 shows the success-criteria table |
-| BB-18 | ST | whole-class view with the synthetic export | a student picker and the same AI explanation |
+| BB-18 | ST | whole-class view with the Kaggle demo sample | a student picker and the same AI explanation |
 
 **Defect found by BB-05.** The single-student view compared an interpolated percentile with 90, while the whole-class view compared the prediction with the 90th-percentile value. For a prediction exactly at the cutoff, interpolation returned 89.99999…, so the same student could be flagged in the class list but not on their own result card. Both views now use `recommend.cutoff()`, which returns the stored 90th-percentile value exactly (the Random Forest sums its trees in thread order, so the last bits of a prediction vary between runs, and `np.interp` can round a knot down). BB-05, BB-08 and WB-07b guard the fix.
 
@@ -94,3 +94,4 @@ Techniques: **BC** branch coverage, **PC** path coverage, **PR** property of the
 | WB-25 | PC | `crispdm` | column roles, test counting (missing folder), data quality |
 | WB-26 | BC | `ui.band` | four bands and the exact boundaries 90 / 60 / 40 |
 | WB-27 | BC | `i18n.t` | missing key, missing language fallback, every new key in both languages |
+| WB-28 | BC, PR | `data.clean`, `data.load_dataset`, `data.build_training_rows`, `data.retrain_rows`, `model.kaggle_test_set` | rows outside the student age band dropped, both ends kept, raw file untouched; training rows inside the band with equal age shares; no training row is in the test sample |

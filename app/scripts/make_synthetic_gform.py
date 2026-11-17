@@ -1,7 +1,7 @@
 """Generate a SYNTHETIC Google Form export with the questionnaire's columns.
 
-No real respondent is in this file. It exists so the real-data pipeline, the
-tests and the app demo can run before the confidential export is dropped in.
+No real respondent is in this file. The automated tests use it, because the
+confidential real export cannot be committed. The app and the reports never use it.
 
 The form was revised (context_ori.pdf -> context_new.pdf, minus the removed items).
 Both versions are one Google Form, so a real export mixes rows answered before and
@@ -10,7 +10,6 @@ empty for the older rows. --revised-share sets the share of rows answered on the
 revised form; --legacy writes an export taken before the revision (original titles,
 no added columns).
 
-    python scripts/make_synthetic_gform.py                       # -> data/sample_gform.csv (250 rows)
     python scripts/make_synthetic_gform.py --n 60 --seed 7 --out data/private/gform_synthetic.csv
 """
 import argparse
@@ -239,7 +238,7 @@ def main():
     p.add_argument("--revised-share", type=float, default=0.6,
                    help="share of rows answered on the revised form (the rest on the original)")
     p.add_argument("--legacy", action="store_true", help="export taken before the revision")
-    p.add_argument("--out", default=str(config.APP_DIR / "data" / "sample_gform.csv"))
+    p.add_argument("--out", required=True, help="where to write the CSV, e.g. a scratch folder")
     args = p.parse_args()
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

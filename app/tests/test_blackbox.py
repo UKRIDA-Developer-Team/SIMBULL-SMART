@@ -143,7 +143,7 @@ def test_bb08_single_assessment_matches_the_batch_row(ctx):
 QUESTION_FIELDS = {  # field -> (lowest answer, middle answer, highest answer)
     "late_night": (1, 3, 5), "time_insufficient": (1, 2, 4), "late_tasks": (1, 3, 5), "below_target": (1, 3, 5),
     "many_tasks": (1, 3, 5), "exam_stress": (1, 3, 5), "fear_parents": (1, 3, 5), "family_demand": (1, 3, 5),
-    "family_talk": (1, 3, 5), "pocket_money": (1, 3, 5), "time_split": (1, 3, 5), "exhausted": (1, 3, 5),
+    "pocket_money": (1, 3, 5), "time_split": (1, 3, 5), "exhausted": (1, 3, 5),
     "lost_interest": (1, 3, 5), "study_hours": (0.25, 3.0, 11.5), "report_grade": (0.0, 75.0, 100.0),
     "sleep_duration": (4.0, 7.0, 12.0), "exercise_days": (0.0, 3.5, 7.0), "age": (12, 16, 30),
 }
@@ -281,7 +281,7 @@ def test_bb17_data_mining_page_walks_through_crisp_dm(lang, phase):
 
 def test_bb18_class_view_explains_one_student():
     """ST. In the whole-class view a counselor can pick a student and see the same explanation."""
-    at = app("app_pages/recommendation.py", "en", reco_view="batch", batch_demo_choice="gform")
+    at = app("app_pages/recommendation.py", "en", reco_view="batch")
     assert not at.exception, [e.value for e in at.exception]
     assert any(s.label == "Student" for s in at.selectbox)
     assert any("The model estimates" in m.value for m in at.markdown)

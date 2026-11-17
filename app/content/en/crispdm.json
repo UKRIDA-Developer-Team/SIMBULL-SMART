@@ -52,12 +52,16 @@
       "icon": "tune",
       "question": "How does raw data become 11 model-ready features?",
       "steps": [
-        {"t": "Sampling", "d": "1M rows → 20,000 (2%) → 10,000 for the Random Forest, random_state 42."},
+        {"t": "Sampling and cleaning", "d": "Full 1M rows → student ages 14-25 only (692,545) → 80/20 split by age: 554,036 training rows, 138,509 test rows, random_state 42."},
         {"t": "Encoding", "d": "Gender to fixed codes (Female 0, Male 1, Other 2); questionnaire text answers → numbers."},
         {"t": "Feature construction", "d": "Each item maps to 0-1, then to the Kaggle feature scale; the Psikologis items form the target."},
         {"t": "Privacy and imputation", "d": "Personal columns dropped once age is computed; blanks filled with training medians."}
       ],
       "decisions": [
+        "Only rows in the student age band 14-25 are used. The Kaggle file spans 17-29, so ages 17-25 remain.",
+        "20,000 test rows become the app's reference population (dataset.csv), so charts and percentiles never use training rows.",
+        "No extra outlier removal: the data has no missing, duplicate or impossible values, and dropping extreme rows did not raise R².",
+        "Questionnaire items are merged into the 11 features before SMART; SMART never reads a raw answer.",
         "Target items (P01-P07) are never features, so there is no label leakage.",
         "SMART min-max bounds are saved from the reference population so a single student can be normalized.",
         "Questionnaire data splits 80% development / 20% holdout, stratified by form version."
@@ -70,26 +74,27 @@
           ["exam_pressure", "pressured by exams + grades below target → 1-10"],
           ["stress_level", "too many tasks, not enough time, late tasks, late-night study × 10"],
           ["financial_stress", "reverse of \"enough pocket money\" × 10"],
-          ["family_expectation", "fear of disappointing, grade demands, (reversed) can talk to family × 10"],
+          ["family_expectation", "fear of disappointing parents, family grade demands × 10"],
           ["burnout_score", "time-splitting trouble, exhaustion, lost interest × 10"],
           ["anxiety_score (target)", "Psikologis items P01-P07, concentration reversed → 0-10"]
         ]
       },
-      "outputs": ["dataset.csv (20,000)", "11 features + target", "Metadata: smart_bounds, impute_medians"],
-      "code": ["app/spk/data.py", "app/spk/model.py", "app/spk/gform.py", "app/spk/gform_mapping.json"]
+      "outputs": ["554,036 training / 138,509 test rows", "dataset.csv (20,000 test rows)", "kaggle_retrain.csv.gz (8,000 training rows)", "11 features + target", "Metadata: smart_bounds, impute_medians", "reports/question_merge_report.md"],
+      "code": ["app/spk/data.py", "app/spk/model.py", "app/spk/gform.py", "app/spk/gform_mapping.json", "app/scripts/merge_report.py"]
     },
     {
       "name": "Modeling",
       "icon": "model_training",
       "question": "Which algorithm predicts anxiety, and how does SMART decide?",
       "steps": [
-        {"t": "Random Forest", "d": "Regression with 200 trees: captures non-linear patterns, resists outliers, suits ordinal answers."},
+        {"t": "Random Forest", "d": "Regression with 300 trees: captures non-linear patterns, resists outliers, suits ordinal answers. Settings tuned by 5-fold cross-validation."},
         {"t": "Algorithm comparison", "d": "RF is on par with linear regression and gradient boosting, far above the baseline and a single tree."},
         {"t": "SMART", "d": "Min-max utility → priority score (mean) and a score per alternative (weight × utility)."},
         {"t": "Explainable AI", "d": "Exact Shapley values per student, \"what if\" counterfactuals, permutation and PDP/ICE."}
       ],
       "decisions": [
-        "RF is kept although linear regression is slightly more accurate on Kaggle (MAE gap about 0.01): questionnaire data is ordinal and retraining needs a warm start.",
+        "RF is kept although linear regression and gradient boosting are equally accurate on Kaggle (test R² 0.606-0.608): questionnaire data is ordinal and retraining needs a warm start.",
+        "Hyperparameters come from a random search (25 settings, 5-fold CV on 50,000 training rows): depth 12, leaves of 50+ students, 75% of the features per split, 60% of the rows per tree.",
         "Seven retraining strategies are compared with 5-fold CV × 2; the lowest MAE is deployed.",
         "Profile A weights are normalized (the notebook's Exercise weights sum to 1.05)."
       ],
@@ -104,7 +109,7 @@
           ["S4", "Real data + extra items (reported only)"]
         ]
       },
-      "outputs": ["rf_anxiety_model.joblib + metadata", "model_comparison.json", "Weight profiles A/B/C"],
+      "outputs": ["rf_anxiety_model.joblib + metadata", "rf_tuning.json", "model_comparison.json", "Weight profiles A/B/C"],
       "code": ["app/scripts/train.py", "app/spk/retrain.py", "app/spk/smart.py", "app/spk/xai.py"]
     },
     {

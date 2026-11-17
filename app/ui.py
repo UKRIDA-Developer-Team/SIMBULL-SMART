@@ -59,14 +59,41 @@ def show(fig, compact: bool = False):
 
 # ---------- cached loaders ----------
 
-@st.cache_resource(show_spinner=False)
-def load_active():
-    return model.load()
+MODELS = ("real", "kaggle")   # real = retrained on the questionnaire answers, kaggle = base model
+
+
+def available_models() -> list[str]:
+    """The models that exist on disk, the default (SPK_MODEL / auto) first."""
+    have = [k for k in MODELS if (config.REAL_MODEL_PATH if k == "real" else config.MODEL_PATH).exists()]
+    default = "real" if config.active_model_paths()[0] == config.REAL_MODEL_PATH else "kaggle"
+    return sorted(have, key=lambda k: k != default)
+
+
+def model_key() -> str:
+    """The model this session uses: the reader's choice in the settings popover, else the default."""
+    have = available_models()
+    # Like profile_key: the picker widget holds the newest choice before its own line runs.
+    picked = st.session_state.get(f"model_choice_{lang()}")
+    if picked in have:
+        st.session_state["model_choice"] = picked
+    choice = st.session_state.get("model_choice")
+    return choice if choice in have else have[0]
 
 
 @st.cache_resource(show_spinner=False)
-def load_base():
+def load_model(kind: str):
+    if kind == "real":
+        return model.load(config.REAL_MODEL_PATH, config.REAL_METADATA_PATH)
     return model.load_base()
+
+
+def load_active():
+    """The model chosen for this session (both stay loaded, so switching is instant)."""
+    return load_model(model_key())
+
+
+def load_base():
+    return load_model("kaggle")
 
 
 @st.cache_data(show_spinner=False)
@@ -89,26 +116,40 @@ def model_comparison():
     return load_json(str(config.MODEL_COMPARISON_PATH.relative_to(config.APP_DIR)))
 
 
+# Cached results depend on the model, so every cached helper takes the model key as an argument.
+
+def reference_quantiles(kind: str | None = None) -> dict:
+    return _reference_quantiles(kind or model_key())
+
+
 @st.cache_data(show_spinner=False)
-def reference_quantiles() -> dict:
-    rf, meta = load_active()
+def _reference_quantiles(kind: str) -> dict:
+    rf, meta = load_model(kind)
     if meta.get("reference_quantiles"):
         return meta["reference_quantiles"]
     return recommend.reference_quantiles(rf, load_reference(), meta["smart_bounds"])
 
 
-@st.cache_data(show_spinner=False)
 def predict_frame(df: pd.DataFrame) -> pd.Series:
-    rf, _ = load_active()
+    return _predict_frame(df, model_key())
+
+
+@st.cache_data(show_spinner=False)
+def _predict_frame(df: pd.DataFrame, kind: str) -> pd.Series:
+    rf, _ = load_model(kind)
     return pd.Series(model.predict(rf, df), index=df.index, name="rf_anxiety_score")
 
 
-@st.cache_data(show_spinner=False)
 def score(df: pd.DataFrame, profile: str, use_reference_bounds: bool = True):
     """Predict + SMART for a frame of students. Returns (result sorted by priority, utility)."""
-    _, meta = load_active()
+    return _score(df, profile, use_reference_bounds, model_key())
+
+
+@st.cache_data(show_spinner=False)
+def _score(df: pd.DataFrame, profile: str, use_reference_bounds: bool, kind: str):
+    _, meta = load_model(kind)
     crit = df[config.FEATURES].copy()
-    crit["rf_anxiety_score"] = predict_frame(df[config.FEATURES])
+    crit["rf_anxiety_score"] = _predict_frame(df[config.FEATURES], kind)
     bounds = meta["smart_bounds"] if use_reference_bounds else None
     result, utility = smart.run(crit[config.CRITERIA], PROFILES[profile], bounds)
     result = pd.concat([df[config.FEATURES], crit[["rf_anxiety_score"]], result], axis=1)
@@ -128,28 +169,39 @@ def xai_targets() -> dict:
 
 
 @st.cache_data(show_spinner=False, max_entries=256)
-def _shap(items: tuple):
-    rf, _ = load_active()
+def _shap(items: tuple, kind: str):
+    rf, _ = load_model(kind)
     return xai.shapley_values(rf, dict(items), xai_background())
 
 
 def shap_explanation(features: dict | pd.Series):
-    """Exact Shapley explanation of the active model's prediction for one student."""
-    return _shap(tuple((f, features[f]) for f in config.FEATURES))
+    """Exact Shapley explanation of the chosen model's prediction for one student."""
+    return _shap(tuple((f, features[f]) for f in config.FEATURES), model_key())
 
 
 @st.cache_data(show_spinner=False)
 def kaggle_test_set():
-    """The notebook's Kaggle test split (2,000 rows), held out from every training strategy."""
-    _, X_test, _, y_test = model.split(load_reference().reset_index(drop=True))
-    return X_test, y_test
+    """The Kaggle test set: the cleaned reference sample. Training rows come from the rest of the
+    Kaggle file, so every training strategy leaves these rows unseen."""
+    return model.kaggle_test_set(load_reference().reset_index(drop=True))
+
+
+PERMUTATION_ROWS = 5_000
+
+
+def permutation_importance(base: bool = False) -> pd.DataFrame:
+    """Permutation importance on a fixed 5,000-row sample of the reference rows (55 predictions).
+
+    base=True scores the Kaggle base model, which is what the Kaggle success criteria judge."""
+    return _permutation_importance("kaggle" if base else model_key())
 
 
 @st.cache_data(show_spinner=False)
-def permutation_importance() -> pd.DataFrame:
-    rf, _ = load_active()
+def _permutation_importance(kind: str) -> pd.DataFrame:
+    rf, _ = load_model(kind)
     X_test, y_test = kaggle_test_set()
-    return xai.permutation_importance(rf, X_test, y_test, n_repeats=5)
+    sample = X_test.sample(min(PERMUTATION_ROWS, len(X_test)), random_state=config.RANDOM_STATE)
+    return xai.permutation_importance(rf, sample, y_test.loc[sample.index], n_repeats=5)
 
 
 def impute_medians() -> dict:
@@ -215,8 +267,14 @@ def stable_choice(widget, label, options, state, fmt, **kw):
 
 
 def profile_picker():
-    """Weight-profile setting in a popover, kept out of the way of first-time users."""
-    with st.popover(T("profile_button", p=profile_key()), icon=":material/tune:"):
+    """Model and weight-profile settings in a popover, kept out of the way of first-time users."""
+    models = available_models()
+    with st.popover(T("profile_button", p=profile_key(), m=T(f"model_short_{model_key()}")), icon=":material/tune:"):
+        if len(models) > 1:
+            st.markdown(f"**{T('model_choice')}**")
+            st.caption(T("model_choice_intro"))
+            stable_choice(st.radio, T("model_choice"), models, "model_choice", lambda k: T(f"model_opt_{k}"),
+                          label_visibility="collapsed", captions=[model_caption(k) for k in models])
         st.markdown(f"**{T('profile')}**")
         st.caption(T("profile_intro"))
         stable_choice(st.radio, T("profile"), PROFILES, "profile", profile_label, label_visibility="collapsed",
@@ -229,9 +287,19 @@ def profile_warning():
         st.warning(T("profile_c_warning"), icon=":material/info:")
 
 
+def model_caption(kind: str) -> str:
+    """One line per model for the picker: what it was trained on and how well it does on real students."""
+    _, meta = load_model(kind)
+    strategies = (real_summary() or {}).get("strategies", {})
+    key = "S0_kaggle" if kind == "kaggle" else (real_summary() or {}).get("selected")
+    real_mae = strategies.get(key, {}).get("holdout_mae")
+    text = T(f"model_opt_{kind}_desc", n=f"{meta.get('n_rows', 0):,}", r2=meta["metrics"]["r2"])
+    return text + (" " + T("model_opt_real_mae", mae=real_mae) if real_mae is not None else "")
+
+
 def model_note() -> str:
     _, meta = load_active()
-    source = {"kaggle": "src_kaggle", "kaggle+gform": "src_real", "gform": "src_real"}[meta["data_source"]]
+    source = {"kaggle": "src_kaggle", "kaggle+gform": "src_real", "gform": "src_gform"}[meta["data_source"]]
     strategy = f" · {meta['strategy']}" if meta.get("strategy") else ""
     return T("model_badge", source=T(source), n=f"{meta.get('n_rows', 0):,}", strategy=strategy)
 
