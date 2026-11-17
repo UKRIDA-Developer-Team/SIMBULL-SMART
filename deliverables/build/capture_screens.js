@@ -42,7 +42,9 @@ async function measure(page, specs) {
       let els = [...document.querySelectorAll(spec.sel)];
       if (spec.text) els = els.filter(e => e.textContent.includes(spec.text));
       els = spec.nth != null ? [els[spec.nth]].filter(Boolean) : spec.all ? els : els.slice(0, 1);
-      return union(els.map(e => e.getBoundingClientRect()).map(r => [r.left, r.top, r.width, r.height]));
+      // Hidden elements (e.g. in an inactive tab) report a 0x0 box at the origin: leave them out.
+      return union(els.map(e => e.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0)
+        .map(r => [r.left, r.top, r.width, r.height]));
     };
     const out = {};
     for (const [key, spec] of Object.entries(specs)) out[key] = rect(spec);
@@ -142,7 +144,8 @@ async function open(page, route, waitFor) {
   await shot(page, '03_profile', {
     button: { sel: '[data-testid="stPopover"]' },
     body: { sel: '[data-testid="stPopoverBody"]' },
-    radio: { sel: '[data-testid="stPopoverBody"] [data-testid="stRadio"]' },
+    model: { sel: '[data-testid="stPopoverBody"] [data-testid="stRadio"]', nth: 0 },
+    radio: { sel: '[data-testid="stPopoverBody"] [data-testid="stRadio"]', nth: 1 },
     note: { sel: '[data-testid="stPopoverBody"] p', text: 'Model aktif' },
   }, { full: false });
   await page.keyboard.press('Escape');
@@ -150,7 +153,8 @@ async function open(page, route, waitFor) {
 
   await clickText(page, '[data-testid="stButton"] button', 'Contoh risiko tinggi');
   await page.waitForSelector('.st-key-card_hero', { timeout: 60000 });
-  await settle(page, 1500);
+  await page.waitForSelector('[data-testid="stExpander"]', { timeout: 120000 });   // after the xAI card
+  await settle(page, 2500);
   await shot(page, '04_result', {
     back: { sel: '[data-testid="stButton"]', text: 'Ubah jawaban' },
     reset: { sel: '[data-testid="stButton"]', text: 'Penilaian baru' },
@@ -161,67 +165,86 @@ async function open(page, route, waitFor) {
     prio: { sel: '.spk-hero-stat', nth: 1 },
     rank: { sel: '.st-key-card_rank' },
     why: { sel: '.st-key-card_why' },
-    details: { sel: '[data-testid="stExpander"]' },
+    compare: { sel: '[data-testid="stExpander"]', text: 'Bandingkan dua model' },
+    xai: { sel: '.st-key-card_xai_single' },
+    details: { sel: '[data-testid="stExpander"]', text: 'Rincian perhitungan' },
   });
+
+  // ---- Both model iterations side by side for this student
+  await clickText(page, '[data-testid="stExpander"] summary', 'Bandingkan dua model');
+  await shot(page, '04b_compare', { compare: { sel: '[data-testid="stExpander"]', text: 'Bandingkan dua model' } });
+  await clickText(page, '[data-testid="stExpander"] summary', 'Bandingkan dua model');
+
+  // ---- Explainable AI card: one screen per tab
+  const xai = { xai: { sel: '.st-key-card_xai_single' }, tabs: { sel: '.st-key-card_xai_single [role="tablist"]' } };
+  await shot(page, '05_xai_pred', xai);
+  await clickText(page, '.st-key-card_xai_single [role="tab"]', 'Dari prediksi ke rekomendasi');
+  await shot(page, '06_xai_link', { ...xai, chart: { sel: '.st-key-card_xai_single [role="tabpanel"]:not([hidden]) img' } });
+  await clickText(page, '.st-key-card_xai_single [role="tab"]', 'Bagaimana jika?');
+  await shot(page, '07_xai_whatif', xai);
 
   await clickText(page, '[data-testid="stExpander"] summary', 'Rincian perhitungan');
-  await shot(page, '05_details_contrib', {
-    details: { sel: '[data-testid="stExpander"]' },
-    tabs: { sel: '[data-testid="stExpander"] [role="tablist"]' },
-    chart: { sel: '[data-testid="stExpander"] [data-testid="stImage"], [data-testid="stExpander"] img' },
-  });
-  await clickText(page, '[data-testid="stExpander"] [role="tab"]', 'Nilai fitur model');
-  await shot(page, '06_details_inputs', {
-    details: { sel: '[data-testid="stExpander"]' },
-    tabs: { sel: '[data-testid="stExpander"] [role="tablist"]' },
-  });
+  const det = { details: { sel: '[data-testid="stExpander"]', text: 'Rincian perhitungan' }, tabs: { sel: '[data-testid="stExpander"] [role="tablist"]' } };
+  await shot(page, '08_details_inputs', det);
   await clickText(page, '[data-testid="stExpander"] [role="tab"]', 'Uji sensitivitas');
-  await shot(page, '07_details_sens', {
-    details: { sel: '[data-testid="stExpander"]' },
-    tabs: { sel: '[data-testid="stExpander"] [role="tablist"]' },
-    verdict: { sel: '[data-testid="stExpander"] [data-testid="stAlert"]' },
-  });
+  await shot(page, '09_details_sens', { ...det, verdict: { sel: '[data-testid="stExpander"] [data-testid="stAlert"]' } });
 
-  // ---- Whole class, with the synthetic Google Form demo (it carries the answers needed for evaluation)
+  // ---- Whole class, with the Kaggle test-set demo (no real student appears in the manual)
   await clickText(page, '[data-testid="stButtonGroup"] button', 'Satu kelas');
-  await page.waitForSelector('[data-testid="stFileUploader"]', { timeout: 60000 });
-  await clickText(page, '.st-key-card_demo label', 'SINTETIS');
-  await page.waitForSelector('.st-key-card_eval', { timeout: 60000 });
+  await page.waitForSelector('.st-key-card_xai_batch', { timeout: 120000 });
+  await settle(page, 2000);
   await clickText(page, '[data-testid="stExpander"] summary', 'Opsi lanjutan');
-  await shot(page, '08_batch', {
+  await shot(page, '10_batch', {
     upload: { sel: '[data-testid="stFileUploader"]' },
     demo: { sel: '.st-key-card_demo' },
-    detected: { sel: '[data-testid="stAlert"]' },
     metrics: { sel: '[data-testid="stMetric"]', all: true },
-    list: [{ sel: '[data-testid="stHeading"]', text: 'Daftar prioritas' }, { sel: '[data-testid="stSelectbox"]' }],
+    list: { sel: '[data-testid="stHeading"]', text: 'Daftar prioritas' },
     table: { sel: '[data-testid="stDataFrame"]' },
     download: { sel: '[data-testid="stDownloadButton"]' },
     charts: { sel: '.st-key-card_mix, .st-key-card_hist', all: true },
+    xai: { sel: '.st-key-card_xai_batch' },
     options: { sel: '[data-testid="stExpander"]', text: 'Opsi lanjutan' },
-    eval: [{ sel: '[data-testid="stHeading"]', text: 'Evaluasi model' }, { sel: '.st-key-card_eval' }],
   });
 
   // ---- Analysis: one screen per tab
   await open(page, 'analysis', '.st-key-card_hists');
+  await page.waitForSelector('.spk-footer', { timeout: 300000 });
+  await settle(page, 2000);
   const frame = { title: { sel: '[data-testid="stMainBlockContainer"] h1' }, footer: { sel: '.spk-footer' } };
   const tabs = { ...frame, tabs: { sel: '[data-testid="stMainBlockContainer"] [role="tablist"]' },
     profile: { sel: '[data-testid="stPopover"]' }, population: { sel: 'p, span', text: 'Populasi analisis' } };
-  await shot(page, '09_an_data', tabs);
-  for (const [i, [label, name]] of [['Model', 'model'], ['SMART', 'smart'], ['Sensitivitas', 'sens'], ['Keadilan', 'fair']].entries()) {
+  await shot(page, '11_an_data', tabs);
+  for (const [i, [label, name]] of [['Model', 'model'], ['xAI', 'xai'], ['SMART', 'smart'], ['Sensitivitas', 'sens'], ['Keadilan', 'fair']].entries()) {
     await clickText(page, '[data-testid="stMainBlockContainer"] [role="tab"]', label);
-    await shot(page, `${10 + i}_an_${name}`, tabs);
+    await settle(page, 2000);
+    await shot(page, `${12 + i}_an_${name}`, tabs);
   }
+
+  // ---- Data Mining: the stepper with phase 1, then phase 3 with the question-merge table open
+  await open(page, 'data-mining', '.st-key-card_dm_hero');
+  await page.waitForSelector('.spk-footer', { timeout: 300000 });
+  const dm = { ...frame, stepper: { sel: '[data-testid="stButtonGroup"]', text: 'Business Understanding' },
+    hero: { sel: '.st-key-card_dm_hero' }, kpis: { sel: '[data-testid="stMetric"]', all: true },
+    steps: { sel: '[class*="st-key-card_dm_step"]', all: true }, main: { sel: '.st-key-card_dm_main' },
+    side: { sel: '.st-key-card_dm_side' }, next: { sel: '.st-key-dm_next' } };
+  await shot(page, '17_dm', dm);
+  await clickText(page, '[data-testid="stButtonGroup"] button', 'Data Preparation');
+  await page.waitForFunction(() => document.body.innerText.includes('FASE 3 DARI 6'), { timeout: 60000 });
+  await settle(page, 1500);
+  await clickText(page, '[data-testid="stExpander"] summary', 'digabung');
+  await shot(page, '18_dm_prep', { ...dm, merge: { sel: '[data-testid="stExpander"]', text: 'digabung' } });
 
   // ---- About
   await open(page, 'about', '.st-key-card_arch');
-  await shot(page, '14_about', frame);
+  await page.waitForSelector('.spk-footer', { timeout: 300000 });
+  await shot(page, '19_about', frame);
 
   // ---- English: the same Home page after switching the language
   await open(page, '', '.spk-preview');
   await clickText(page, '.st-key-lang_switch button', 'EN');
   await page.waitForFunction(() => document.body.innerText.includes('Start an assessment'), { timeout: 30000 });
   await settle(page, 1200);
-  await shot(page, '15_en', { lang: { sel: '.st-key-lang_switch' }, nav: { sel: '[data-testid="stTopNavLinkContainer"]', all: true } },
+  await shot(page, '20_en', { lang: { sel: '.st-key-lang_switch' }, nav: { sel: '[data-testid="stTopNavLinkContainer"]', all: true } },
     { full: false });
 
   await browser.close();
