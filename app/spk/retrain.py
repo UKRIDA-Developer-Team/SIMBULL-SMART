@@ -39,7 +39,9 @@ REPORT_ONLY = "S4_real_extended"
 
 
 def real_params() -> dict:
-    return {**config.RF_PARAMS, **config.REAL_RF_OVERRIDES}
+    """Settings for trees grown on questionnaire rows. The base model's tuned settings were
+    chosen for 100k Kaggle rows; a few hundred real rows keep the notebook's settings."""
+    return {**config.RF_PARAMS_NOTEBOOK, **config.REAL_RF_OVERRIDES}
 
 
 def fit(name: str, base, X_real: pd.DataFrame, y_real: pd.Series,
@@ -53,11 +55,12 @@ def fit(name: str, base, X_real: pd.DataFrame, y_real: pd.Series,
         X = pd.concat([X_kaggle, X_real], ignore_index=True)
         y = pd.concat([y_kaggle, y_real], ignore_index=True)
         w = np.r_[np.ones(len(X_kaggle)), np.full(len(X_real), float(opts["weight"]))]
-        return RandomForestRegressor(**config.RF_PARAMS).fit(encode_gender(X), y, sample_weight=w)
+        return RandomForestRegressor(**config.RF_PARAMS_NOTEBOOK).fit(encode_gender(X), y, sample_weight=w)
     if name.startswith("S3_"):
         model = copy.deepcopy(base)
-        model.set_params(warm_start=True, n_estimators=base.n_estimators + opts["add"],
-                         **config.REAL_RF_OVERRIDES)
+        grow = {k: v for k, v in real_params().items() if k not in ("n_estimators", "random_state", "n_jobs")}
+        model.set_params(warm_start=True, n_estimators=base.n_estimators + opts["add"], max_samples=None,
+                         n_jobs=config.RF_PARAMS["n_jobs"], **grow)   # the loaded base predicts on one thread
         model.fit(encode_gender(X_real), y_real)
         model.set_params(warm_start=False)
         return model
@@ -142,6 +145,7 @@ def run(real: pd.DataFrame, kaggle: pd.DataFrame, base, base_meta: dict, quality
         holdout_frac: float = 0.2, log=print, strata: pd.Series | None = None):
     """Full experiment. Returns (final_model, metadata, summary).
 
+    kaggle holds the Kaggle rows that strategy S2 mixes with the real rows (data.retrain_rows).
     strata (respondent_id -> form version) keeps original and revised rows in the same
     proportion in the development and holdout parts.
     """
@@ -150,9 +154,8 @@ def run(real: pd.DataFrame, kaggle: pd.DataFrame, base, base_meta: dict, quality
     medians = feature_medians(real)
     real = impute(real, medians)
 
-    from .model import split
-    X_kaggle, _, y_kaggle, _ = split(kaggle)
-    X_kaggle, y_kaggle = X_kaggle.reset_index(drop=True), y_kaggle.reset_index(drop=True)
+    X_kaggle = kaggle[config.FEATURES].reset_index(drop=True)
+    y_kaggle = kaggle[config.TARGET].reset_index(drop=True)
 
     use_holdout = len(real) >= 30
     if use_holdout:

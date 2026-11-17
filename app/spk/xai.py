@@ -21,6 +21,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import factorial
 
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -97,8 +99,24 @@ def coalition_values(model, x: pd.Series | dict, background: pd.DataFrame, featu
     bg = encode(background, features).to_numpy()
     masks = coalitions(m)
     rows = np.where(masks[:, None, :], xs[None, None, :], bg[None, :, :]).reshape(-1, m)
-    preds = np.asarray(model.predict(pd.DataFrame(rows, columns=features)), dtype=float)
+    preds = predict_chunks(model, pd.DataFrame(rows, columns=features))
     return preds.reshape(2 ** m, len(bg)).mean(axis=1)
+
+
+def predict_chunks(model, frame: pd.DataFrame, chunk: int = 8_192) -> np.ndarray:
+    """model.predict over row chunks in parallel threads (tree traversal releases the GIL).
+
+    The loaded forest predicts on one thread, so every chunk sums its trees in a fixed order:
+    the result is bit-identical to one model.predict call, only faster for the 200k rows of
+    an exact Shapley explanation.
+    """
+    if len(frame) <= chunk:
+        return np.asarray(model.predict(frame), dtype=float)
+    from concurrent.futures import ThreadPoolExecutor
+
+    parts = [frame.iloc[i:i + chunk] for i in range(0, len(frame), chunk)]
+    with ThreadPoolExecutor(max_workers=min(len(parts), os.cpu_count() or 1)) as pool:
+        return np.concatenate([np.asarray(p, dtype=float) for p in pool.map(model.predict, parts)])
 
 
 def shapley_from_values(v: np.ndarray, m: int) -> np.ndarray:
@@ -209,14 +227,14 @@ def permutation_importance(model, X: pd.DataFrame, y, n_repeats: int = 5,
     rng = np.random.default_rng(seed)
     Xe = encode(X)
     y = np.asarray(y, dtype=float)
-    base = np.mean(np.abs(y - model.predict(Xe)))
+    base = np.mean(np.abs(y - predict_chunks(model, Xe)))
     rows = {}
     for f in config.FEATURES:
         drops = []
         for _ in range(n_repeats):
             shuffled = Xe.copy()
             shuffled[f] = rng.permutation(shuffled[f].to_numpy())
-            drops.append(np.mean(np.abs(y - model.predict(shuffled))) - base)
+            drops.append(np.mean(np.abs(y - predict_chunks(model, shuffled))) - base)
         rows[f] = {"mean": float(np.mean(drops)), "std": float(np.std(drops))}
     return pd.DataFrame(rows).T.sort_values("mean", ascending=False)
 

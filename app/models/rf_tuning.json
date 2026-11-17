@@ -1,0 +1,360 @@
+{
+  "rows": 50000,
+  "folds": 5,
+  "trees_per_setting": 150,
+  "grid": {
+    "max_depth": [
+      6,
+      8,
+      10,
+      12,
+      16,
+      null
+    ],
+    "min_samples_leaf": [
+      2,
+      10,
+      50,
+      200,
+      1000
+    ],
+    "max_features": [
+      "sqrt",
+      0.5,
+      0.75,
+      1.0
+    ],
+    "max_samples": [
+      null,
+      0.3,
+      0.6
+    ]
+  },
+  "settings_tried": 25,
+  "best": {
+    "params": {
+      "min_samples_leaf": 50,
+      "max_samples": 0.6,
+      "max_features": 0.75,
+      "max_depth": 12
+    },
+    "cv_r2": 0.5996093339218096,
+    "cv_r2_std": 0.0044405361415339635,
+    "cv_mae": 0.7612373715797534,
+    "notebook": false
+  },
+  "notebook": {
+    "params": {
+      "max_depth": 10,
+      "min_samples_leaf": 2,
+      "max_features": "sqrt",
+      "max_samples": null
+    },
+    "cv_r2": 0.5965625909887017,
+    "cv_r2_std": 0.004337932602495656,
+    "cv_mae": 0.7651076013717234,
+    "notebook": true
+  },
+  "results": [
+    {
+      "params": {
+        "min_samples_leaf": 50,
+        "max_samples": 0.6,
+        "max_features": 0.75,
+        "max_depth": 12
+      },
+      "cv_r2": 0.5996093339218096,
+      "cv_r2_std": 0.0044405361415339635,
+      "cv_mae": 0.7612373715797534,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 2,
+        "max_samples": 0.3,
+        "max_features": 0.5,
+        "max_depth": 10
+      },
+      "cv_r2": 0.5994497561775648,
+      "cv_r2_std": 0.004447743646569682,
+      "cv_mae": 0.7613289048158742,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 50,
+        "max_samples": 0.6,
+        "max_features": 0.75,
+        "max_depth": 6
+      },
+      "cv_r2": 0.5992644205359784,
+      "cv_r2_std": 0.004207942928829996,
+      "cv_mae": 0.761820714443175,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 50,
+        "max_samples": null,
+        "max_features": 0.75,
+        "max_depth": 16
+      },
+      "cv_r2": 0.5990855707587903,
+      "cv_r2_std": 0.004449481685070837,
+      "cv_mae": 0.7615251642557078,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 50,
+        "max_samples": 0.3,
+        "max_features": 0.5,
+        "max_depth": 8
+      },
+      "cv_r2": 0.5987355766506274,
+      "cv_r2_std": 0.004646601779763235,
+      "cv_mae": 0.7627381793294081,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 50,
+        "max_samples": 0.6,
+        "max_features": 1.0,
+        "max_depth": 6
+      },
+      "cv_r2": 0.5986831308406844,
+      "cv_r2_std": 0.004078942154887286,
+      "cv_mae": 0.762099019585842,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 10,
+        "max_samples": 0.6,
+        "max_features": 1.0,
+        "max_depth": 6
+      },
+      "cv_r2": 0.5986685803814247,
+      "cv_r2_std": 0.004057196258420489,
+      "cv_mae": 0.7620681533515601,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 200,
+        "max_samples": null,
+        "max_features": 0.75,
+        "max_depth": 6
+      },
+      "cv_r2": 0.5986075095297924,
+      "cv_r2_std": 0.004382179687862867,
+      "cv_mae": 0.7626290425721517,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 2,
+        "max_samples": null,
+        "max_features": 0.75,
+        "max_depth": 12
+      },
+      "cv_r2": 0.5973282465028202,
+      "cv_r2_std": 0.004719672709464094,
+      "cv_mae": 0.7632568718037219,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 2,
+        "max_samples": null,
+        "max_features": 0.5,
+        "max_depth": 6
+      },
+      "cv_r2": 0.5969267632266761,
+      "cv_r2_std": 0.004283074235876554,
+      "cv_mae": 0.7650149961357431,
+      "notebook": false
+    },
+    {
+      "params": {
+        "max_depth": 10,
+        "min_samples_leaf": 2,
+        "max_features": "sqrt",
+        "max_samples": null
+      },
+      "cv_r2": 0.5965625909887017,
+      "cv_r2_std": 0.004337932602495656,
+      "cv_mae": 0.7651076013717234,
+      "notebook": true
+    },
+    {
+      "params": {
+        "min_samples_leaf": 10,
+        "max_samples": 0.3,
+        "max_features": "sqrt",
+        "max_depth": 10
+      },
+      "cv_r2": 0.5960233705330867,
+      "cv_r2_std": 0.004639744454039263,
+      "cv_mae": 0.7657481152327155,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 10,
+        "max_samples": 0.6,
+        "max_features": 1.0,
+        "max_depth": null
+      },
+      "cv_r2": 0.5955545134032139,
+      "cv_r2_std": 0.004692533269104274,
+      "cv_mae": 0.7646959958806286,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 50,
+        "max_samples": null,
+        "max_features": "sqrt",
+        "max_depth": null
+      },
+      "cv_r2": 0.5953403205116211,
+      "cv_r2_std": 0.004753487660543879,
+      "cv_mae": 0.7662194312908517,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 200,
+        "max_samples": 0.3,
+        "max_features": 0.5,
+        "max_depth": 12
+      },
+      "cv_r2": 0.5940509325466784,
+      "cv_r2_std": 0.004643957654436712,
+      "cv_mae": 0.7680880214617056,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 2,
+        "max_samples": null,
+        "max_features": "sqrt",
+        "max_depth": null
+      },
+      "cv_r2": 0.5936972657115547,
+      "cv_r2_std": 0.004501803852835807,
+      "cv_mae": 0.766744733023313,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 2,
+        "max_samples": null,
+        "max_features": 1.0,
+        "max_depth": 16
+      },
+      "cv_r2": 0.5922891252172888,
+      "cv_r2_std": 0.0052958170104285655,
+      "cv_mae": 0.7675386651277393,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": 0.6,
+        "max_features": 0.75,
+        "max_depth": 12
+      },
+      "cv_r2": 0.589003113570335,
+      "cv_r2_std": 0.004567150864175821,
+      "cv_mae": 0.7730263864160547,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": null,
+        "max_features": 0.5,
+        "max_depth": 10
+      },
+      "cv_r2": 0.5857013818160968,
+      "cv_r2_std": 0.004783254391842696,
+      "cv_mae": 0.7764620517480901,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": 0.6,
+        "max_features": 1.0,
+        "max_depth": 8
+      },
+      "cv_r2": 0.5835291675606841,
+      "cv_r2_std": 0.004382942456066151,
+      "cv_mae": 0.7772010101123171,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 200,
+        "max_samples": 0.3,
+        "max_features": "sqrt",
+        "max_depth": 16
+      },
+      "cv_r2": 0.5774038947640671,
+      "cv_r2_std": 0.0038707041429725843,
+      "cv_mae": 0.7846284353360945,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": 0.3,
+        "max_features": 0.75,
+        "max_depth": null
+      },
+      "cv_r2": 0.5748275568364016,
+      "cv_r2_std": 0.005305767316320805,
+      "cv_mae": 0.7863777602518661,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": 0.3,
+        "max_features": 1.0,
+        "max_depth": null
+      },
+      "cv_r2": 0.5649559870599512,
+      "cv_r2_std": 0.005326092604526845,
+      "cv_mae": 0.7953931784301116,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": 0.3,
+        "max_features": 0.5,
+        "max_depth": null
+      },
+      "cv_r2": 0.5606984165363169,
+      "cv_r2_std": 0.004966603405053213,
+      "cv_mae": 0.799530836789921,
+      "notebook": false
+    },
+    {
+      "params": {
+        "min_samples_leaf": 1000,
+        "max_samples": null,
+        "max_features": "sqrt",
+        "max_depth": 10
+      },
+      "cv_r2": 0.5591285958160201,
+      "cv_r2_std": 0.0042681146653323855,
+      "cv_mae": 0.8015011024601957,
+      "notebook": false
+    }
+  ]
+}

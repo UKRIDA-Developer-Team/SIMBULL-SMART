@@ -21,32 +21,40 @@
   },
   "sklearn_version": "1.9.1",
   "hyperparameters": {
-    "n_estimators": 200,
+    "n_estimators": 300,
     "min_samples_split": 2,
-    "min_samples_leaf": 2,
-    "max_features": "sqrt",
-    "max_depth": 10,
+    "min_samples_leaf": 50,
+    "max_features": 0.75,
+    "max_depth": 12,
     "random_state": 42,
-    "n_jobs": -1
+    "n_jobs": -1,
+    "max_samples": 0.6
   },
+  "data_source": "kaggle",
   "metrics": {
-    "mae": 0.7667788502385423,
-    "mse": 0.9112285623486327,
-    "rmse": 0.9545829258627208,
-    "r2": 0.613622034076458
+    "mae": 0.7582591840849179,
+    "mse": 0.8968831148548021,
+    "rmse": 0.947039130582682,
+    "r2": 0.6077394343947196
+  },
+  "metrics_reference_rows": {
+    "mae": 0.7538671961975175,
+    "mse": 0.8873199299743905,
+    "rmse": 0.9419766079762227,
+    "r2": 0.6131246186363635
   },
   "smart_bounds": {
     "rf_anxiety_score": {
-      "min": 0.36695553548331766,
-      "max": 7.091249383126152
+      "min": 0.33267396661372167,
+      "max": 7.161108420888701
     },
     "study_hours_per_day": {
       "min": 0.0,
-      "max": 13.2274332022389
+      "max": 14.0
     },
     "academic_performance": {
-      "min": 47.564975384036146,
-      "max": 92.89366997522322
+      "min": 45.172144153364314,
+      "max": 92.62672695996984
     },
     "sleep_hours": {
       "min": 3.0,
@@ -69,5 +77,21 @@
       "max": 9.854597899553744
     }
   },
-  "n_rows": 20000
+  "n_rows": 554036,
+  "age_range": [
+    14,
+    25
+  ],
+  "ages_in_data": [
+    17,
+    25
+  ],
+  "rows": {
+    "full": 1000000,
+    "age_filtered": 692545,
+    "dropped": 307455,
+    "train": 554036,
+    "test": 138509,
+    "reference": 20000
+  }
 }

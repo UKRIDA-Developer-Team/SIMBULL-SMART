@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent.parent
-DATA_PATH = APP_DIR / "data" / "dataset.csv"
-SAMPLE_GFORM_PATH = APP_DIR / "data" / "sample_gform.csv"      # SYNTHETIC demo export
+DATA_PATH = APP_DIR / "data" / "dataset.csv"                  # reference population: 20k rows of the test set
+RETRAIN_DATA_PATH = APP_DIR / "data" / "kaggle_retrain.csv.gz" # Kaggle training rows mixed into retraining (S2)
 PRIVATE_DATA_DIR = APP_DIR / "data" / "private"                  # real exports, gitignored
 PRIVATE_REPORT_DIR = APP_DIR / "reports" / "private"             # reports with examples, gitignored
 
@@ -16,6 +16,7 @@ REAL_MODEL_PATH = APP_DIR / "models" / "rf_real_model.joblib"
 REAL_METADATA_PATH = APP_DIR / "models" / "rf_real_model_metadata.json"
 REAL_SUMMARY_PATH = APP_DIR / "models" / "real_summary.json"     # aggregates only, no rows
 MODEL_COMPARISON_PATH = APP_DIR / "models" / "model_comparison.json"
+TUNING_PATH = APP_DIR / "models" / "rf_tuning.json"
 
 
 def active_model_paths():
@@ -28,8 +29,16 @@ def active_model_paths():
 KAGGLE_DATASET = "sharmajicoder/student-mental-health-and-burnout"
 KAGGLE_FILE = "student_mental_health_burnout_1M.csv"
 
-SAMPLE_FRAC = 0.02      # 1M -> 20k rows (dataset.csv)
-TRAIN_FRAC = 0.5        # 20k -> 10k rows for the RF
+# Pipeline: full 1M-row file -> age filter -> 80/20 train/test split, stratified by age.
+# Cleaning: only rows in the student age band are used, so the mined data represents students.
+# 14 covers the questionnaire population (SMA students); 25 is the end of the usual university
+# years. The Kaggle file spans 17-29, so it supplies ages 17-25. Both ends are inclusive.
+AGE_RANGE = (14, 25)
+TEST_FRAC = 0.2
+# The app's reference population (dataset.csv): a fixed, age-stratified part of the TEST set,
+# so charts, percentiles and SMART bounds never use rows the model was trained on.
+REFERENCE_ROWS = 20_000
+RETRAIN_KAGGLE_ROWS = 8_000   # Kaggle training rows mixed with questionnaire rows (strategy S2)
 RANDOM_STATE = 42
 
 # ---- Random Forest ----
@@ -42,7 +51,8 @@ FEATURES = [
 # Same mapping LabelEncoder produced in the notebook (alphabetical).
 GENDER_MAP = {"Female": 0, "Male": 1, "Other": 2}
 
-RF_PARAMS = dict(
+# The notebook's settings. Still used for the small questionnaire data (see retrain.py).
+RF_PARAMS_NOTEBOOK = dict(
     n_estimators=200,
     min_samples_split=2,
     min_samples_leaf=2,
@@ -51,6 +61,11 @@ RF_PARAMS = dict(
     random_state=RANDOM_STATE,
     n_jobs=-1,
 )
+# Base model settings: the best of 24 settings in a random search with 5-fold CV on 50,000
+# training rows (scripts/train.py --stage tune, results in models/rf_tuning.json). 300 trees,
+# each grown on 60% of the rows, trying 75% of the features per split, leaves of 50+ students.
+RF_PARAMS = dict(RF_PARAMS_NOTEBOOK, n_estimators=300, max_depth=12, min_samples_leaf=50,
+                 max_features=0.75, max_samples=0.6)
 
 # ---- SMART ----
 CRITERIA = [
@@ -156,8 +171,8 @@ WEIGHT_PROFILES = {
     "C - Equal (control)": WEIGHTS_C,
 }
 
-# (min, max, default) for the advanced form and CSV validation. Covers the Kaggle sample
-# (ages 17-29) and the questionnaire population (SMA students, sleep up to 12 h).
+# (min, max, default) for the advanced form and CSV validation. Covers the cleaned Kaggle
+# sample (see AGE_RANGE) and the questionnaire population (SMA students, sleep up to 12 h).
 INPUT_RANGES = {
     "age": (12, 30, 17),
     "study_hours_per_day": (0.0, 14.0, 5.0),

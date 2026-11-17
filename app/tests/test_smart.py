@@ -14,12 +14,20 @@ def scored():
     return rf, meta, df, crit
 
 
-def test_base_model_matches_notebook(scored):
+def test_base_model_metrics(scored):
+    # Base model: full Kaggle file -> age 14-25 -> 80/20 split by age, tuned settings
+    # (scripts/train.py --stage kaggle). The reference rows are 20,000 rows of the test set.
     rf, meta, df, _ = scored
-    _, X_test, _, y_test = model.split(df)
-    m = model.metrics(y_test, model.predict(rf, X_test))
-    assert m["mae"] == pytest.approx(0.7668, abs=1e-4)
-    assert m["r2"] == pytest.approx(0.6136, abs=1e-4)
+    assert meta["rows"] == {"full": 1_000_000, "age_filtered": 692_545, "dropped": 307_455,
+                            "train": 554_036, "test": 138_509, "reference": config.REFERENCE_ROWS}
+    assert meta["n_rows"] == meta["rows"]["train"] and meta["hyperparameters"] == config.RF_PARAMS
+    assert meta["metrics"]["mae"] == pytest.approx(0.7583, abs=1e-4)      # whole test set
+    assert meta["metrics"]["r2"] == pytest.approx(0.6077, abs=1e-4)
+    X, y = model.kaggle_test_set(df)
+    m = model.metrics(y, model.predict(rf, X))
+    assert m["mae"] == pytest.approx(meta["metrics_reference_rows"]["mae"], abs=1e-9)
+    assert m["mae"] == pytest.approx(0.7539, abs=1e-4)
+    assert m["r2"] == pytest.approx(0.6131, abs=1e-4)
 
 
 def test_profile_weights_sum_to_one():
@@ -36,13 +44,14 @@ def test_zero_perturbation_changes_nothing(scored):
         assert smart.population_sensitivity(u, w, deltas=(0.0,)).to_numpy().max() == 0
 
 
-def test_notebook_recommendation_counts(scored):
-    # Notebook cell 92: Model A / Model B best-recommendation counts on the 20k sample
-    # (reproduced with the notebook's un-normalized weights A).
+def test_recommendation_counts_on_cleaned_sample(scored):
+    # Best-recommendation counts on the reference rows (20,000 test rows), batch min-max as in notebook
+    # cell 92. The first row uses the notebook's un-normalized weights A.
     _, _, _, crit = scored
     for weights, expected in [
-        (config.WEIGHTS_A_NOTEBOOK, {"Counseling": 1863, "Exercise": 8866, "Relaxation": 2152, "Sleep": 4796, "Study": 2323}),
-        (config.WEIGHTS_B, {"Counseling": 7553, "Exercise": 4673, "Relaxation": 172, "Sleep": 5662, "Study": 1940}),
+        (config.WEIGHTS_A_NOTEBOOK, {"Counseling": 1956, "Exercise": 9338, "Relaxation": 2421, "Sleep": 4648, "Study": 1637}),
+        (config.WEIGHTS_A, {"Counseling": 2337, "Exercise": 7323, "Relaxation": 3220, "Sleep": 5238, "Study": 1882}),
+        (config.WEIGHTS_B, {"Counseling": 7922, "Exercise": 4941, "Relaxation": 196, "Sleep": 5547, "Study": 1394}),
     ]:
         result, _ = smart.run(crit[config.CRITERIA], weights)
         assert result["Best_Recommendation"].value_counts().to_dict() == expected

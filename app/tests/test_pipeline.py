@@ -12,7 +12,7 @@ def test_real_retrain_end_to_end(monkeypatch):
     export = make_synthetic_gform.generate(n=80, seed=11)
     prepared = gform.prepare(pd.read_csv(pd.io.common.StringIO(export.to_csv(index=False)), dtype=str))
     base, base_meta = model.load_base()
-    final, meta, summary = retrain.run(prepared.data, data.load_dataset(), base, base_meta,
+    final, meta, summary = retrain.run(prepared.data, data.load_retrain_rows(), base, base_meta,
                                        prepared.report, log=lambda *_: None, strata=prepared.form_version)
     assert summary["selected"] in retrain.STRATEGIES
     # both questionnaire versions reach the holdout, and the extended model ran despite empty extras

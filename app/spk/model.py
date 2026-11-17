@@ -6,7 +6,6 @@ import pandas as pd
 import sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
 
 from . import config
 from .data import encode_gender
@@ -22,23 +21,20 @@ def metrics(y_true, y_pred) -> dict:
     }
 
 
-def split(df: pd.DataFrame):
-    """The notebook's split: 50% sample of the 20k rows, then 80/20 train/test.
+def kaggle_test_set(reference: pd.DataFrame):
+    """Kaggle rows the app scores the model on: the reference population, part of the test set.
 
-    Returns (X_train, X_test, y_train, y_test) with gender still as text.
+    No model has trained on these rows. The headline metrics in the metadata come from the
+    whole test set. Returns (X, y) with gender still as text.
     """
-    rf_df = df.sample(frac=config.TRAIN_FRAC, random_state=config.RANDOM_STATE)
-    return train_test_split(
-        rf_df[config.FEATURES], rf_df[config.TARGET], test_size=0.2, random_state=config.RANDOM_STATE
-    )
+    return reference[config.FEATURES], reference[config.TARGET]
 
 
-def train(df: pd.DataFrame):
-    """Train the RF exactly like the notebook. Returns (model, metrics, X_test, y_test)."""
-    X_train, X_test, y_train, y_test = split(df)
+def train(train_rows: pd.DataFrame, test_rows: pd.DataFrame):
+    """Fit the RF on the training rows and score it on the test rows. Returns (model, metrics)."""
     model = RandomForestRegressor(**config.RF_PARAMS)
-    model.fit(encode_gender(X_train), y_train)
-    return model, metrics(y_test, predict(model, X_test)), X_test, y_test
+    model.fit(encode_gender(train_rows[config.FEATURES]), train_rows[config.TARGET])
+    return model, metrics(test_rows[config.TARGET], predict(model, test_rows))
 
 
 def predict(model, df: pd.DataFrame) -> np.ndarray:
@@ -65,6 +61,10 @@ def load(model_path=None, metadata_path=None):
     if model_path is None:
         model_path, metadata_path = config.active_model_paths()
     model = joblib.load(model_path)
+    # Predict on one thread. With several threads the trees' outputs are summed in a varying
+    # order, so the same student can differ in the last bit between two calls, which is enough
+    # to flip the safety rule for a prediction exactly at the cutoff.
+    model.set_params(n_jobs=1)
     metadata = json.loads(metadata_path.read_text())
     metadata.setdefault("data_source", "kaggle")
     return model, metadata
