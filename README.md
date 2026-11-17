@@ -1,4 +1,4 @@
-# SPK SMART Kecemasan Siswa
+# SI SMART Kecemasan Siswa
 
 Final project for Data Mining and Decision Support Systems, Kelompok 1. A Random Forest predicts a student's anxiety score from 11 lifestyle and academic factors. SMART then ranks students by priority and recommends one of five interventions (Sleep, Exercise, Study, Counseling, Relaxation), with explanations, sensitivity analysis, and a safety rule. The model is pretrained on a Kaggle sample. It can be retrained on the team's confidential Google Form answers.
 

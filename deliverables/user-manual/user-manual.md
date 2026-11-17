@@ -6,7 +6,7 @@
 
 ## 1.1 Tentang aplikasi
 
-**SPK SMART Kecemasan Siswa** adalah aplikasi web yang membantu guru Bimbingan Konseling (BK) melakukan tiga hal:
+**SI SMART Kecemasan Siswa** adalah aplikasi web yang membantu guru Bimbingan Konseling (BK) melakukan tiga hal:
 
 1. **Memperkirakan tingkat kecemasan** siswa (skor 0–10) dari 11 faktor gaya hidup dan akademik, memakai model *Random Forest* yang dilatih dengan jawaban kuesioner 292 siswa.
 2. **Menyusun prioritas**: siswa mana yang perlu ditangani lebih dulu (skor prioritas SMART).
@@ -36,7 +36,7 @@ Saat dibuka pertama kali, server mungkin memerlukan 20–40 detik untuk "bangun"
 
 | No. | Bagian | Fungsi |
 |---|---|---|
-| 1 | Menu halaman | Bilah di bagian atas, di samping logo **SPK SMART**. Klik **Beranda**, **Rekomendasi**, **Analisis**, **Data Mining**, atau **Tentang** untuk berpindah halaman. Halaman yang sedang dibuka diberi latar abu-abu |
+| 1 | Menu halaman | Bilah di bagian atas, di samping logo **SI SMART**. Klik **Beranda**, **Rekomendasi**, **Analisis**, **Data Mining**, atau **Tentang** untuk berpindah halaman. Halaman yang sedang dibuka diberi latar abu-abu |
 | 2 | Bahasa | Tombol **ID** / **EN** di pojok kanan atas. **ID** = Bahasa Indonesia, **EN** = English. Seluruh teks, label, dan grafik ikut berganti (Bab 8) |
 | 3 | **Mulai penilaian** | Membuka halaman Rekomendasi pada tampilan **Satu siswa** (Bab 3) |
 | 4 | **Nilai satu kelas sekaligus** | Membuka halaman Rekomendasi pada tampilan **Satu kelas (unggah berkas)** (Bab 4) |

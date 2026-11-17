@@ -1,4 +1,4 @@
-// Final presentation (<= 15 minutes) -> deliverables/ppt/Presentasi-SPK-SMART-Kecemasan.pptx
+// Final presentation (<= 15 minutes) -> deliverables/ppt/Presentasi-SI-SMART-Kecemasan.pptx
 const path = require('path');
 const fs = require('fs');
 const pptxgen = require('pptxgenjs');
@@ -6,7 +6,7 @@ const pptxgen = require('pptxgenjs');
 const ROOT = path.resolve(__dirname, '..');
 const SCREENS = path.join(ROOT, 'user-manual', 'screens');
 const FIGS = path.join(ROOT, 'user-manual', 'figures');
-const OUT = path.join(ROOT, 'ppt', 'Presentasi-SPK-SMART-Kecemasan.pptx');
+const OUT = path.join(ROOT, 'ppt', 'Presentasi-SI-SMART-Kecemasan.pptx');
 
 const C = { deep: '0F4C5C', teal: '1B7A8C', mint: 'D8EFEC', ice: 'F2F8F7', coral: 'E36414', ink: '1E2A30', mute: '5F6F75', white: 'FFFFFF', line: 'C9DAD7' };
 const H = 'Cambria', B = 'Calibri';
@@ -14,7 +14,7 @@ const H = 'Cambria', B = 'Calibri';
 const pres = new pptxgen();
 pres.layout = 'LAYOUT_WIDE';   // 13.33 x 7.5
 pres.author = 'Kelompok 1';
-pres.title = 'SPK SMART Kecemasan Siswa';
+pres.title = 'SI SMART Kecemasan Siswa';
 
 const W = 13.33;
 function title(slide, text, sub) {
@@ -42,7 +42,7 @@ function img(slide, file, x, y, w, maxH) {
   return { w, h };
 }
 function footer(slide, n) {
-  slide.addText(`Kelompok 1 · SPK SMART Kecemasan Siswa`, { x: 0.6, y: 7.05, w: 6, h: 0.3, fontFace: B, fontSize: 10, color: C.mute, margin: 0, isTextBox: true });
+  slide.addText(`Kelompok 1 · SI SMART Kecemasan Siswa`, { x: 0.6, y: 7.05, w: 6, h: 0.3, fontFace: B, fontSize: 10, color: C.mute, margin: 0, isTextBox: true });
   slide.addText(String(n), { x: W - 1.1, y: 7.05, w: 0.5, h: 0.3, fontFace: B, fontSize: 10, color: C.mute, align: 'right', margin: 0, isTextBox: true });
 }
 
@@ -51,11 +51,11 @@ let s = pres.addSlide(); s.background = { color: C.deep };
 s.addShape(pres.shapes.OVAL, { x: 9.6, y: -1.2, w: 5.2, h: 5.2, fill: { color: C.teal, transparency: 55 }, line: { color: C.teal, transparency: 100 } });
 s.addShape(pres.shapes.OVAL, { x: 10.9, y: 3.9, w: 3.2, h: 3.2, fill: { color: C.mint, transparency: 80 }, line: { color: C.mint, transparency: 100 } });
 text(s, 'PROYEK AKHIR · DATA MINING & SISTEM PENDUKUNG KEPUTUSAN', { x: 0.8, y: 1.3, w: 9, h: 0.4, fontSize: 14, color: C.mint, bold: true, charSpacing: 2 });
-s.addText('SPK SMART Kecemasan Siswa', { x: 0.8, y: 1.9, w: 9.5, h: 1.2, fontFace: H, fontSize: 48, bold: true, color: C.white, margin: 0, isTextBox: true });
+s.addText('SI SMART Kecemasan Siswa', { x: 0.8, y: 1.9, w: 9.5, h: 1.2, fontFace: H, fontSize: 48, bold: true, color: C.white, margin: 0, isTextBox: true });
 text(s, 'Prediksi tingkat kecemasan dengan Random Forest dan rekomendasi penanganan dengan metode SMART', { x: 0.8, y: 3.15, w: 8.8, h: 0.9, fontSize: 20, color: C.mint });
 text(s, 'Kelompok 1 — Steven Feryanta · Steven Iwan · Triemas Putra · Davidson Rafael', { x: 0.8, y: 5.4, w: 10, h: 0.4, fontSize: 15, color: C.white });
 text(s, 'Universitas Kristen Krida Wacana · 2026', { x: 0.8, y: 5.85, w: 10, h: 0.4, fontSize: 13, color: C.mint });
-s.addNotes('Pembukaan (±30 detik). Perkenalkan tim dan judul: aplikasi yang menggabungkan Data Mining (Random Forest) untuk memprediksi tingkat kecemasan siswa dengan SPK SMART untuk menentukan prioritas dan bentuk penanganan.');
+s.addNotes('Pembukaan (±30 detik). Perkenalkan tim dan judul: aplikasi SI SMART yang menggabungkan Data Mining (Random Forest) untuk memprediksi tingkat kecemasan siswa dengan SPK SMART untuk menentukan prioritas dan bentuk penanganan.');
 
 // 2 ── Problem ─────────────────────────────────────────────
 s = pres.addSlide(); s.background = { color: C.white };

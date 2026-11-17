@@ -1,4 +1,4 @@
-# Session handoff: SPK SMART Kecemasan Siswa
+# Session handoff: SI SMART Kecemasan Siswa
 
 Last updated 2026-09-25. This is a recap for the next working session: what was decided, what was built, where the files are, and what is still open.
 
@@ -98,9 +98,9 @@ Rubric sources: `rubricGuide/Rubrik Penilaian Proyek Data Mining dan SPK (1).pdf
 | CRISP-DM phase docs, rewritten to match the app | `PPT-Doc_CRISP-DM/fase1-business-understanding.md` … `fase6-deployment.md` |
 | Original design drafts, archived | `PPT-Doc_CRISP-DM/_rancangan-awal/` |
 | Laporan Teknis DM | `deliverables/laporan-dm/Laporan-Teknis-Data-Mining.docx` (+ compiled `laporan-teknis-dm.md`) |
-| User Manual | `deliverables/user-manual/User-Manual-SPK-SMART-Kecemasan.docx` (source `user-manual.md`) |
+| User Manual | `deliverables/user-manual/User-Manual-SI-SMART-Kecemasan.docx` (source `user-manual.md`) |
 | Screenshots | `deliverables/user-manual/screens/` (raw + element boxes as JSON) and `figures/` (annotated) |
-| Final deck | `deliverables/ppt/Presentasi-SPK-SMART-Kecemasan.pptx` |
+| Final deck | `deliverables/ppt/Presentasi-SI-SMART-Kecemasan.pptx` |
 | Build tooling | `deliverables/build/` |
 
 Build tooling in `deliverables/build/`:
@@ -118,7 +118,7 @@ Rebuild:
 ```bash
 cd deliverables/build && npm install
 node build_laporan.js && node build_manual.js && node build_ppt.js
-../../app/.venv/bin/python preview.py ../ppt/Presentasi-SPK-SMART-Kecemasan.pptx /tmp/prev 4 1100   # visual check
+../../app/.venv/bin/python preview.py ../ppt/Presentasi-SI-SMART-Kecemasan.pptx /tmp/prev 4 1100   # visual check
 ```
 
 ## 5. Key findings (already reflected in app and docs)

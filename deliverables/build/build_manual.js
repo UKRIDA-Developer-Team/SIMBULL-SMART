@@ -8,10 +8,10 @@ const MEMBERS = [['Steven Feryanta', '412025028'], ['Steven Iwan', '412024008'],
 const md = fs.readFileSync(path.join(DIR, 'user-manual.md'), 'utf8');
 const cover = coverPage({
   kicker: 'DOKUMEN USER MANUAL (PANDUAN PENGGUNAAN)',
-  title: 'SPK SMART Kecemasan Siswa',
+  title: 'SI SMART Kecemasan Siswa',
   subtitle: 'Panduan langkah demi langkah memakai aplikasi rekomendasi penanganan kecemasan siswa',
   members: MEMBERS,
   footer: ['Universitas Kristen Krida Wacana', '2026'],
 });
-buildWithToc({ markdown: md, baseDir: DIR, out: path.join(DIR, 'User-Manual-SPK-SMART-Kecemasan.docx'),
-  title: 'User Manual — SPK SMART Kecemasan Siswa', cover }).then(f => console.log('->', f));
+buildWithToc({ markdown: md, baseDir: DIR, out: path.join(DIR, 'User-Manual-SI-SMART-Kecemasan.docx'),
+  title: 'User Manual — SI SMART Kecemasan Siswa', cover }).then(f => console.log('->', f));

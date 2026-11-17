@@ -6,7 +6,7 @@ DEFAULT = "id"
 
 S: dict[str, dict[str, str]] = {
     # ---- shell ----
-    "app_title": {"id": "SPK SMART Kecemasan Siswa", "en": "Student Anxiety SMART DSS"},
+    "app_title": {"id": "SI SMART Kecemasan Siswa", "en": "SI SMART Student Anxiety"},
     "nav_home": {"id": "Beranda", "en": "Home"},
     "nav_reco": {"id": "Rekomendasi", "en": "Recommendation"},
     "nav_analysis": {"id": "Analisis", "en": "Analysis"},

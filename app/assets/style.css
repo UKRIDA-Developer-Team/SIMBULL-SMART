@@ -1,4 +1,4 @@
-/* SPK SMART - layout and component styles on top of the theme in .streamlit/config.toml.
+/* SI SMART - layout and component styles on top of the theme in .streamlit/config.toml.
    Colors mirror the theme tokens so custom HTML matches native widgets. */
 :root {
   --spk-ink: #1D2725;
