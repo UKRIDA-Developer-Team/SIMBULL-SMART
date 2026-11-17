@@ -22,21 +22,25 @@ def main():
     rf, meta = model.load_base()
     bounds = meta["smart_bounds"]
     df = data.load_dataset()
-    _, X_test, _, y_test = model.split(df)
+    # The reference rows are 20,000 rows of the Kaggle test set (never trained on).
+    X_test, y_test = model.kaggle_test_set(df)
     test = X_test.copy()
     test["anxiety_score"] = y_test
     crit = test[config.FEATURES].copy()
     crit["rf_anxiety_score"] = model.predict(rf, test)
     res, _ = smart.run(crit[config.CRITERIA], config.WEIGHTS_A, bounds)
-    # 8 test-set students: the first test rows whose top-1 covers every alternative at least once
-    picked, seen = [], {}
+    # 8 test-set students: the first row for each alternative (all five covered), then the
+    # earliest other rows (at most two per alternative), in row order
+    best = res["Best_Recommendation"]
+    picked = [best[best == alt].index[0] for alt in config.ALTERNATIVES if (best == alt).any()]
+    seen = {alt: 1 for alt in best.loc[picked]}
     for idx in res.index:
-        best = res.at[idx, "Best_Recommendation"]
-        if seen.get(best, 0) < 2:
-            picked.append(idx)
-            seen[best] = seen.get(best, 0) + 1
-        if len(picked) == 8 and len(seen) == 5:
+        if len(picked) == 8:
             break
+        if idx not in picked and seen.get(best[idx], 0) < 2:
+            picked.append(idx)
+            seen[best[idx]] = seen.get(best[idx], 0) + 1
+    picked = sorted(picked)
     if len(seen) < 5:
         raise SystemExit(f"not every alternative covered: {seen}")
     rows = [("S01", "Contoh aplikasi: Risiko tinggi", dict(config.EXAMPLE_PROFILES["high"]), None),
