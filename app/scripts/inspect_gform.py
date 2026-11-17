@@ -1,6 +1,6 @@
 """Check a Google Form export against spk/gform_mapping.json before training.
 
-    python scripts/inspect_gform.py data/private/gform_raw.csv
+    python scripts/inspect_gform.py data/private/gform_data.csv
 
 Prints which column each field resolved to, fields that are missing or
 ambiguous, columns nothing uses, answers that could not be parsed, and a
