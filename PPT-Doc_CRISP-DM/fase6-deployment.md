@@ -21,7 +21,7 @@
 ```
  Pelatihan offline (laptop / Colab)                    Streamlit Community Cloud
  ─────────────────────────────────                     ─────────────────────────────────────────────
- Kaggle 1M ─► 20k sampel ─┐                             streamlit_app.py (navigasi, bahasa, profil bobot)
+ Kaggle 1M ─► 14–25 80/20 ┐                             streamlit_app.py (navigasi, bahasa, profil bobot)
                           ├─► scripts/train.py ─► models/   │
  Google Form (rahasia) ───┘   kaggle | real |     *.joblib  ├─ Beranda
                               compare              + meta   ├─ Rekomendasi ─► spk/gform.py  (jawaban → fitur)
@@ -42,10 +42,11 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 | `app/app_pages/home.py` | masalah, pengguna, alur kerja, tombol mulai |
 | `app/app_pages/recommendation.py` | input satu siswa (kuesioner/lanjutan), hasil + alasan + sensitivitas; unggah banyak siswa + evaluasi data baru |
 | `app/app_pages/analysis.py` | data, model, SMART, sensitivitas, keadilan |
+| `app/app_pages/data_mining.py` | proses CRISP-DM per fase dengan angka dari data dan model |
 | `app/app_pages/about.py` | metode, arsitektur, keterbatasan, etika |
 | `app/spk/*.py` | logika murni tanpa Streamlit, diuji dengan `pytest` |
-| `app/scripts/*.py` | pelatihan, inspeksi kuesioner, evaluasi, data sintetis |
-| `app/tests/` | 39 uji otomatis: *parsing* kuesioner, kesamaan dengan notebook, pelatihan ulang, setiap halaman di kedua bahasa |
+| `app/scripts/*.py` | pelatihan (`kaggle`, `tune`, `compare`, `real`), inspeksi kuesioner, evaluasi data baru, laporan penggabungan pertanyaan |
+| `app/tests/` | 155 uji otomatis (*black-box* dan *white-box*): *parsing* kuesioner, perhitungan SMART, pelatihan ulang, setiap halaman di kedua bahasa |
 
 ## 4. Fitur Aplikasi
 
@@ -55,15 +56,16 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 | Rekomendasi — satu siswa | mode kuesioner (pertanyaan Google Form) atau 11 nilai fitur; prediksi + persentil; skor prioritas; tiga alternatif teratas; grafik kontribusi bobot × utilitas; kalimat alasan; uji sensitivitas per siswa; aturan pengaman | *Implementation*, *Explainability* |
 | Rekomendasi — banyak siswa | unggah ekspor Google Form (.csv/.xlsx) atau CSV 11 kolom; kolom pribadi dibuang otomatis; peringkat prioritas; unduh hasil; evaluasi MAE/RMSE/R² bila jawaban Psikologis tersedia | *Implementation*, *Evaluation* |
 | Analisis | statistik data Kaggle dan agregat data riil; metrik, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi; grafik SMART dari notebook; stabilitas ±10%/±20%; peta sensitivitas; keadilan per gender | *Evaluation & Sensitivity*, *Data & Criteria* |
+| Data Mining | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji | *Data Mining process* |
 | Tentang | data, *preprocessing*, pemetaan kuesioner, RF, SMART, keterbatasan, etika | *Algorithm*, *Architecture*, *Ethics* |
-| Sidebar | ID/EN, profil bobot A/B/C (hasil langsung berubah), versi model | *Sensitivity* |
+| Pengaturan | ID/EN; pilihan model (iterasi 1 Kaggle atau iterasi 2 data riil) dan profil bobot A/B/C, hasil di semua halaman langsung berubah; perbandingan kedua model untuk satu siswa dan tabel iterasi model di Analisis | *Sensitivity*, *Evaluation* |
 
 ## 5. Langkah Deployment
 
-1. Pastikan `app/models/` berisi model aktif dan metadata. Setelah data riil dijalankan, tambahkan `rf_real_model.joblib`, metadatanya, dan `real_summary.json`. Data mentah **tidak** ikut di-*commit*.
+1. Pastikan `app/models/` berisi model dasar Kaggle (`rf_anxiety_model.joblib`, ±29 MB) dan model aktif data riil (`rf_real_model.joblib`, ±0,4 MB) beserta metadata dan `real_summary.json` (agregat saja). Ekspor kuesioner mentah **tidak** ikut di-*commit*.
 2. *Push* ke GitHub (repositori privat `UKRIDA-Developer-Team/SIMBULL-SMART`, cabang `main`).
 3. Di share.streamlit.io, pilih *Create app* → repositori → cabang `main` → berkas `app/streamlit_app.py` → Python 3.12. Beri Streamlit akses ke repositori privat.
-4. Uji URL publik: setiap halaman dalam ID dan EN, satu penilaian siswa, dan unggah `data/sample_gform.csv`.
+4. Uji URL publik: setiap halaman dalam ID dan EN, satu penilaian siswa, dan unggah ekspor kuesioner (aplikasi membuang kolom pribadi dan tidak menyimpan apa pun).
 
 Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan versi pembuat model) agar berkas `.joblib` dapat dimuat di server.
 
@@ -81,8 +83,8 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 
 ## 7. Peninjauan Proyek
 
-**Yang berhasil:** integrasi RF → SMART berjalan dari satu siswa hingga 20.000 siswa, dengan hasil identik dengan notebook. Setiap rekomendasi dapat ditelusuri ke kontribusi kriteria. Pipeline data riil siap pakai begitu ekspor tersedia.
+**Yang berhasil:** integrasi RF → SMART berjalan dari satu siswa hingga 20.000 siswa referensi; perhitungan SMART identik dengan notebook. Setiap rekomendasi dapat ditelusuri ke kontribusi kriteria. Pipeline data riil siap pakai begitu ekspor tersedia.
 
-**Yang diperbaiki selama deployment:** bobot Exercise profil A yang berjumlah 1,05; *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi.
+**Yang diperbaiki selama deployment:** bobot Exercise profil A yang berjumlah 1,05; *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi; pembersihan usia 14–25; pelatihan pada seluruh data (bukan sampel 8.000 baris) dengan data uji 138.509 baris; *tuning* parameter dengan validasi silang.
 
 **Pengembangan lanjutan:** validasi bobot oleh pakar BK; segmentasi siswa (*clustering*) dan aturan asosiasi dari rancangan awal; bobot SMART yang diturunkan dari *feature importance*; pengumpulan data berkala (longitudinal).

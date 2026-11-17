@@ -55,7 +55,7 @@ def arsitektur():
     ax.set_xlim(0, 12.8); ax.set_ylim(0, 6.6); ax.axis("off")
     ax.add_patch(FancyBboxPatch((0.1, 0.2), 3.9, 6.1, boxstyle="round,pad=0.02", fc="white", ec="#999999", ls="--"))
     ax.text(2.05, 6.0, "Pelatihan (offline)", ha="center", fontsize=8.5, style="italic")
-    box(ax, 0.4, 4.5, 3.3, 1.0, "Kaggle 20.000 baris\n(data sekunder)", size=7.8)
+    box(ax, 0.4, 4.5, 3.3, 1.0, "Kaggle usia 14–25\n692.545 baris (sekunder)", size=7.8)
     box(ax, 0.4, 3.1, 3.3, 1.0, "Google Form siswa SMA\n(rahasia, tanpa identitas)", size=7.8)
     box(ax, 0.4, 0.8, 3.3, 1.6, "scripts/train.py\n7 strategi latih ulang\n+ validasi silang", fill=GREY, size=7.8)
     arrow(ax, 2.05, 4.5, 2.05, 4.1); arrow(ax, 2.05, 3.1, 2.05, 2.4)

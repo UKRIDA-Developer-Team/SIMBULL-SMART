@@ -9,19 +9,21 @@
 
 | # | Langkah | Data Kaggle | Data kuesioner | Kode |
 |---|---|---|---|---|
-| 1 | Sampling | 1 juta → 20.000 (2%), lalu 10.000 (50%) untuk RF | seluruh respons | `spk/data.py`, `spk/model.py::split` |
+| 1 | Pembersihan usia | 1 juta → usia 14–25 (692.545) | usia 14–25 | `data.clean`, `config.AGE_RANGE` |
 | 2 | Seleksi atribut | 11 fitur + target; buang variabel hasil | petakan ±50 kolom ke *field* | `config.FEATURES`, `gform_mapping.json` |
 | 3 | Pembersihan | tidak ada nilai hilang/duplikat | duplikat, rentang, jawaban tak dikenal, data pribadi | `spk/gform.py` |
 | 4 | Encoding | `gender` → kode tetap | teks jawaban → angka | `data.encode_gender`, `gform.encode` |
 | 5 | Konstruksi fitur | – | 11 fitur skala Kaggle + target | `gform.derive` |
 | 6 | Imputasi | – | median data latih | `gform.impute` |
-| 7 | Pembagian data | 80% latih / 20% uji | 80% pengembangan / 20% *holdout* + CV 5-fold ×2 | `model.split`, `spk/retrain.py` |
+| 7 | Pembagian data | 80% latih (554.036) / 20% uji (138.509), stratifikasi usia | 80% pengembangan / 20% *holdout* + CV 5-fold ×2 | `data.split_full`, `spk/retrain.py` |
 
 ## 2. Data Kaggle
 
-### 2.1 Sampling
+### 2.1 Pembersihan usia
 
-Berkas 1 juta baris terlalu besar untuk Google Colab dan deployment, jadi diambil sampel acak **2% (20.000 baris)** dengan `random_state=42`. Sampel ini disimpan sebagai `app/data/dataset.csv`. Untuk melatih RF, diambil lagi **50% (10.000 baris)**.
+Data Kaggle berasal dari mahasiswa usia 17–29, sedangkan pengguna sasaran adalah pelajar. Agar data yang ditambang mewakili usia pelajar, hanya baris dalam rentang **14–25 tahun** yang dipakai (`config.AGE_RANGE`). Batas 14 mencakup siswa SMA pengisi kuesioner, dan 25 adalah akhir masa kuliah umum. Karena berkas Kaggle mulai dari usia 17, yang tersisa adalah usia 17–25: **692.545 dari 1.000.000 baris** (307.455 baris dibuang). Model dasar karena itu tidak pernah melihat pelajar berusia 14–16; penyesuaian ke siswa SMA dilakukan dengan pelatihan ulang (§4.3).
+
+Seluruh berkas dipakai, bukan sampel. Notebook awal mengambil sampel 2% (20.000 baris) lalu 50% lagi untuk RF, sehingga hanya 8.000 baris yang melatih model dan 2.000 baris yang mengujinya.
 
 ### 2.2 Seleksi atribut
 
@@ -37,7 +39,25 @@ Random Forest tidak memerlukan normalisasi fitur, sehingga fitur numerik dipakai
 
 ### 2.4 Pembagian data
 
-Dari 10.000 baris: **8.000 latih** dan **2.000 uji** (`test_size=0.2`, `random_state=42`). Rata-rata target pada data latih 3,00 dan pada data uji 3,07, jadi sebaran keduanya seimbang.
+692.545 baris dibagi **80% latih (554.036 baris)** dan **20% uji (138.509 baris)** dengan `test_size=0.2`, `random_state=42`, dan stratifikasi per usia, sehingga setiap usia 17–25 mendapat porsi yang sama (±11,1%) di kedua bagian (`data.split_full`). Rata-rata target pada data latih 2,99 dan pada data uji 2,98.
+
+Dari data uji diambil **20.000 baris** (juga distratifikasi per usia) sebagai **populasi referensi** aplikasi (`app/data/dataset.csv`): batas SMART, persentil, grafik Analisis, dan penjelasan Shapley memakai baris ini. Karena berasal dari data uji, aplikasi tidak pernah menampilkan baris yang dipakai melatih model. Dari data latih disimpan 8.000 baris untuk strategi pelatihan ulang S2 (`kaggle_retrain.csv.gz`).
+
+### 2.5 Pemeriksaan outlier
+
+Selain nilai hilang dan duplikat (tidak ada), diperiksa nilai ekstrem. Tiap kolom memiliki paling banyak 0,6% baris di luar 3 simpangan baku; semuanya nilai yang masih masuk akal (misalnya 14 jam belajar atau nilai rapor 45), bukan kesalahan data. Skor *burnout* bernilai 0 pada 23% baris dan kecemasan 0 pada 2,7% baris; ini batas bawah skala, bukan galat.
+
+Untuk memastikan, baris ekstrem dibuang dari **data latih saja**, lalu model diuji pada 138.509 baris uji yang sama:
+
+| Pembersihan data latih | Baris latih | R² uji (Gradient Boosting) |
+|---|---|---|
+| Tanpa pembersihan tambahan | 554.036 | **0,6083** |
+| Buang baris dengan nilai di luar 3 simpangan baku | 547.004 | 0,6079 |
+| Buang baris di luar persentil 1–99 | 483.776 | 0,6058 |
+| Buang baris dengan kecemasan 0 atau 10 | 539.326 | 0,6049 |
+| Buang 2% outlier (*Isolation Forest*) | 542.955 | 0,6080 |
+
+Tidak ada pembersihan yang menaikkan R², jadi tidak ada baris lain yang dibuang. Data uji tidak boleh ikut dibersihkan: membuang baris uji yang sulit diprediksi menaikkan R² secara semu (0,67 bila galat > 2 simpangan baku dibuang), padahal modelnya sama.
 
 ## 3. Data Kuesioner (Google Form)
 
@@ -74,7 +94,7 @@ Agar model Kaggle dapat dipakai dan dilatih ulang, jawaban kuesioner diubah ke r
 
 | Fitur model | Rumus |
 |---|---|
-| age | ⌊(timestamp − tanggal lahir) / 365,25⌋ |
+| age | ⌊(tanggal acuan − tanggal lahir) / 365,25⌋; tanggal acuan = *timestamp*, atau tanggal pemrosesan bila ekspor tidak memuat *timestamp* (seperti ekspor riil) |
 | gender | jenis kelamin |
 | study_hours_per_day | jam belajar (jam) |
 | academic_performance | nilai rata-rata rapor |
@@ -83,7 +103,7 @@ Agar model Kaggle dapat dipakai dan dilatih ulang, jawaban kuesioner diubah ke r
 | sleep_hours | durasi tidur (jam) |
 | physical_activity | hari olahraga per minggu |
 | financial_stress | 10 × (5 − uang saku cukup) / 4 (dibalik) |
-| family_expectation | 10 × rata-rata unit(takut mengecewakan orang tua, tuntutan nilai keluarga, 1 − unit(mampu bercerita ke keluarga) ᴿ) |
+| family_expectation | 10 × rata-rata unit(takut mengecewakan orang tua, tuntutan nilai keluarga) |
 | burnout_score | 10 × rata-rata unit(sulit membagi waktu, kelelahan, kehilangan minat) |
 | **anxiety_score** (target) | 10 × rata-rata unit(P01, P02, 1 − unit(P03), P04, P05, P06 ᴿ, P07 ᴿ) → 0–10 |
 | x_sleep_quality (tambahan) | 10 × rata-rata unit(sulit tertidur, terbangun lalu sulit tidur lagi, mimpi buruk/gelisah) ᴿ |
@@ -100,6 +120,20 @@ Laporan kualitas (`inspect_gform.py`, laporan privat pelatihan) memuat:
 - **Reliabilitas** (*Cronbach's alpha*) setiap skor gabungan, untuk semua butir dan untuk butir versi lama saja. Alpha ≥ 0,6 dianggap cukup. Bila butir tambahan menurunkan alpha suatu skor, keluarkan butir itu dari `COMPOSITES` di `spk/gform.py`.
 - **Kesetaraan versi** (`item_set_check`): pada baris revisi, korelasi *r* dan selisih rata-rata (*shift*) antara skor dari butir lama dan skor dari semua butir. *r* tinggi (≥ 0,8) dan *shift* kecil (< 0,5 poin) berarti baris lama dan baru aman digabung.
 
+**Hasil pada data riil** (195 baris formulir awal, 109 baris formulir revisi):
+
+| Skor gabungan | α semua butir | α butir lama | *r* (lama vs semua) | *shift* |
+|---|---|---|---|---|
+| anxiety_score (target) | 0,78 (7 butir) | 0,69 (5 butir) | 0,958 | −0,05 |
+| exam_pressure | 0,38 (2 butir) | – (1 butir) | 0,823 | −0,34 |
+| family_expectation (dengan "bisa bercerita") | 0,37 (3 butir) | 0,53 (2 butir, baris yang sama) | 0,898 | −0,16 |
+| burnout_score | 0,67 | 0,67 | – | – |
+| stress_level | 0,32 | 0,32 | – | – |
+
+- Ketiga skor yang mendapat butir baru lolos uji kesetaraan (*r* ≥ 0,82, |*shift*| ≤ 0,34), jadi kedua versi formulir **digabung**.
+- Butir revisi "saya mampu membicarakan kesulitan dengan keluarga" **menurunkan** α ekspektasi keluarga dari 0,53 menjadi 0,37 pada 109 baris yang sama. Sesuai aturan di atas, butir ini **dikeluarkan** dari `family_expectation` dan disimpan sebagai butir ekstra (r = −0,26 dengan kecemasan).
+- Tingkat stres (α 0,32) dan tekanan ujian (α 0,38) tetap di bawah 0,6. Butir-butirnya bukan butir revisi, jadi tetap dipakai, tetapi keterbatasan ini dicatat di Fase 2 dan Fase 5.
+
 ### 3.5 Imputasi
 
 Fitur yang kosong diisi median data kuesioner. Untuk gender, dipakai modus. Nilai median disimpan di metadata model (`impute_medians`), sehingga unggahan baru di aplikasi diisi dengan nilai yang sama persis. Baris tanpa target dibuang dari pelatihan.
@@ -111,17 +145,28 @@ Fitur yang kosong diisi median data kuesioner. Untuk gender, dipakai modus. Nila
 - Pada data pengembangan dijalankan ***repeated k-fold cross-validation*** (5 lipatan × 2 ulangan) untuk memilih strategi pelatihan ulang (Fase 4).
 - Model akhir dilatih ulang pada seluruh respons dengan strategi terpilih.
 
-⟦ISI dari laporan data riil: jumlah baris mentah → bersih, jumlah pengembangan/holdout, jumlah nilai yang diimputasi.⟧
+**Hasil pada data riil:**
+
+| Langkah | Baris |
+|---|---|
+| Ekspor mentah | 304 |
+| Setelah buang duplikat | 304 (0 duplikat) |
+| Usia 14–25 (atau usia kosong) | 293 (11 dibuang: 10 berusia 13, 1 berusia 30) |
+| Dengan target lengkap | **292** |
+| Pengembangan / *holdout* | **233 / 59** (*holdout*: 39 formulir awal, 20 formulir revisi) |
+
+Nilai yang diimputasi: 8 usia (tanggal lahir tidak masuk akal) dan 1 nilai pada tekanan ujian, tingkat stres, aktivitas fisik, tekanan finansial, ekspektasi keluarga, dan *burnout*. Median yang disimpan antara lain usia 15, jam belajar 1,5, nilai rapor 84, jam tidur 6,5, dan *burnout* 5,0.
 
 ## 4. Penyiapan Data untuk SMART
 
-Matriks keputusan berisi 8 kriteria untuk setiap siswa: 7 fitur langsung ditambah `rf_anxiety_score` hasil prediksi RF. Normalisasi utilitas membutuhkan min dan maks tiap kriteria. Batas ini dihitung dari populasi referensi saat pelatihan dan disimpan di metadata (`smart_bounds`), agar satu siswa pun dapat dinilai. Batas diambil dari data Kaggle 20.000 baris, atau dari data riil bila respons ≥ 50.
+Matriks keputusan berisi 8 kriteria untuk setiap siswa: 7 fitur langsung ditambah `rf_anxiety_score` hasil prediksi RF. Normalisasi utilitas membutuhkan min dan maks tiap kriteria. Batas ini dihitung dari populasi referensi saat pelatihan dan disimpan di metadata (`smart_bounds`), agar satu siswa pun dapat dinilai. Batas diambil dari 20.000 baris referensi (bagian data uji Kaggle), atau dari data riil bila respons ≥ 50. Model aktif memakai batas dari 292 respons riil, misalnya prediksi kecemasan 1,95–7,64, jam belajar 0,25–10, dan jam tidur 4–12.
 
 ## 5. Keluaran Fase
 
 | Berkas | Isi | Di repositori? |
 |---|---|---|
-| `app/data/dataset.csv` | 20.000 baris sampel Kaggle | ya |
-| `app/data/private/gform_raw.csv` | ekspor kuesioner mentah | **tidak** (gitignore) |
-| `app/data/sample_gform.csv` | 250 baris ekspor **sintetis** untuk uji dan demo | ya |
+| `app/data/dataset.csv` | 20.000 baris uji Kaggle (populasi referensi) | ya |
+| `app/data/kaggle_retrain.csv.gz` | 8.000 baris latih Kaggle untuk strategi S2 | ya |
+| `app/data/private/gform_data.csv` | ekspor kuesioner riil (304 respons) | **tidak** (gitignore) |
+| `app/reports/question_merge_report.md` | pertanyaan mana digabung menjadi fitur/kriteria (agregat) | ya |
 | metadata model | `smart_bounds`, `impute_medians`, `gender_map` | ya |
