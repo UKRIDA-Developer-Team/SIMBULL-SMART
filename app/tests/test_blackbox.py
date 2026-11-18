@@ -16,7 +16,10 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 import make_synthetic_gform
+import ui
 from spk import config, data, gform, model, recommend, smart, xai
+
+CALC = ui.PAGE_FILE["ch3"]
 
 pytestmark = pytest.mark.blackbox
 
@@ -227,7 +230,6 @@ def test_bb14_what_if_without_change_reproduces_the_result(ctx):
 def app(page: str, lang: str, **state) -> AppTest:
     at = AppTest.from_file("../streamlit_app.py", default_timeout=240)
     at.session_state["lang"] = lang.upper()
-    at.session_state["profile"] = "A"
     for k, v in state.items():
         at.session_state[k] = v
     at.run()
@@ -236,10 +238,10 @@ def app(page: str, lang: str, **state) -> AppTest:
 
 
 @pytest.mark.parametrize("lang", ["id", "en"])
-def test_bb15_result_page_shows_the_ai_explanation(lang):
-    """ST. After an assessment the result page shows the xAI card: three tabs, the Shapley
+def test_bb15_calculation_chapter_shows_the_ai_explanation(lang):
+    """ST. Report chapter 3 explains the assessed student with the xAI card: three tabs, the Shapley
     narrative, the waterfall and contribution charts, and the what-if tool."""
-    at = app("app_pages/recommendation.py", lang, assess_features=config.EXAMPLE_PROFILES["high"])
+    at = app(CALC, lang, assess_features=config.EXAMPLE_PROFILES["high"], calc_source="last")
     assert not at.exception, [e.value for e in at.exception]
     labels = [t.label for t in at.tabs]
     expected = (["Prediksi kecemasan", "Dari prediksi ke rekomendasi", "Bagaimana jika?"] if lang == "id"
@@ -247,21 +249,23 @@ def test_bb15_result_page_shows_the_ai_explanation(lang):
     assert labels[:3] == expected
     assert any(("Model memperkirakan" if lang == "id" else "The model estimates") in m.value for m in at.markdown)
     assert len(at.get("image")) >= 2
-    assert at.slider and len(at.metric) == 3
+    # chapter 3 also shows metrics in 3.2 and 3.8; the what-if tool's three come last
+    assert at.slider and len(at.metric) >= 3
+    assert [m.label for m in at.metric[-3:]][-1] == ("Rekomendasi utama" if lang == "id" else "Top recommendation")
 
 
 def test_bb16_what_if_slider_updates_the_result():
-    """ST. Moving the what-if slider changes the simulated prediction shown next to it."""
+    """ST. Moving the what-if slider for the main factor lowers the simulated prediction."""
     high = config.EXAMPLE_PROFILES["high"]
-    at = app("app_pages/recommendation.py", "en", assess_features=high)
-    key = at.slider[0].key
-    assert at.slider[0].value == high["stress_level"]       # starts at the student's own value
+    at = app(CALC, "en", assess_features=high, calc_source="last")
+    key = at.slider[0].key                                   # the factor that raises the prediction most
+    assert at.slider[0].value == high[key.removeprefix("wi_val_calc_")]   # starts at the student's own value
     # The new slider value goes in through session_state on a fresh run: rerunning after a widget
     # change makes AppTest re-read the format_func widgets on the page, which it cannot do.
-    moved = app("app_pages/recommendation.py", "en", assess_features=high, **{key: 4.0})
+    moved = app(CALC, "en", assess_features=high, calc_source="last", **{key: 4.0})
     assert not moved.exception, [e.value for e in moved.exception]
     assert moved.slider[0].value == 4.0
-    assert float(moved.metric[0].value) < float(at.metric[0].value)
+    assert float(moved.metric[-3].value) < float(at.metric[-3].value)   # the what-if prediction
 
 
 @pytest.mark.parametrize("lang", ["id", "en"])
@@ -270,7 +274,7 @@ def test_bb17_data_mining_page_walks_through_crisp_dm(lang, phase):
     """ST. The Data Mining page shows a six-step CRISP-DM stepper; every phase renders its name,
     four "what was done" steps and its key decisions; phase 5 shows the success-criteria table."""
     names = ["Business Understanding", "Data Understanding", "Data Preparation", "Modeling", "Evaluation", "Deployment"]
-    at = app("app_pages/data_mining.py", lang, dm_phase=phase)
+    at = app(ui.PAGE_FILE["ch7"], lang, dm_phase=phase)
     assert not at.exception, [e.value for e in at.exception]
     hero = [h.proto.body for h in at.get("html") if "spk-phase-hero" in h.proto.body]
     assert hero and names[phase] in hero[0]
@@ -279,9 +283,11 @@ def test_bb17_data_mining_page_walks_through_crisp_dm(lang, phase):
         assert any("D1" in str(t.value.index.tolist()) for t in at.table)
 
 
-def test_bb18_class_view_explains_one_student():
-    """ST. In the whole-class view a counselor can pick a student and see the same explanation."""
-    at = app("app_pages/recommendation.py", "en", reco_view="batch")
+def test_bb18_class_view_links_one_student_to_the_calculation():
+    """ST. In the whole-class view (sample data on) a counselor picks a student, sees their ranking, and can open
+    that student's worked calculation."""
+    at = app(ui.PAGE_FILE["class"], "en", batch_demo=True)
     assert not at.exception, [e.value for e in at.exception]
     assert any(s.label == "Student" for s in at.selectbox)
-    assert any("The model estimates" in m.value for m in at.markdown)
+    assert any(b.label == "See this student's calculation" for b in at.button)
+    assert [h for h in at.get("html") if "spk-bars" in h.proto.body]

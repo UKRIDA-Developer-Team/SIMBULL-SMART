@@ -1,0 +1,44 @@
+/* Report zone (examiners): a technical report. White page, narrow measure, numbered headings,
+   captioned exhibits, ruled tables, no decorative cards. Loaded after style.css on report pages only. */
+[data-testid="stApp"], [data-testid="stAppViewContainer"] { background: #FFFFFF; }
+[data-testid="stMainBlockContainer"] { max-width: 920px; }
+.st-key-topbar { background: rgba(255, 255, 255, 0.98); }
+
+h1 { font-size: 1.875rem !important; margin-top: 0.25rem !important; }
+h3 { scroll-margin-top: 5rem; margin-top: 1.75rem !important; padding-top: 0 !important; }
+.spk-eyebrow { color: var(--spk-muted); letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.75rem; }
+.spk-lead { font-size: 1rem; }
+.spk-para { margin: 0 0 0.5rem; max-width: 72ch; color: var(--spk-ink); font-size: 0.9375rem; line-height: 1.65; }
+.spk-rule { margin: 0.5rem 0 0; border: 0; border-top: 1px solid var(--spk-line); }
+
+/* Contents line under the chapter title. */
+.spk-toc { margin: 0; font-size: 0.8125rem; line-height: 1.8; color: var(--spk-muted); }
+.spk-toc span { font-weight: 600; color: var(--spk-ink); margin-right: 0.25rem; }
+.spk-toc a { color: var(--spk-primary); text-decoration: none; white-space: nowrap; }
+.spk-toc a:hover { text-decoration: underline; }
+.st-key-ch_meta > div:first-child { flex: 1 1 24rem; }
+
+/* Captions: tables above, figures below. */
+.spk-cap { margin: 0.25rem 0 0.75rem; color: var(--spk-muted); font-size: 0.8125rem; line-height: 1.5; }
+.spk-cap strong { color: var(--spk-ink); font-weight: 600; }
+.spk-cap-tab { margin: 0.75rem 0 0.25rem; }
+
+/* Cards become plain blocks: the page itself is the surface. */
+div[class*="st-key-card"] { box-shadow: none !important; background: transparent !important; }
+[data-testid="stMetric"] { background: #FBFAF7; }
+
+/* Ruled, compact tables with tabular figures. */
+[data-testid="stTable"] table { font-size: 0.8125rem; font-variant-numeric: tabular-nums; border-collapse: collapse; }
+[data-testid="stTable"] thead th { border-bottom: 1.5px solid var(--spk-ink) !important; font-weight: 600; }
+[data-testid="stTable"] tbody th { border-bottom: 1px solid var(--spk-line) !important; font-weight: 500; }
+[data-testid="stTable"] td, [data-testid="stTable"] th { border-left: none !important; border-right: none !important; }
+[data-testid="stTable"] td { border-bottom: 1px solid var(--spk-line) !important; }
+
+/* Formulas sit left, like in a paper (st.latex centres its block with auto margins). */
+.stMarkdown > div:has(.katex-display) { margin-left: 0 !important; margin-right: 0 !important; max-width: 100%; }
+[data-testid="stMarkdownContainer"] .katex-display { text-align: left; margin: 0.5rem 0; overflow-x: auto; overflow-y: hidden; }
+[data-testid="stMarkdownContainer"] .katex-display > .katex { text-align: left; }
+
+/* Prev / next chapter. */
+.st-key-ch_pager [data-testid="stPageLink"] a span,
+.st-key-ch_pager [data-testid="stPageLink"] a p { color: var(--spk-primary); font-weight: 600; }

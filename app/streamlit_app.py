@@ -1,7 +1,11 @@
 """SI SMART - student anxiety screening & intervention recommendation.
 
 Run locally:  streamlit run streamlit_app.py   (from the app/ folder)
-Pages live in app_pages/; shared helpers in ui.py; styles in assets/style.css; logic in spk/.
+
+Two zones share one top bar (see ui.ZONES):
+- app:    app_pages/ (home, one student, a class, help), for counselors
+- report: app_pages/report/ (chapters 1-8), the technical report for examiners
+Shared helpers live in ui.py, report.py and result_views.py; styles in assets/; logic in spk/.
 """
 import streamlit as st
 
@@ -13,13 +17,6 @@ if not ui.artifacts_ok():
     st.error(ui.T("missing_artifacts"))
     st.stop()
 
-ui.setup()
-
-pages = [
-    st.Page("app_pages/home.py", title=ui.T("nav_home"), default=True, url_path="home"),
-    st.Page("app_pages/recommendation.py", title=ui.T("nav_reco"), url_path="recommendation"),
-    st.Page("app_pages/analysis.py", title=ui.T("nav_analysis"), url_path="analysis"),
-    st.Page("app_pages/data_mining.py", title=ui.T("nav_dm"), url_path="data-mining"),
-    st.Page("app_pages/about.py", title=ui.T("nav_about"), url_path="about"),
-]
-st.navigation(pages, position="top").run()
+page = st.navigation(ui.build_pages(), position="hidden")
+ui.setup(page)
+page.run()

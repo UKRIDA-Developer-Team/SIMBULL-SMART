@@ -7,7 +7,7 @@
 - Pada data Kaggle, regresi linear dan gradient boosting sama akuratnya dengan Random Forest (R² uji 0,606 dan 0,608 vs 0,608; MAE CV 0,760, 0,761, dan 0,761); RF dipertahankan karena hasil notebook, ketahanan terhadap hubungan non-linear, dan *feature importance*.
 - **R² berhenti di sekitar 0,61 pada data Kaggle.** Sekitar 40% variasi skor kecemasan adalah derau acak yang tidak dibawa kolom masukan mana pun: regresi linear, gradient boosting, dan Random Forest yang dituning sama-sama mencapai 0,606-0,608 pada 138.509 baris uji. Membuang outlier atau baris ekstrem tidak menaikkannya. Hanya `mental_health_index` yang dapat menaikkannya (ke sekitar 0,80), tetapi kolom itu dihitung dari skor kecemasan itu sendiri (`10 - 0,4 stres - 0,3 kecemasan - 0,3 depresi`). Memakainya berarti *label leakage*, dan kuesioner tidak memiliki butir tersebut.
 - Random Forest hampir hanya mengandalkan tingkat stres dan burnout (96% *feature importance*), karena dua kolom itu membawa hampir seluruh sinyal pada data Kaggle. Faktor lain tetap diperhitungkan SMART sebagai kriteria tersendiri.
-- Bobot profil A/B ditetapkan berdasarkan pertimbangan domain, belum divalidasi pakar; profil C selalu seri dan hanya menjadi pembanding.
+- Bobot SMART ditetapkan berdasarkan pertimbangan domain dan belum divalidasi pakar.
 
 ### Etika, keadilan, dan privasi
 

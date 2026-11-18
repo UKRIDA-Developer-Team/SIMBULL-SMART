@@ -96,7 +96,7 @@
         "RF is kept although linear regression and gradient boosting are equally accurate on Kaggle (test R² 0.606-0.608): questionnaire data is ordinal and retraining needs a warm start.",
         "Hyperparameters come from a random search (25 settings, 5-fold CV on 50,000 training rows): depth 12, leaves of 50+ students, 75% of the features per split, 60% of the rows per tree.",
         "Seven retraining strategies are compared with 5-fold CV × 2; the lowest MAE is deployed.",
-        "Profile A weights are normalized (the notebook's Exercise weights sum to 1.05)."
+        "The weights are normalized (the notebook's Exercise weights sum to 1.05)."
       ],
       "table": {
         "title": "Retraining strategies (Kaggle → real data)",
@@ -109,7 +109,7 @@
           ["S4", "Real data + extra items (reported only)"]
         ]
       },
-      "outputs": ["rf_anxiety_model.joblib + metadata", "rf_tuning.json", "model_comparison.json", "Weight profiles A/B/C"],
+      "outputs": ["rf_anxiety_model.joblib + metadata", "rf_tuning.json", "model_comparison.json", "SMART weights per alternative"],
       "code": ["app/scripts/train.py", "app/spk/retrain.py", "app/spk/smart.py", "app/spk/xai.py"]
     },
     {
@@ -123,7 +123,7 @@
         {"t": "Software testing", "d": "Black-box (from the specification) and white-box (from the code) tests, automated with pytest."}
       ],
       "decisions": [
-        "Profile A is the default because it is the most stable (criterion S1).",
+        "One domain-based weight set is used; its stability is checked by criterion S1.",
         "The safety rule uses a percentile, because the RF pulls extreme predictions toward the middle.",
         "A decision-table test found the safety cutoff differed between the one-student and whole-class views; fixed."
       ],

@@ -22,5 +22,5 @@ def test_real_retrain_end_to_end(monkeypatch):
     assert set(meta["reference_quantiles"]) == {"rf_anxiety_score", "smart_score"}
     assert "R0001" not in str(summary)          # no row identifiers in the committed summary
     a = recommend.assess(final, meta, prepared.data.iloc[0][config.FEATURES],
-                         config.WEIGHTS_B, meta["reference_quantiles"])
+                         config.WEIGHTS_A, meta["reference_quantiles"])
     assert a.best in config.ALTERNATIVES

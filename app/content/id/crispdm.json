@@ -96,7 +96,7 @@
         "RF dipakai walau regresi linear dan gradient boosting sama akuratnya di Kaggle (R² uji 0,606-0,608): data kuesioner ordinal dan latih ulang butuh warm start.",
         "Hyperparameter berasal dari random search (25 pengaturan, CV 5-fold pada 50.000 baris latih): kedalaman 12, daun minimal 50 siswa, 75% fitur per pemisahan, 60% baris per pohon.",
         "Tujuh strategi latih ulang dibandingkan dengan CV 5-fold × 2; MAE terendah yang dideploy.",
-        "Bobot profil A dinormalisasi (bobot Olahraga di notebook berjumlah 1,05)."
+        "Bobot dinormalisasi (bobot Olahraga di notebook berjumlah 1,05)."
       ],
       "table": {
         "title": "Strategi pelatihan ulang (Kaggle → data riil)",
@@ -109,7 +109,7 @@
           ["S4", "Data riil + butir tambahan (hanya dilaporkan)"]
         ]
       },
-      "outputs": ["rf_anxiety_model.joblib + metadata", "rf_tuning.json", "model_comparison.json", "Profil bobot A/B/C"],
+      "outputs": ["rf_anxiety_model.joblib + metadata", "rf_tuning.json", "model_comparison.json", "Bobot SMART per alternatif"],
       "code": ["app/scripts/train.py", "app/spk/retrain.py", "app/spk/smart.py", "app/spk/xai.py"]
     },
     {
@@ -123,7 +123,7 @@
         {"t": "Pengujian perangkat lunak", "d": "Uji black-box (dari spesifikasi) dan white-box (dari kode), otomatis dengan pytest."}
       ],
       "decisions": [
-        "Profil A menjadi bawaan karena paling stabil (kriteria S1).",
+        "Satu set bobot berbasis domain dipakai; kestabilannya diuji dengan kriteria S1.",
         "Aturan pengaman memakai persentil, karena RF menarik prediksi ekstrem ke tengah.",
         "Uji tabel keputusan menemukan selisih cutoff pengaman antara tampilan satu siswa dan satu kelas; sudah diperbaiki."
       ],

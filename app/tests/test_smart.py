@@ -30,18 +30,16 @@ def test_base_model_metrics(scored):
     assert m["r2"] == pytest.approx(0.6131, abs=1e-4)
 
 
-def test_profile_weights_sum_to_one():
-    for name, profile in config.WEIGHT_PROFILES.items():
-        for alt, w in profile.items():
-            assert sum(w.values()) == pytest.approx(1.0), (name, alt)
+def test_weights_sum_to_one():
+    for alt, w in config.WEIGHTS_A.items():
+        assert sum(w.values()) == pytest.approx(1.0), alt
     assert sum(config.WEIGHTS_A_NOTEBOOK["Exercise"].values()) == pytest.approx(1.05)
 
 
 def test_zero_perturbation_changes_nothing(scored):
     _, meta, _, crit = scored
     u = smart.utility(crit[config.CRITERIA].head(3000), meta["smart_bounds"])
-    for w in (config.WEIGHTS_A, config.WEIGHTS_B):
-        assert smart.population_sensitivity(u, w, deltas=(0.0,)).to_numpy().max() == 0
+    assert smart.population_sensitivity(u, config.WEIGHTS_A, deltas=(0.0,)).to_numpy().max() == 0
 
 
 def test_recommendation_counts_on_cleaned_sample(scored):
@@ -51,7 +49,6 @@ def test_recommendation_counts_on_cleaned_sample(scored):
     for weights, expected in [
         (config.WEIGHTS_A_NOTEBOOK, {"Counseling": 1956, "Exercise": 9338, "Relaxation": 2421, "Sleep": 4648, "Study": 1637}),
         (config.WEIGHTS_A, {"Counseling": 2337, "Exercise": 7323, "Relaxation": 3220, "Sleep": 5238, "Study": 1882}),
-        (config.WEIGHTS_B, {"Counseling": 7922, "Exercise": 4941, "Relaxation": 196, "Sleep": 5547, "Study": 1394}),
     ]:
         result, _ = smart.run(crit[config.CRITERIA], weights)
         assert result["Best_Recommendation"].value_counts().to_dict() == expected

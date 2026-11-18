@@ -61,7 +61,6 @@ _T = {
     "reco_score": {"id": "Skor rekomendasi", "en": "Recommendation score"},
     "top_heat": {"id": "Skor rekomendasi {n} siswa prioritas teratas", "en": "Recommendation scores of the top {n} priority students"},
     "student": {"id": "ID siswa", "en": "Student ID"},
-    "profiles": {"id": "Perbandingan profil bobot", "en": "Comparison of weight profiles"},
     "freq_util": {"id": "Frekuensi rekomendasi dan rata-rata skor", "en": "Recommendation frequency and average score"},
     "times": {"id": "Jumlah direkomendasikan", "en": "Times recommended"},
     "avg": {"id": "Rata-rata skor alternatif", "en": "Average alternative score"},
@@ -265,24 +264,6 @@ def top_heatmap(result, n=20, lang="id"):
     ax.set_ylabel(_t("student", lang))
     fig.tight_layout()
     return fig
-
-
-def model_comparison(results: dict, lang="id"):
-    comparison = pd.DataFrame(
-        {name: r["Best_Recommendation"].value_counts() for name, r in results.items()}
-    ).reindex(config.ALTERNATIVES).fillna(0).astype(int)
-    comparison.index = [i18n.alt(a, lang) for a in comparison.index]
-    fig, ax = plt.subplots(figsize=(7.5, 4.2))
-    # Profiles are ordered A (main) -> C (control): one hue, strong to faint.
-    comparison.plot(kind="bar", ax=ax, rot=0, width=0.78, color=[PRIMARY, "#7FB0A4", NEUTRAL][:comparison.shape[1]],
-                    **GAP)
-    ax.set_title(_t("profiles", lang))
-    ax.set_ylabel(_t("n_students", lang))
-    ax.set_xlabel("")
-    ax.legend(loc="upper right")
-    _value_grid(ax)
-    fig.tight_layout()
-    return fig, comparison
 
 
 def frequency_vs_utility(result, alt_scores, lang="id"):

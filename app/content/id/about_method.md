@@ -30,8 +30,8 @@ Data kuesioner bersifat **rahasia**: berkas mentah tidak pernah masuk repositori
 1. Delapan kriteria: prediksi kecemasan RF, jam belajar, nilai rapor, jam tidur, aktivitas fisik, tekanan finansial, ekspektasi keluarga, burnout.
 2. Utilitas: *benefit* `u = (x - min)/(max - min)`, *cost* `u = (max - x)/(max - min)`; di sini "benefit" berarti **makin tinggi makin membutuhkan perhatian**. Batas min/max diambil dari populasi referensi agar satu siswa pun dapat dinilai.
 3. **Skor prioritas** = rata-rata utilitas (bobot sama) → peringkat siswa.
-4. **Skor alternatif** = Σ bobot × utilitas, dengan bobot khusus tiap alternatif (profil A/B/C) → alternatif dengan skor tertinggi direkomendasikan.
+4. **Skor alternatif** = Σ bobot × utilitas, dengan bobot khusus tiap alternatif → alternatif dengan skor tertinggi direkomendasikan.
 
 ### Evaluasi
 
-MAE, RMSE, R² pada data uji; perbandingan dengan regresi linear, pohon keputusan, gradient boosting, dan baseline rata-rata; uji sensitivitas bobot ±10%/±20% per siswa dan populasi; stabilitas 100 iterasi acak; perbandingan profil bobot; pemeriksaan keadilan per gender; evaluasi pada respons baru lewat unggahan berkas.
+MAE, RMSE, R² pada data uji; perbandingan dengan regresi linear, pohon keputusan, gradient boosting, dan baseline rata-rata; uji sensitivitas bobot ±10%/±20% per siswa dan populasi; stabilitas 100 iterasi acak; pemeriksaan keadilan per gender; evaluasi pada respons baru lewat unggahan berkas.

@@ -11,9 +11,8 @@ L = ui.lang()
 T = ui.T
 
 
-def go(view: str):
-    st.session_state["reco_view"] = view
-    st.switch_page("app_pages/recommendation.py")
+def go(page: str):
+    st.switch_page(ui.PAGE_FILE[page])
 
 
 # ---------------------------------------------------------------- hero
@@ -23,9 +22,9 @@ with left:
     st.space("small")
     with st.container(horizontal=True, gap="small"):
         if st.button(T("home_cta"), type="primary", icon=":material/arrow_forward:", icon_position="right"):
-            go("single")
+            go("student")
         if st.button(T("home_cta_batch"), icon=":material/group:"):
-            go("batch")
+            go("class")
     st.caption(T("home_facts", n=f"{meta.get('n_rows', 0):,}", k=len(config.CRITERIA)))
 
 with right:
@@ -72,14 +71,13 @@ for col, alt in zip(alt_cols, config.ALTERNATIVES):
         st.markdown(f"**{i18n.alt(alt, L)}**")
         st.caption(i18n.alt_desc(alt, L))
 
-# ---------------------------------------------------------------- who and what to keep in mind
+# ---------------------------------------------------------------- for examiners
 st.space("medium")
-c1, c2 = st.columns(2, gap="medium")
-with c1.container(border=True, key="card_users", height="stretch"):
-    st.markdown(f"**{T('home_users_t')}**")
-    st.markdown(T("home_users_d"))
-with c2.container(border=True, key="card_care", height="stretch"):
-    st.markdown(f"**{T('home_care_t')}**")
-    st.markdown("\n".join(f"- {T(f'home_care_{i}')}" for i in (1, 2, 3)))
+with st.container(border=True, key="card_report", horizontal=True, vertical_alignment="center", gap="medium"):
+    with st.container():
+        st.markdown(f"**{T('home_report_t')}**")
+        st.caption(T("home_report_d"))
+    if st.button(T("home_report_btn"), icon=":material/arrow_forward:", icon_position="right", key="open_report"):
+        st.switch_page(ui.PAGE_FILE["ch1"])
 
 ui.footer()
