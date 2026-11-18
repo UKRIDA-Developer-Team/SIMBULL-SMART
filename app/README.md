@@ -7,24 +7,39 @@ This app is the deployable version of `code/Copy of EskulSPK2026_SMART_Final.ipy
 
 The model is pretrained on a Kaggle sample. It can be retrained on the team's real Google Form answers when that confidential export is dropped in (see [Real questionnaire data](#real-questionnaire-data)).
 
-The UI is bilingual (Bahasa Indonesia / English) and has five pages: Home, Recommendation, Analysis, Data Mining, and About. Pages sit in a top navigation bar; the ID/EN switch is on the right of that bar, and the SMART weight profile is a small setting on the Recommendation and Analysis pages.
+The UI is bilingual (Bahasa Indonesia / English) and has two zones that share one top bar:
+
+- **App** (for counselors): Home, Assess a student, Assess a class, Help. The questionnaire starts empty; the high/low-risk examples only fill it in. Percentiles, bands and the referral cutoff compare a student with the questionnaire respondents the model was retrained on (or with the Kaggle test set when the Kaggle model is chosen); each band has a (?) with its exact range. The class view starts empty and shows who to refer, a filterable priority list, and the students grouped per kind of support. Results stay short: the recommendation, the estimated anxiety level, the priority, why, the main factors behind the prediction, and a what-if tool that changes one or more factors at once.
+- **Report** (for lecturers and examiners): a technical report in eight chapters: Data, Model, SMART calculation (a worked example for one student), xAI, SMART results & sensitivity, Fairness, CRISP-DM, Architecture & limitations.
+
+A small switch next to ID/EN changes the zone. Each zone shows its own pages in the top bar, and the zone always follows the page you are on, so a direct link to a chapter opens the Report zone. From a result, "Open calculation" goes straight to chapter 3 for the same student. SMART uses one domain-based weight set (the notebook's profile A, normalized); the earlier profiles B and C were dropped. The prediction model is a small popover on the assessment pages and every chapter.
 
 ## Layout
 
 ```
 app/
-├── streamlit_app.py          # entry point: top navigation, logo, language switch
-├── ui.py                     # Streamlit helpers: cached loaders, scoring, page header, weight-profile picker, footer
-├── assets/                   # style.css (layout and components on top of the theme), logo.svg, mark.svg
+├── streamlit_app.py          # entry point: registers every page, draws the top bar, runs the page
+├── ui.py                     # zones + top bar, cached loaders, scoring, page header, settings popover, footer
+├── report.py                 # report zone: numbered chapters/sections, captioned tables and figures, prev/next
+├── result_views.py           # result pieces shared by both zones (hero, ranking bars, xAI card, model comparison)
+├── assets/                   # style.css (shared), zone_app.css, zone_report.css, logo.svg, mark.svg
 ├── app_pages/
-│   ├── home.py               # what it does, how it works, the five kinds of support, call to action
-│   ├── recommendation.py     # one student (questionnaire -> result card) / a whole class (upload -> priority list)
-│   ├── analysis.py           # data, model, xAI (global), SMART, sensitivity, fairness
-│   ├── data_mining.py        # the CRISP-DM process, phase by phase, with live numbers
-│   └── about.py              # method, architecture, limitations, ethics
+│   ├── home.py               # app zone: what it does, how it works, the five kinds of support
+│   ├── recommendation.py     # app zone: one student, questionnaire -> short result
+│   ├── batch.py              # app zone: a whole class, upload -> priority list
+│   ├── help.py               # app zone: how to use it, how to read a result, privacy and limits
+│   └── report/               # report zone, one file per chapter
+│       ├── data.py           # 1 Data
+│       ├── model.py          # 2 Random Forest model
+│       ├── calculation.py    # 3 SMART calculation, worked out for one student
+│       ├── xai.py            # 4 Explainable AI (global)
+│       ├── smart.py          # 5 SMART results & sensitivity
+│       ├── fairness.py       # 6 Fairness
+│       ├── crispdm.py        # 7 CRISP-DM process
+│       └── architecture.py   # 8 Architecture & limitations
 ├── content/{id,en}/*.md      # long page text per language (About, Data Mining phases, xAI methods)
 ├── spk/
-│   ├── config.py             # features, criteria, benefit/cost, weight profiles, paths, safety settings
+│   ├── config.py             # features, criteria, benefit/cost, SMART weights, paths, safety settings
 │   ├── data.py               # Kaggle download + sampling, gender encoding, CSV validation
 │   ├── gform.py              # Google Form export -> 11 features + target, PII removal, quality report
 │   ├── gform_mapping.json    # which form column feeds which field; answer tables
@@ -34,7 +49,7 @@ app/
 │   ├── recommend.py          # assess(): one student -> prediction, percentile, ranking, safety flag
 │   ├── explain.py            # weight × utility contributions and the narrative "why" (SMART and Shapley)
 │   ├── xai.py                # explainable AI: exact Shapley values, what-if, permutation importance, PDP/ICE
-│   ├── crispdm.py            # facts for the Data Mining page: column roles, success criteria, test counts
+│   ├── crispdm.py            # facts for report chapter 7 (CRISP-DM): column roles, success criteria, test counts
 │   ├── i18n.py               # UI strings (id/en)
 │   └── plots.py              # notebook charts + new ones, all bilingual
 ├── scripts/
@@ -89,8 +104,8 @@ python scripts/evaluate.py --gform data/private/new_answers.csv   # 4. later: te
    - `reports/private/real_data_report.md` (keep private).
 
    Commit the model and the summary, never the export. To try the pipeline without saving a model, add `--dry-run`.
-3. **Use.** The app loads the real model automatically. In the app, the **Profile · Model** popover switches between iteration 1 (Kaggle) and iteration 2 (real data) for the session; every page follows the choice, the result screen compares both models for one student, and Analysis → Model shows both models on both test sets. `SPK_MODEL=base` or `SPK_MODEL=real` sets the default.
-4. **Test on new data.** The Recommendation page's upload tab does the same check interactively. If the file has the Psikologis answers, it shows MAE/RMSE/R² for the active model and the base model.
+3. **Use.** The app loads the real model automatically. In the app, the model popover (top right) switches between iteration 1 (Kaggle) and iteration 2 (real data) for the session; every page follows the choice, report chapter 3 compares both models for one student, and chapter 2 shows both models on both test sets. `SPK_MODEL=base` or `SPK_MODEL=real` sets the default.
+4. **Test on new data.** The Assess a class page does the same check interactively. If the file has the Psikologis answers, it shows MAE/RMSE/R² for the active model and the base model.
 
 Form answers become model features as follows (see `spk/gform.py::derive`):
 
@@ -111,13 +126,13 @@ The target items are never used as features. Timestamp, birth date, school, info
 
 ## Explainable AI (xAI)
 
-Every result explains itself at both stages of the pipeline (`spk/xai.py`, shown on the Recommendation page):
+Every result explains itself at both stages of the pipeline (`spk/xai.py`, shown in report chapter 3 for the assessed student):
 
 - **Why this predicted anxiety?** Exact Shapley values (interventional SHAP) for the Random Forest prediction. With 11 features there are 2,048 feature coalitions, so all of them are evaluated against 100 random reference students instead of being sampled; the values add up exactly to prediction − average. A waterfall chart and a short narrative show which answers push the score up or down.
 - **How does the prediction become a recommendation?** The predicted anxiety is one SMART criterion; the card shows its share of the winning alternative's score and the weight × utility bars of every alternative.
 - **What if?** Each factor a counselor can work on (stress, burnout, exam pressure, sleep, exercise, study hours, financial stress, family expectation) moves to a typical student's level, and RF + SMART run again. A slider lets the user try any value. These are model simulations, not causal claims, and the page says so.
 
-The whole-class view can explain any student in the priority list the same way. The Analysis page adds global explanations: Gini vs permutation importance and PDP/ICE curves. No extra package is needed (no `shap`), so Streamlit Cloud deploys as before.
+From the whole-class view, any student in the priority list opens in chapter 3 the same way. Chapter 4 adds global explanations: Gini vs permutation importance and PDP/ICE curves. No extra package is needed (no `shap`), so Streamlit Cloud deploys as before.
 
 ## Testing
 
@@ -132,18 +147,18 @@ The theme lives in `.streamlit/config.toml` (colors, Plus Jakarta Sans from Goog
 1. Push the repo to GitHub. It is private; give Streamlit access when prompted.
 2. On share.streamlit.io, click Create app. Pick the repo, branch `main`, and main file `app/streamlit_app.py`.
 3. Under Advanced settings, pick Python 3.12 or newer. The app needs no secrets.
-4. Open the URL. Check each page in ID and EN, submit one student, and open the whole-class view (it uses the Kaggle test sample when nothing is uploaded).
+4. Open the URL. Check each page in ID and EN, submit one student, and open the whole-class view and switch on the sample data (30 Kaggle test rows; nothing is scored until you upload or switch it on).
 
 ## Things that changed vs the notebook
 
-- **Weight profile A is normalized.** In the notebook, the Exercise weights sum to 1.05. On the 20,000 reference students that makes Exercise win for 9,338. The app scales each alternative's weights to sum to 1, and then Exercise wins for 7,323. `config.WEIGHTS_A_NOTEBOOK` keeps the original, and a test pins the counts for both.
+- **The SMART weights are normalized.** In the notebook, the Exercise weights sum to 1.05. On the 20,000 reference students that makes Exercise win for 9,338. The app scales each alternative's weights to sum to 1, and then Exercise wins for 7,323. `config.WEIGHTS_A_NOTEBOOK` keeps the original, and a test pins the counts for both.
 - **Retrain with the pinned versions.** Joblib pickles are tied to the scikit-learn version. `scripts/train.py` rebuilds the model with the versions in `requirements.txt`.
 - **Age cleaning.** The notebook trains on every age in its 2% sample (17-29). The app keeps the student age band 14-25 (`config.AGE_RANGE`): 14 covers the questionnaire students, and because the Kaggle file starts at 17, ages 17-25 remain (692,545 of 1,000,000 rows). The data has no missing, duplicate or impossible values; removing outliers or extreme rows did not raise R², so no other rows are dropped.
 - **Full file, 80/20 split.** The notebook trains on 8,000 rows and tests on 2,000. The app uses the whole age-filtered file and splits it 80/20, stratified by age: 554,036 training rows and 138,509 test rows. 20,000 test rows become `dataset.csv`, the reference population for charts, percentiles and SMART bounds, so the app never shows rows the model was trained on.
 - **Tuned settings.** `--stage tune` runs a random search (25 settings, 5-fold CV on 50,000 training rows; `models/rf_tuning.json`). Best: 300 trees, `max_depth=12, min_samples_leaf=50, max_features=0.75, max_samples=0.6` (CV R² 0.5996; notebook settings 0.5966). The notebook settings stay in use for the small questionnaire data (`config.RF_PARAMS_NOTEBOOK`).
 - **Metrics.** Test set (138,509 rows): MAE 0.7583, RMSE 0.9470, R² 0.6077. The notebook reports 0.7668, 0.9546, 0.6136 on its own 2,000 rows, a lucky split: over 40 other splits its method averages R² 0.599. On the 137,365 test rows neither model trained on, the notebook model scores R² 0.598 and the deployed model 0.608. With 138,509 test rows R² moves by under ±0.002 between split seeds.
 - **R² ceiling.** On this dataset R² stops near 0.61 with the 11 features: linear regression 0.606, gradient boosting 0.608 and the Random Forest 0.608 on the test set. A forest trained on the linear residuals scores R² -0.01, so the remaining 40% of the variance is noise the inputs do not carry. `mental_health_index` would give 0.80, but it is computed from the target (`10 - 0.4 stress - 0.3 anxiety - 0.3 depression`), so it stays excluded as leakage.
-- **Algorithm comparison** (`--stage compare`: 5-fold CV MAE on 50,000 training rows, then test R² with all training rows): Random Forest 0.761 / 0.608, Linear Regression 0.760 / 0.606, Gradient Boosting 0.761 / 0.608, Decision Tree 0.799 / 0.601, mean baseline 1.213 / 0.000. RF is kept for continuity and non-linear robustness; the About and Analysis pages state this.
+- **Algorithm comparison** (`--stage compare`: 5-fold CV MAE on 50,000 training rows, then test R² with all training rows): Random Forest 0.761 / 0.608, Linear Regression 0.760 / 0.606, Gradient Boosting 0.761 / 0.608, Decision Tree 0.799 / 0.601, mean baseline 1.213 / 0.000. RF is kept for continuity and non-linear robustness; report chapters 2 and 8 state this.
 - **Reference bounds for SMART.** The notebook normalizes with the min and max of the whole dataset. A single student has no such range, so training saves the dataset bounds in the metadata (`smart_bounds`).
 - **Weight C** gives equal weights, so all alternatives tie and the result is always "Sleep". The app keeps it only as a control and shows a warning.
 - **Notebook bug:** cell 62 uses `criteria_plot`, which is never defined. `plots.correlation_heatmap` uses `CRITERIA` instead.

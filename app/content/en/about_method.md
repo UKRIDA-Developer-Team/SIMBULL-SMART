@@ -30,8 +30,8 @@ A **Random Forest Regressor** (300 trees, max depth 12, `min_samples_leaf=50`, `
 1. Eight criteria: RF-predicted anxiety, study hours, report grades, sleep hours, physical activity, financial stress, family expectation, burnout.
 2. Utility: *benefit* `u = (x - min)/(max - min)`, *cost* `u = (max - x)/(max - min)`; here "benefit" means **higher = needs more attention**. Min/max come from the reference population so a single student can be scored.
 3. **Priority score** = mean utility (equal weights) → student ranking.
-4. **Alternative score** = Σ weight × utility with each alternative's own weights (profile A/B/C) → the highest-scoring alternative is recommended.
+4. **Alternative score** = Σ weight × utility with each alternative's own weights → the highest-scoring alternative is recommended.
 
 ### Evaluation
 
-MAE, RMSE, R² on the test set; comparison with linear regression, a decision tree, gradient boosting and a mean baseline; per-student and population weight sensitivity (±10%/±20%); stability over 100 random perturbations; weight-profile comparison; fairness check by gender; evaluation on new responses via file upload.
+MAE, RMSE, R² on the test set; comparison with linear regression, a decision tree, gradient boosting and a mean baseline; per-student and population weight sensitivity (±10%/±20%); stability over 100 random perturbations; fairness check by gender; evaluation on new responses via file upload.

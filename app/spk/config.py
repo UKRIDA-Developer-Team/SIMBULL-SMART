@@ -99,7 +99,8 @@ def normalize(weights_dict: dict) -> dict:
     return {alt: {c: v / sum(w.values()) for c, v in w.items()} for alt, w in weights_dict.items()}
 
 
-# Weight A: domain-weighted, exactly as in the notebook (cell 68).
+# SMART weights per alternative: domain-weighted, exactly as in the notebook (cell 68).
+# The app uses one weight set ("A" in the notebook; profiles B and C were dropped).
 # Note: the notebook's Exercise weights sum to 1.05, which inflates Exercise scores by 5%.
 # The app uses the normalized version WEIGHTS_A below.
 WEIGHTS_A_NOTEBOOK = {
@@ -132,45 +133,6 @@ WEIGHTS_A_NOTEBOOK = {
 
 WEIGHTS_A = normalize(WEIGHTS_A_NOTEBOOK)
 
-# Weight B: nearly balanced
-WEIGHTS_B = {
-    "Sleep": {
-        "rf_anxiety_score": 0.15, "study_hours_per_day": 0.15, "academic_performance": 0.10,
-        "sleep_hours": 0.20, "physical_activity": 0.10, "financial_stress": 0.10,
-        "family_expectation": 0.10, "burnout_score": 0.10,
-    },
-    "Exercise": {
-        "rf_anxiety_score": 0.15, "study_hours_per_day": 0.10, "academic_performance": 0.10,
-        "sleep_hours": 0.10, "physical_activity": 0.20, "financial_stress": 0.10,
-        "family_expectation": 0.10, "burnout_score": 0.15,
-    },
-    "Study": {
-        "rf_anxiety_score": 0.15, "study_hours_per_day": 0.20, "academic_performance": 0.15,
-        "sleep_hours": 0.10, "physical_activity": 0.10, "financial_stress": 0.10,
-        "family_expectation": 0.10, "burnout_score": 0.10,
-    },
-    "Counseling": {
-        "rf_anxiety_score": 0.20, "study_hours_per_day": 0.10, "academic_performance": 0.10,
-        "sleep_hours": 0.10, "physical_activity": 0.10, "financial_stress": 0.15,
-        "family_expectation": 0.15, "burnout_score": 0.10,
-    },
-    "Relaxation": {
-        "rf_anxiety_score": 0.20, "study_hours_per_day": 0.10, "academic_performance": 0.10,
-        "sleep_hours": 0.15, "physical_activity": 0.10, "financial_stress": 0.10,
-        "family_expectation": 0.10, "burnout_score": 0.15,
-    },
-}
-
-# Weight C: equal weights (base control). Every alternative ties, so idxmax
-# always returns the first one ("Sleep") - keep it only for comparison.
-WEIGHTS_C = {alt: dict(PRIORITY_WEIGHTS) for alt in ALTERNATIVES}
-
-WEIGHT_PROFILES = {
-    "A - Domain-weighted": WEIGHTS_A,
-    "B - Nearly balanced": WEIGHTS_B,
-    "C - Equal (control)": WEIGHTS_C,
-}
-
 # (min, max, default) for the advanced form and CSV validation. Covers the cleaned Kaggle
 # sample (see AGE_RANGE) and the questionnaire population (SMA students, sleep up to 12 h).
 INPUT_RANGES = {
@@ -202,6 +164,22 @@ REFERRAL_CONTACT = {
 }
 
 # Example profiles for demos and user testing (Recommendation page buttons).
+# The two examples on the student page, as questionnaire answers (scale answers are codes 1..n,
+# hours and grades as asked). They fill the form; spk.gform.derive turns them into model features.
+EXAMPLE_ANSWERS = {
+    "high": {"gender": "Female", "age": 17, "study_hours": 9.0, "report_grade": 58.0,
+             "late_night": 5, "time_insufficient": 4, "late_tasks": 4, "below_target": 5,
+             "many_tasks": 5, "exam_stress": 5, "fear_parents": 5, "family_demand": 5,
+             "sleep_duration": 4.5, "exercise_days": 0, "pocket_money": 1,
+             "time_split": 5, "exhausted": 5, "lost_interest": 4},
+    "low": {"gender": "Male", "age": 16, "study_hours": 3.0, "report_grade": 85.0,
+            "late_night": 1, "time_insufficient": 1, "late_tasks": 1, "below_target": 2,
+            "many_tasks": 2, "exam_stress": 2, "fear_parents": 2, "family_demand": 2,
+            "sleep_duration": 8.0, "exercise_days": 3.5, "pocket_money": 4,
+            "time_split": 2, "exhausted": 2, "lost_interest": 1},
+}
+
+# Feature-space examples, used by the tests and the xAI checks.
 EXAMPLE_PROFILES = {
     "high": {"age": 17, "gender": "Female", "study_hours_per_day": 9.0, "academic_performance": 58.0,
              "exam_pressure": 9.5, "stress_level": 8.5, "sleep_hours": 4.5, "physical_activity": 0.5,

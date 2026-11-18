@@ -7,7 +7,7 @@
 - On the Kaggle data, linear regression and gradient boosting are as accurate as the Random Forest (test R² 0.606 and 0.608 vs 0.608; CV MAE 0.760, 0.761 and 0.761); RF is kept for continuity with the notebook, robustness to non-linear effects, and feature importance.
 - **R² stops near 0.61 on the Kaggle data.** About 40% of the variance of the anxiety score is random noise that no input column carries: linear regression, gradient boosting and the tuned Random Forest all reach 0.606-0.608 on 138,509 test rows. Removing outliers or extreme rows did not raise it. Only `mental_health_index` would lift it (to about 0.80), but that column is computed from the anxiety score itself (`10 - 0.4 stress - 0.3 anxiety - 0.3 depression`). Using it is label leakage, and the questionnaire has no such item.
 - The forest relies almost only on stress level and burnout (96% of its feature importance), because those two columns carry nearly all the signal in the Kaggle data. Other factors still count in SMART as separate criteria.
-- Profile A/B weights come from domain judgment and are not yet validated by experts; profile C always ties and serves only as a baseline.
+- The SMART weights come from domain judgment and are not yet validated by experts.
 
 ### Ethics, fairness and privacy
 

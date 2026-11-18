@@ -1,7 +1,8 @@
-"""Method, data, model, evaluation, limitations and ethics."""
+"""Report chapter 8: architecture, method summary, criteria, model settings, limitations, team."""
 import pandas as pd
 import streamlit as st
 
+import report
 import ui
 from spk import config, i18n
 
@@ -12,12 +13,12 @@ T = ui.T
 TEAM = [("Steven Feryanta", "412025028"), ("Steven Iwan", "412024008"),
         ("Triemas Putra", "412024018"), ("Davidson Rafael", "412024030")]
 
-ui.page_header(T("about_title"), ui.content("about_intro").replace("**", ""))
-st.space("small")
+ch = report.Chapter(8, [("arch", T("about_arch")), ("method", T("ch8_method")), ("criteria", T("about_criteria")),
+                       ("model", T("about_model")), ("limits", T("ch8_limits")), ("team", T("about_team"))])
+st.html(f"<p class='spk-para'>{ui.content('about_intro').replace('**', '')}</p>")
 
-ui.section(T("about_arch"))
-with st.container(border=True, key="card_arch"):
-    st.graphviz_chart("""
+ch.section("arch")
+st.graphviz_chart("""
 digraph {
   rankdir=LR; compound=true; bgcolor="transparent"; nodesep=0.35; ranksep=0.45;
   node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, color="#D9D5CC", penwidth=1,
@@ -38,18 +39,20 @@ digraph {
     ui -> g -> p -> s -> e -> ui; }
   tr -> m; m -> p;
 }
-""" % (("Pelatihan offline", "usia %d-%d · latih/uji 80/20" % config.AGE_RANGE, "rahasia, tidak di-commit", "Beranda · Rekomendasi · Analisis\\nData Mining · Tentang", "jawaban → fitur", "sensitivitas")
+""" % (("Pelatihan offline", "usia %d-%d · latih/uji 80/20" % config.AGE_RANGE, "rahasia, tidak di-commit", "Aplikasi: 4 halaman\\nLaporan: Bab 1-8", "jawaban → fitur", "sensitivitas")
        if L == "id" else
-       ("Offline training", "age %d-%d · train/test 80/20" % config.AGE_RANGE, "confidential, not committed", "Home · Recommendation · Analysis\\nData Mining · About", "answers → features", "sensitivity")))
+       ("Offline training", "age %d-%d · train/test 80/20" % config.AGE_RANGE, "confidential, not committed", "App: 4 pages\\nReport: chapters 1-8", "answers → features", "sensitivity")))
 
-st.space("small")
-with st.container(border=True, key="card_method"):
-    st.markdown(ui.content("about_method"))
+ch.caption("fig", report.tr("Arsitektur sistem: pelatihan offline dan aplikasi online.",
+                             "System architecture: offline training and the online app."))
 
-st.space("small")
+ch.section("method")
+st.markdown(ui.content("about_method"))
+
+ch.section("criteria")
 c1, c2 = st.columns([1.25, 1], gap="medium")
 with c1:
-    ui.section(T("about_criteria"))
+    ch.caption("tab", report.tr("Kriteria dan contoh bobot profil A.", "Criteria and sample profile-A weights."))
     st.table(pd.DataFrame({
         T("criterion"): [i18n.feature(c, L) for c in config.CRITERIA],
         T("type"): [T(config.CRITERIA_TYPE[c]) for c in config.CRITERIA],
@@ -57,12 +60,11 @@ with c1:
         "A · " + i18n.alt("Counseling", L): [round(config.WEIGHTS_A["Counseling"][c], 3) for c in config.CRITERIA],
     }).set_index(T("criterion")))
 with c2:
-    ui.section(T("about_alts"))
+    st.markdown(f"**{T('about_alts')}**")
     for a in config.ALTERNATIVES:
         st.markdown(f":material/{ui.ALT_ICONS[a]}: **{i18n.alt(a, L)}** · {i18n.alt_desc(a, L)}")
 
-st.space("small")
-ui.section(T("about_model"))
+ch.section("model")
 hp = meta.get("hyperparameters", {})
 m = meta["metrics"]
 k = st.columns(4, gap="small")
@@ -78,12 +80,10 @@ st.caption(
     f"{meta.get('metrics_note', 'Kaggle test set')} · "
     f"Kaggle base: MAE {base_meta['metrics']['mae']:.4f}, R² {base_meta['metrics']['r2']:.4f}")
 
-st.space("small")
-with st.container(border=True, key="card_limits"):
-    st.markdown(ui.content("about_limits"))
+ch.section("limits")
+st.markdown(ui.content("about_limits"))
 
-st.space("small")
-ui.section(T("about_team"))
+ch.section("team")
 team = st.columns(len(TEAM), gap="small")
 for col, (name, nim) in zip(team, TEAM):
     initials = "".join(w[0] for w in name.split()[:2])
@@ -91,4 +91,4 @@ for col, (name, nim) in zip(team, TEAM):
         st.html(f"<div class='spk-person'><span class='spk-avatar'>{initials}</span>"
                 f"<div><p class='spk-person-name'>{name}</p><p class='spk-person-id'>{nim}</p></div></div>")
 
-ui.footer()
+ch.end()

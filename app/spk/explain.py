@@ -20,7 +20,8 @@ def top_drivers(contrib: pd.DataFrame, alternative: str, k: int = 3) -> list[str
     return [c for c in row.sort_values(ascending=False).index[:k] if row[c] > 0]
 
 
-def narrative(assessment, profile_label: str, lang: str = i18n.DEFAULT) -> list[str]:
+def narrative(assessment, lang: str = i18n.DEFAULT, group: str | None = None) -> list[str]:
+    """group names the comparison group of the priority percentile (ui.reference_group())."""
     ranked = assessment.ranking
     best, second = ranked.index[0], ranked.index[1]
     gap = float(ranked.iloc[0] - ranked.iloc[1])
@@ -30,24 +31,25 @@ def narrative(assessment, profile_label: str, lang: str = i18n.DEFAULT) -> list[
         i18n.driver(c, float(values[c]), lang) if util[c] >= 0.5 else f"{_lower_first(i18n.feature(c, lang))} {float(values[c]):.1f}"
         for c in top_drivers(assessment.contributions, best))
     lines = [
-        i18n.t("narr_best", lang, alt=i18n.alt(best, lang), score=float(ranked.iloc[0]), profile=profile_label),
+        i18n.t("narr_best", lang, alt=i18n.alt(best, lang), score=float(ranked.iloc[0])),
         i18n.t("narr_drivers", lang, drivers=drivers),
         i18n.t("narr_gap", lang, alt2=i18n.alt(second, lang), gap=gap),
     ]
     if gap < 0.02:
         lines.append(i18n.t("narr_gap_small", lang, alt2=i18n.alt(second, lang)))
-    lines.append(i18n.t("narr_priority", lang, score=assessment.priority, p=assessment.priority_percentile))
+    lines.append(i18n.t("narr_priority", lang, score=assessment.priority, p=assessment.priority_percentile,
+                        group=group or i18n.t("ref_group_generic", lang)))
     return lines
 
 
 # ---------------------------------------------------------------- RF stage (xAI)
 
 def _effect_items(effects, values, lang: str) -> str:
-    return ", ".join(f"{_lower_first(i18n.feature(f, lang))} {_value_text(f, values[f])} ({v:+.2f})"
+    return ", ".join(f"{_lower_first(i18n.feature(f, lang))} {value_text(f, values[f])} ({v:+.2f})"
                      for f, v in effects.items())
 
 
-def _value_text(feature: str, value) -> str:
+def value_text(feature: str, value) -> str:
     if feature == "gender":
         return str(value)
     return f"{float(value):.0f}" if feature in ("age", "academic_performance") else f"{float(value):.1f}"

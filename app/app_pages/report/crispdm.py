@@ -1,10 +1,11 @@
-"""Data Mining page: the CRISP-DM process, one phase at a time, with live numbers."""
+"""Report chapter 7: the CRISP-DM process, one phase at a time, with live numbers."""
 import html
 import json
 
 import pandas as pd
 import streamlit as st
 
+import report
 import ui
 from spk import config, crispdm, data, gform, i18n, plots, smart
 
@@ -39,7 +40,7 @@ def merge_summary() -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def stability_a() -> float:
-    _, utility = ui.score(reference[config.FEATURES], "A", True)
+    _, utility = ui.score(reference[config.FEATURES], True)
     return smart.stability(utility, config.WEIGHTS_A, n=100, pct=0.1)["top1_unchanged"]
 
 
@@ -101,8 +102,7 @@ def side(p: dict):
 # ---------------------------------------------------------------- header and stepper
 if st.session_state.pop("dm_scroll_top", False):
     ui.scroll_to_top(st.session_state.get("dm_nonce", 0))
-ui.page_header(T("dm_title"), T("dm_lead"), T("dm_eyebrow"))
-st.space("small")
+ch = report.Chapter(7, [], settings=False)
 phase = stepper()
 st.caption(f":material/autorenew: {TEXT['loop']}")
 p = PHASES[phase]
@@ -144,7 +144,7 @@ elif phase == 4:
     kpis([(T("dm_kpi_mae"), f"{meta['metrics']['mae']:.3f}"), (T("dm_kpi_r2"), f"{meta['metrics']['r2']:.3f}"),
           (T("dm_k_stability"), f"{stability_a():.1%}"), (T("dm_k_tests"), f"{tests['blackbox']} + {tests['whitebox']}")])
 else:
-    kpis([(T("dm_k_pages"), "5"), (T("dm_k_langs"), "ID · EN"), (T("dm_k_source"), ui.T(
+    kpis([(T("dm_k_pages"), f"{len(ui.ZONES['app'])} + {len(ui.ZONES['report'])}"), (T("dm_k_langs"), "ID · EN"), (T("dm_k_source"), ui.T(
         {"kaggle": "src_kaggle", "kaggle+gform": "src_real", "gform": "src_gform"}[meta["data_source"]])),
           ("scikit-learn", meta.get("sklearn_version", "?"))])
 
@@ -238,8 +238,7 @@ with main, card("main"):
         t[1].metric(T("dm_tests_wb"), tests["whitebox"])
         t[2].metric(T("dm_tests_total"), tests["total"])
         st.caption(T("dm_tests_note"))
-        if st.button(T("dm_open_analysis"), icon=":material/monitoring:"):
-            st.switch_page("app_pages/analysis.py")
+        st.page_link(ui.PAGE_FILE["ch5"], label=T("dm_open_analysis"), icon=":material/monitoring:")
 
     else:
         st.markdown(f"**{T('dm_arch')}**")
@@ -247,12 +246,9 @@ with main, card("main"):
         st.html(flow("Online", ["Streamlit Cloud", "spk/ (RF, SMART, xAI)", "Guru BK" if L == "id" else "Counselor"]))
         st.space("small")
         st.markdown(f"**{T('dm_k_pages')}**")
-        pages = ([("home", "nav_home", "Masalah, alur, lima bentuk dukungan" if L == "id" else "Problem, flow, five kinds of support"),
-                  ("person_search", "nav_reco", "Satu siswa atau satu kelas, dengan penjelasan AI" if L == "id" else "One student or a class, with AI explanations"),
-                  ("monitoring", "nav_analysis", "Data, model, xAI, SMART, sensitivitas, keadilan" if L == "id" else "Data, model, xAI, SMART, sensitivity, fairness"),
-                  ("account_tree", "nav_dm", "Proses CRISP-DM (halaman ini)" if L == "id" else "The CRISP-DM process (this page)"),
-                  ("info", "nav_about", "Metode, arsitektur, keterbatasan, etika" if L == "id" else "Method, architecture, limitations, ethics")])
-        st.markdown("\n".join(f"- :material/{icon}: **{T(key)}** · {desc}" for icon, key, desc in pages))
+        pages = [("person_search", T("zone_app"), " · ".join(T(label) for _, _, label, _ in ui.ZONES["app"])),
+                 ("article", T("zone_report"), " · ".join(T(label) for _, _, label, _ in ui.ZONES["report"]))]
+        st.markdown("\n".join(f"- :material/{icon}: **{name}** · {desc}" for icon, name, desc in pages))
 
 # ---------------------------------------------------------------- previous / next
 st.space("small")
@@ -265,4 +261,4 @@ with st.container(horizontal=True, gap="small"):
         st.button(f"{T('dm_next')}: {PHASES[phase + 1]['name']}", icon=":material/arrow_forward:", icon_position="right",
                   on_click=go, args=(phase + 1,), key="dm_next")
 
-ui.footer()
+ch.end()

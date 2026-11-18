@@ -4,7 +4,7 @@ The app is tested at two levels, and every case is an automated pytest test.
 
 - **Black-box tests** (`test_blackbox.py`, marker `blackbox`) are designed from the specification: what a counselor enters and what the system must answer. They do not depend on how the code is written.
 - **White-box tests** (`test_whitebox.py`, marker `whitebox`) are designed from the code: every branch of the decision logic, every path of small functions, and the mathematical properties the algorithms must satisfy.
-- **Regression and integration tests** (`test_smart.py`, `test_gform.py`, `test_pipeline.py`, `test_app.py`) existed before this split. They check that the retrained base model and the SMART counts stay as recorded, that every questionnaire answer parses, that retraining works end to end, and that every page loads in both languages.
+- **Regression and integration tests** (`test_smart.py`, `test_gform.py`, `test_pipeline.py`, `test_app.py`) existed before this split. They check that the retrained base model and the SMART counts stay as recorded, that every questionnaire answer parses, that retraining works end to end, that every page of both zones (app and report) loads in both languages, that the result page stays short, and that report chapter 3 shows the same utilities and scores as `spk/smart.py`.
 
 ## How to run
 
@@ -51,10 +51,10 @@ Techniques: **EP** equivalence partitioning, **BVA** boundary value analysis, **
 | BB-12 | EP | low-risk and high-risk student | the Shapley waterfall ends exactly at the prediction shown on the result card |
 | BB-13 | EP | high-risk and low-risk student | high-risk: one what-if row per factor worse than typical + a combined row that lowers anxiety; low-risk: none |
 | BB-14 | MT | what-if that keeps a factor at its current value | identical prediction, priority and recommendation |
-| BB-15 | ST | result page, ID and EN | xAI card with three tabs, Shapley narrative, two charts, the what-if slider and metrics |
-| BB-16 | ST | what-if slider moved from 8.5 to 4.0 (stress) | the simulated prediction drops |
-| BB-17 | ST | Data Mining page, each of the six phases, ID and EN | the phase renders with its name and key decisions; phase 5 shows the success-criteria table |
-| BB-18 | ST | whole-class view with the Kaggle demo sample | a student picker and the same AI explanation |
+| BB-15 | ST | report chapter 3 for an assessed student, ID and EN | xAI card with three tabs, Shapley narrative, two charts, the what-if slider and metrics |
+| BB-16 | ST | what-if slider for the main factor (the one raising the prediction most) moved to 4.0 | the simulated prediction drops |
+| BB-17 | ST | report chapter 7 (CRISP-DM), each of the six phases, ID and EN | the phase renders with its name and key decisions; phase 5 shows the success-criteria table |
+| BB-18 | ST | whole-class view with the 30-student sample switched on | a student picker, their ranking bars, and a button that opens their worked calculation |
 
 **Defect found by BB-05.** The single-student view compared an interpolated percentile with 90, while the whole-class view compared the prediction with the 90th-percentile value. For a prediction exactly at the cutoff, interpolation returned 89.99999…, so the same student could be flagged in the class list but not on their own result card. Both views now use `recommend.cutoff()`, which returns the stored 90th-percentile value exactly (the Random Forest sums its trees in thread order, so the last bits of a prediction vary between runs, and `np.interp` can round a knot down). BB-05, BB-08 and WB-07b guard the fix.
 
@@ -67,7 +67,7 @@ Techniques: **BC** branch coverage, **PC** path coverage, **PR** property of the
 | WB-01 | BC | `smart.utility` | hi = lo → 1.0; benefit formula; cost formula; clipping below 0 and above 1 |
 | WB-02 | BC | `smart.utility` | `bounds=None` → min/max from the frame (notebook behaviour) |
 | WB-03 | BC | `smart.perturb` | normal renormalization; all-zero profile (no division by zero); missing criterion |
-| WB-04 | PC | `smart.rank`, `smart.best_alternative` | dense ranks with ties; a tie goes to the first alternative (profile C) |
+| WB-04 | PC | `smart.rank`, `smart.best_alternative` | dense ranks with ties; a tie goes to the first alternative (as with equal weights) |
 | WB-05 | PC | `smart.sensitivity` | criterion × delta grid; zero delta never changes the result |
 | WB-05b | PC | `smart.run`, `stability`, `population_sensitivity` | output columns; no jitter → 100% unchanged; zero delta → 0 |
 | WB-06 | PR | `config.normalize` | weights sum to 1 and keep their proportions |

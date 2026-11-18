@@ -99,7 +99,7 @@ def test_wb03_perturb_branches():
 
 def test_wb04_dense_rank_and_tie_break():
     """PC smart.rank (dense ties) and smart.best_alternative (a tie goes to the first alternative,
-    which is why profile C always says Sleep)."""
+    which is why equal weights for every alternative would always say Sleep)."""
     assert smart.rank(pd.Series([0.5, 0.9, 0.5, 0.1])).tolist() == [2, 1, 2, 3]
     tie = pd.DataFrame([[0.4] * len(config.ALTERNATIVES)], columns=config.ALTERNATIVES)
     assert smart.best_alternative(tie)["Best_Recommendation"].iloc[0] == config.ALTERNATIVES[0]
@@ -225,7 +225,7 @@ def fake_assessment(scores: dict, utility_value: float):
 def test_wb11_narrative_small_gap_branch(gap, lines):
     """BC explain.narrative: a gap under 0.02 to the runner-up adds the 'also consider' line."""
     a = fake_assessment({"Sleep": 0.6, "Exercise": 0.6 - gap, "Study": 0.1, "Counseling": 0.1, "Relaxation": 0.1}, 0.8)
-    out = explain.narrative(a, "A", "en")
+    out = explain.narrative(a, "en")
     assert len(out) == lines
     assert any("also worth considering" in line for line in out) is (gap < 0.02)
 
@@ -235,7 +235,7 @@ def test_wb12_narrative_driver_wording_branch(u, phrase):
     """BC explain.narrative: a driver with utility >= 0.5 reads as a problem ('short sleep'),
     below 0.5 as a plain value ('sleep hours 5.0')."""
     a = fake_assessment({"Sleep": 0.9, "Exercise": 0.5, "Study": 0.1, "Counseling": 0.1, "Relaxation": 0.1}, u)
-    drivers = explain.narrative(a, "A", "en")[1]
+    drivers = explain.narrative(a, "en")[1]
     assert phrase in drivers
 
 

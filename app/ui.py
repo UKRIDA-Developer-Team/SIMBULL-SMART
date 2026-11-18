@@ -1,4 +1,5 @@
 """Streamlit-only helpers shared by every page: language, cached loaders, layout pieces, settings."""
+import base64
 import html
 import json
 
@@ -8,7 +9,6 @@ import streamlit as st
 
 from spk import config, data, gform, i18n, model, recommend, smart, xai
 
-PROFILES = {"A": config.WEIGHTS_A, "B": config.WEIGHTS_B, "C": config.WEIGHTS_C}
 CONTENT_DIR = config.APP_DIR / "content"
 ASSETS_DIR = config.APP_DIR / "assets"
 
@@ -34,20 +34,9 @@ def content(name: str, suffix: str = ".md") -> str:
     return path.read_text()
 
 
-def profile_key() -> str:
-    # The picker widget (see profile_picker) holds the newest choice before its own line runs.
-    picked = st.session_state.get(f"profile_{lang()}")
-    if picked in PROFILES:
-        st.session_state["profile"] = picked
-    return st.session_state.get("profile") or "A"
-
-
-def profile_label(key: str | None = None) -> str:
-    return T(f"profile_{key or profile_key()}")
-
-
 def weights() -> dict:
-    return PROFILES[profile_key()]
+    """The SMART weights (one set, domain-weighted; see config.WEIGHTS_A)."""
+    return config.WEIGHTS_A
 
 
 def show(fig, compact: bool = False):
@@ -72,7 +61,7 @@ def available_models() -> list[str]:
 def model_key() -> str:
     """The model this session uses: the reader's choice in the settings popover, else the default."""
     have = available_models()
-    # Like profile_key: the picker widget holds the newest choice before its own line runs.
+    # The picker widget (see model_picker) holds the newest choice before its own line runs.
     picked = st.session_state.get(f"model_choice_{lang()}")
     if picked in have:
         st.session_state["model_choice"] = picked
@@ -140,18 +129,18 @@ def _predict_frame(df: pd.DataFrame, kind: str) -> pd.Series:
     return pd.Series(model.predict(rf, df), index=df.index, name="rf_anxiety_score")
 
 
-def score(df: pd.DataFrame, profile: str, use_reference_bounds: bool = True):
+def score(df: pd.DataFrame, use_reference_bounds: bool = True):
     """Predict + SMART for a frame of students. Returns (result sorted by priority, utility)."""
-    return _score(df, profile, use_reference_bounds, model_key())
+    return _score(df, use_reference_bounds, model_key())
 
 
 @st.cache_data(show_spinner=False)
-def _score(df: pd.DataFrame, profile: str, use_reference_bounds: bool, kind: str):
+def _score(df: pd.DataFrame, use_reference_bounds: bool, kind: str):
     _, meta = load_model(kind)
     crit = df[config.FEATURES].copy()
     crit["rf_anxiety_score"] = _predict_frame(df[config.FEATURES], kind)
     bounds = meta["smart_bounds"] if use_reference_bounds else None
-    result, utility = smart.run(crit[config.CRITERIA], PROFILES[profile], bounds)
+    result, utility = smart.run(crit[config.CRITERIA], config.WEIGHTS_A, bounds)
     result = pd.concat([df[config.FEATURES], crit[["rf_anxiety_score"]], result], axis=1)
     return result.sort_values("smart_score", ascending=False), utility
 
@@ -204,9 +193,38 @@ def _permutation_importance(kind: str) -> pd.DataFrame:
     return xai.permutation_importance(rf, sample, y_test.loc[sample.index], n_repeats=5)
 
 
+def example_features(kind: str) -> dict:
+    """Model features of an example student (config.EXAMPLE_ANSWERS), as the questionnaire would give."""
+    return gform.derive(pd.DataFrame([config.EXAMPLE_ANSWERS[kind]])).iloc[0][config.FEATURES].to_dict()
+
+
 def impute_medians() -> dict:
     _, meta = load_active()
     return meta.get("impute_medians") or gform.feature_medians(load_reference())
+
+
+# ---------- the comparison group behind percentiles and bands ----------
+
+def reference_group(kind: str | None = None) -> str:
+    """Who a student is compared with for percentiles, bands and the referral cutoff.
+
+    Model riil: the questionnaire respondents the model was retrained on (only their quantiles ship).
+    Kaggle model: the 20,000-row Kaggle test sample."""
+    kind = kind or model_key()
+    _, meta = load_model(kind)
+    if kind == "real" and meta.get("reference_quantiles"):
+        return T("ref_group_real", n=f"{meta.get('n_rows', 0):,}")
+    return T("ref_group_kaggle", n=f"{len(load_reference()):,}")
+
+
+def band_help(kind: str) -> str:
+    """Tooltip for a band chip: which group, and the value range of each band (kind = anx | prio)."""
+    q = reference_quantiles()["rf_anxiety_score" if kind == "anx" else "smart_score"]
+    fmt = (lambda v: f"{v:.2f}") if kind == "anx" else (lambda v: f"{v:.3f}")
+    label = (lambda b: T(f"band_{b}")) if kind == "anx" else (lambda b: T(f"prio_{b}"))
+    p40, p60, p90 = q[40], q[60], q[config.SAFETY_PERCENTILE]
+    return T("band_help", group=reference_group(), low=label("low"), mid=label("mid"), high=label("high"),
+             top=label("top"), p40=fmt(p40), p60=fmt(p60), p90=fmt(p90)) + (T("band_help_anx") if kind == "anx" else "")
 
 
 # ---------- plain-language bands ----------
@@ -224,13 +242,86 @@ def band(percentile: float) -> str:
 
 # ---------- page chrome ----------
 
-def setup():
-    """Global styles, logo and language switch. Called once per run from the entry script."""
-    st.html(f"<style>{(ASSETS_DIR / 'style.css').read_text()}</style>")
-    st.logo(str(ASSETS_DIR / "logo.svg"), size="large")
-    with st.container(key="lang_switch"):
-        st.segmented_control(T("lang"), options=[k.upper() for k in i18n.LANGS], key="lang", required=True,
-                             default=i18n.DEFAULT.upper(), label_visibility="collapsed")
+# The app has two zones that share one top bar: "app" for counselors (assess one student or a
+# class) and "report" for examiners (the technical report, one chapter per page).
+# Each entry: (key, page file, nav label key, url path).
+ZONES = {
+    "app": [
+        ("home", "app_pages/home.py", "nav_home", "home"),
+        ("student", "app_pages/recommendation.py", "nav_student", "student"),
+        ("class", "app_pages/batch.py", "nav_class", "class"),
+        ("help", "app_pages/help.py", "nav_help", "help"),
+    ],
+    "report": [
+        ("ch1", "app_pages/report/data.py", "ch1_nav", "report-data"),
+        ("ch2", "app_pages/report/model.py", "ch2_nav", "report-model"),
+        ("ch3", "app_pages/report/calculation.py", "ch3_nav", "report-calculation"),
+        ("ch4", "app_pages/report/xai.py", "ch4_nav", "report-xai"),
+        ("ch5", "app_pages/report/smart.py", "ch5_nav", "report-smart"),
+        ("ch6", "app_pages/report/fairness.py", "ch6_nav", "report-fairness"),
+        ("ch7", "app_pages/report/crispdm.py", "ch7_nav", "report-crispdm"),
+        ("ch8", "app_pages/report/architecture.py", "ch8_nav", "report-architecture"),
+    ],
+}
+PAGE_FILE = {key: path for pages in ZONES.values() for key, path, _, _ in pages}
+
+
+def build_pages() -> list:
+    """Every page of both zones, for st.navigation. The first app page is the default."""
+    return [st.Page(path, title=T(label), url_path=url, default=(key == "home"))
+            for pages in ZONES.values() for key, path, label, url in pages]
+
+
+def zone_of(url_path: str) -> str:
+    return "report" if any(url == url_path for *_, url in ZONES["report"]) else "app"
+
+
+def setup(current):
+    """Global styles, the zone's own styles, and the top bar. Called once per run from the entry script."""
+    url = current.url_path or "home"          # the default page reports an empty url path
+    zone = zone_of(url)
+    css = (ASSETS_DIR / "style.css").read_text() + (ASSETS_DIR / f"zone_{zone}.css").read_text()
+    st.html(f"<style>{css}</style>")
+    topbar(zone, url)
+
+
+def _logo_uri() -> str:
+    return "data:image/svg+xml;base64," + base64.b64encode((ASSETS_DIR / "logo.svg").read_bytes()).decode()
+
+
+def topbar(zone: str, current_url: str):
+    """Brand, the zone's page links, and two small switches: zone (App | Report) and language."""
+    with st.container(key="topbar", horizontal=True, vertical_alignment="center", gap="medium"):
+        st.html(f"<div class='spk-brand'><img src='{_logo_uri()}' alt='SI SMART'></div>", width="content")
+        with st.container(key="topnav", horizontal=True, vertical_alignment="center", gap=None):
+            for key, path, label, url in ZONES[zone]:
+                active = "_on" if url == current_url else ""
+                with st.container(key=f"nav_{key}{active}", width="content"):
+                    st.page_link(path, label=T(label))
+        with st.container(key="topctl", horizontal=True, vertical_alignment="center", gap="small", width="content"):
+            labels = {z: T(f"zone_{z}") for z in ZONES}
+            # The key carries the zone, so the switch always opens on the zone of the page shown.
+            picked = st.segmented_control(T("zone"), list(labels.values()), default=labels[zone], required=True,
+                                          key=f"zone_{zone}_{lang()}", label_visibility="collapsed")
+            # The language lives in a plain session key ("lang"). A widget's own state does not survive
+            # st.switch_page (used by the zone switch), so the widget only mirrors it.
+            st.session_state["lang_switch"] = lang().upper()
+            st.segmented_control(T("lang"), options=[k.upper() for k in i18n.LANGS], key="lang_switch",
+                                 required=True, label_visibility="collapsed", on_change=_set_lang)
+    if picked != labels[zone]:
+        st.switch_page(ZONES["report" if zone == "app" else "app"][0][1])
+
+
+def _set_lang():
+    st.session_state["lang"] = st.session_state["lang_switch"]
+
+
+def open_calculation(features: dict | None = None):
+    """Open report chapter 3 (the worked SMART example) for a student."""
+    if features is not None:
+        st.session_state["assess_features"] = dict(features)
+    st.session_state["calc_source"] = "last"
+    st.switch_page(PAGE_FILE["ch3"])
 
 
 def page_header(title: str, lead: str | None = None, eyebrow: str | None = None):
@@ -266,25 +357,17 @@ def stable_choice(widget, label, options, state, fmt, **kw):
     return value
 
 
-def profile_picker():
-    """Model and weight-profile settings in a popover, kept out of the way of first-time users."""
+def model_picker():
+    """The prediction-model choice (two iterations) in a small popover. Hidden with only one model."""
     models = available_models()
-    with st.popover(T("profile_button", p=profile_key(), m=T(f"model_short_{model_key()}")), icon=":material/tune:"):
-        if len(models) > 1:
-            st.markdown(f"**{T('model_choice')}**")
-            st.caption(T("model_choice_intro"))
-            stable_choice(st.radio, T("model_choice"), models, "model_choice", lambda k: T(f"model_opt_{k}"),
-                          label_visibility="collapsed", captions=[model_caption(k) for k in models])
-        st.markdown(f"**{T('profile')}**")
-        st.caption(T("profile_intro"))
-        stable_choice(st.radio, T("profile"), PROFILES, "profile", profile_label, label_visibility="collapsed",
-                      captions=[T(f"profile_{k}_desc") for k in PROFILES])
+    if len(models) < 2:
+        return
+    with st.popover(T(f"model_short_{model_key()}"), icon=":material/tune:"):
+        st.markdown(f"**{T('model_choice')}**")
+        st.caption(T("model_choice_intro"))
+        stable_choice(st.radio, T("model_choice"), models, "model_choice", lambda k: T(f"model_opt_{k}"),
+                      label_visibility="collapsed", captions=[model_caption(k) for k in models])
         st.caption(model_note())
-
-
-def profile_warning():
-    if profile_key() == "C":
-        st.warning(T("profile_c_warning"), icon=":material/info:")
 
 
 def model_caption(kind: str) -> str:
