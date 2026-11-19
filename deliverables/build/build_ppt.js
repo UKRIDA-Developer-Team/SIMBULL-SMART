@@ -172,12 +172,12 @@ s = pres.addSlide(); s.background = { color: C.white };
 title(s, 'SPK: metode SMART', '8 kriteria · utilitas min–maks · bobot khusus per alternatif');
 card(s, 0.6, 1.85, 5.6, 4.95);
 text(s, 'Langkah', { x: 0.9, y: 2.0, w: 5, h: 0.45, fontFace: H, fontSize: 19, bold: true, color: C.deep });
-const smartSteps = ['Kriteria: prediksi kecemasan RF + 7 faktor', 'Utilitas benefit (x−min)/(max−min); cost (max−x)/(max−min)', 'Skor prioritas = rata-rata utilitas → urutan siswa', 'Skor alternatif = Σ bobot × utilitas', 'Rekomendasi = skor tertinggi; tampil 3 teratas', 'Pengaman: 10% prediksi tertinggi → konseling + rujukan'];
+const smartSteps = ['Kriteria: prediksi kecemasan RF + 7 faktor', 'Utilitas benefit (x−min)/(max−min); cost (max−x)/(max−min)', 'Skor prioritas = rata-rata utilitas → urutan siswa', 'Skor alternatif = Σ bobot × utilitas', 'Rekomendasi = skor tertinggi; kelima pilihan diurutkan', 'Pengaman: 10% prediksi tertinggi → konseling + rujukan'];
 smartSteps.forEach((t, i) => { badge(s, i + 1, 0.9, 2.55 + i * 0.7, 0.45); text(s, t, { x: 1.5, y: 2.58 + i * 0.7, w: 4.55, h: 0.6, fontSize: 14 }); });
 const ex = [['Strategi belajar', 0.441], ['Konseling', 0.539], ['Olahraga', 0.590], ['Relaksasi', 0.604], ['Tidur', 0.623]];
 s.addChart(pres.charts.BAR, [{ name: 'Skor', labels: ex.map(e => e[0]), values: ex.map(e => e[1]) }], {
   x: 6.5, y: 1.75, w: 6.2, h: 3.5, barDir: 'bar', chartColors: [C.teal], showValue: true, dataLabelFormatCode: '0.000', dataLabelFontSize: 11,
-  showTitle: true, title: 'Contoh siswa STU00006 (profil A)', titleFontSize: 14, titleColor: C.deep, showLegend: false,
+  showTitle: true, title: 'Contoh siswa STU00006', titleFontSize: 14, titleColor: C.deep, showLegend: false,
   valAxisHidden: true, valGridLine: { style: 'none' }, catGridLine: { style: 'none' }, catAxisLabelFontSize: 12 });
 card(s, 6.5, 5.4, 6.2, 1.4, C.mint);
 text(s, 'Tidur 0,623: jam tidur 4,2 jam → utilitas 0,829 × bobot 0,40 = 0,332 (penyumbang terbesar). Skor prioritas 0,563 — lebih tinggi dari 91% siswa.', { x: 6.75, y: 5.52, w: 5.8, h: 1.2, fontSize: 14 });
@@ -197,7 +197,7 @@ s.addChart(pres.charts.BAR, [
   { name: 'Profil A', labels: ['Tidur', 'Olahraga', 'Str. belajar', 'Konseling', 'Relaksasi'], values: [5238, 7323, 1882, 2337, 3220] },
   { name: 'Profil B', labels: ['Tidur', 'Olahraga', 'Str. belajar', 'Konseling', 'Relaksasi'], values: [5547, 4941, 1394, 7922, 196] },
 ], { x: 0.5, y: 4.1, w: 8.2, h: 2.85, barDir: 'col', barGrouping: 'clustered', chartColors: [C.teal, C.coral], showLegend: true, legendPos: 'r',
-  showTitle: true, title: 'Rekomendasi pada 20.000 siswa referensi per profil bobot', titleFontSize: 13, titleColor: C.deep,
+  showTitle: true, title: 'Rekomendasi pada 20.000 siswa referensi per susunan bobot yang diuji', titleFontSize: 13, titleColor: C.deep,
   valGridLine: { color: 'E5E5E5', size: 0.5 }, catGridLine: { style: 'none' }, catAxisLabelFontSize: 11, valAxisLabelFontSize: 10 });
 card(s, 9.0, 1.85, 3.75, 5.0);
 text(s, 'Keadilan gender', { x: 9.3, y: 2.0, w: 3.2, h: 0.5, fontFace: H, fontSize: 19, bold: true, color: C.deep });
@@ -205,23 +205,23 @@ text(s, 'Keadilan gender', { x: 9.3, y: 2.0, w: 3.2, h: 0.5, fontFace: H, fontSi
   text(s, g, { x: 9.3, y: 2.7 + i * 0.75, w: 1.6, h: 0.5, fontSize: 16 });
   text(s, `MAE ${m}`, { x: 10.9, y: 2.7 + i * 0.75, w: 1.7, h: 0.5, fontSize: 16, bold: true, color: C.teal });
 });
-text(s, 'Selisih < 0,01 poin (138.509 baris uji); sebaran rekomendasi per gender hampir sama. Profil A dipilih sebagai bawaan karena paling stabil.', { x: 9.3, y: 5.0, w: 3.25, h: 1.7, fontSize: 13, color: C.mute });
+text(s, 'Selisih < 0,01 poin (138.509 baris uji); sebaran rekomendasi per gender hampir sama. Profil A dipilih (satu-satunya bobot di aplikasi) karena paling stabil.', { x: 9.3, y: 5.0, w: 3.25, h: 1.7, fontSize: 13, color: C.mute });
 footer(s, 9);
-s.addNotes('Sensitivitas & keadilan (±1 menit). Profil A paling stabil (94,3% tetap). Profil B lebih sering memilih Konseling. Tidak ada bias gender yang berarti.');
+s.addNotes('Sensitivitas & keadilan (±1 menit). Dua susunan bobot diuji; profil A paling stabil (94,3% tetap) sehingga menjadi satu-satunya bobot di aplikasi. Profil B lebih sering memilih Konseling. Tidak ada bias gender yang berarti.');
 
 // 10 ── App demo ───────────────────────────────────────────
 s = pres.addSlide(); s.background = { color: C.white };
-title(s, 'Aplikasi: hasil yang dapat dijelaskan', 'Streamlit · bilingual ID/EN · 4 halaman');
+title(s, 'Aplikasi: hasil yang dapat dijelaskan', 'Streamlit · ID/EN · bagian Aplikasi (guru BK) + Laporan teknis (penguji)');
 const top = img(s, path.join(FIGS, 'ppt_result_top.png'), 0.6, 1.75, 6.4);
-img(s, path.join(FIGS, 'ppt_contrib.png'), 0.6, 1.95 + top.h, 6.4, 6.9 - (1.95 + top.h));
-const feats = [['Satu siswa', 'Kuesioner seperti Google Form atau 11 nilai fitur; contoh profil siap pakai'], ['Alasan', 'Urutan lima pilihan, "Mengapa …?", grafik kontribusi bobot × utilitas'], ['Sensitivitas', 'Tabel ±10/±20% per siswa'], ['Satu kelas', 'Unggah ekspor Google Form → peringkat prioritas, unduh CSV, evaluasi data baru'], ['Analisis', 'Data, model, SMART, sensitivitas, keadilan']];
+img(s, path.join(FIGS, 'ppt_result_xai.png'), 0.6, 1.95 + top.h, 6.4, 6.9 - (1.95 + top.h));
+const feats = [['Nilai siswa', 'Kuesioner 18 butir, kosong di awal; contoh risiko tinggi/rendah hanya mengisi formulir'], ['Hasil & alasan', 'Rekomendasi, kecemasan & prioritas dengan rentang pembanding, urutan lima pilihan, "Mengapa …?"'], ['Faktor utama & bagaimana jika', 'Shapley per siswa; ubah beberapa faktor sekaligus'], ['Nilai kelas', 'Daftar rujukan, daftar prioritas, rencana program, unduh CSV'], ['Laporan teknis', 'Bab 1–8: data, model, perhitungan SMART langkah demi langkah, xAI, sensitivitas, keadilan']];
 feats.forEach(([h, d], i) => {
   badge(s, i + 1, 7.3, 1.8 + i * 1.03, 0.5);
   text(s, h, { x: 7.95, y: 1.78 + i * 1.03, w: 4.8, h: 0.4, fontSize: 16, bold: true, color: C.deep });
   text(s, d, { x: 7.95, y: 2.15 + i * 1.03, w: 4.8, h: 0.6, fontSize: 13, color: C.mute });
 });
 footer(s, 10);
-s.addNotes('Demo (±3 menit, langsung di aplikasi). 1) Beranda. 2) Rekomendasi → Contoh risiko tinggi: tunjukkan kotak pengaman, kartu hasil, urutan lima pilihan, "Mengapa …?", lalu Rincian perhitungan (grafik kontribusi, tabel sensitivitas). 3) Ganti profil lewat tombol Profil bobot. 4) Satu kelas (unggah berkas) → unggah ekspor Google Form. 5) Analisis singkat. 6) Ganti bahasa.');
+s.addNotes('Demo (±3 menit, langsung di aplikasi). 1) Beranda. 2) Nilai siswa → Contoh risiko tinggi (formulir terisi) → Lihat rekomendasi: kotak pengaman, kartu hasil dengan tanda ?, urutan lima pilihan, "Mengapa …?", Faktor utama, lalu Bagaimana jika? dengan dua faktor. 3) Buka perhitungan → Laporan Bab 3: utilitas, bobot, skor, sensitivitas. 4) Nilai kelas → data contoh: daftar rujukan, filter, rencana program. 5) Sakelar Laporan → Bab 5 singkat. 6) Ganti bahasa.');
 
 // 11 ── Architecture & retraining ──────────────────────────
 s = pres.addSlide(); s.background = { color: C.white };
@@ -229,13 +229,13 @@ title(s, 'Arsitektur & pelatihan ulang dengan data riil', 'Pelatihan offline, ap
 const boxes = [
   [0.6, 2.0, 'Kaggle 1M\nusia 14–25', C.ice], [0.6, 3.5, 'Google Form\n304 respons (rahasia)', C.mint],
   [3.6, 2.75, 'scripts/train.py\nkaggle · tune · real', C.ice], [6.6, 2.75, 'models/\nRF .joblib + metadata', C.mint],
-  [9.6, 2.0, 'Streamlit Cloud\nBeranda · Rekomendasi', C.ice], [9.6, 3.5, 'Analisis · Data Mining\nTentang (ID/EN)', C.ice],
+  [9.6, 2.0, 'Streamlit Cloud\nAplikasi (guru BK)', C.ice], [9.6, 3.5, 'Laporan teknis\nBab 1–8 (ID/EN)', C.ice],
 ];
 boxes.forEach(([x, y, t, f]) => { card(s, x, y, 2.6, 1.1, f); text(s, t, { x: x + 0.1, y: y + 0.15, w: 2.4, h: 0.85, fontSize: 14, bold: true, align: 'center', valign: 'middle', color: C.deep }); });
 [[3.25, 2.45], [3.25, 3.75], [6.25, 3.2], [9.25, 3.2]].forEach(([x, y]) => s.addShape(pres.shapes.RIGHT_ARROW, { x, y, w: 0.3, h: 0.3, fill: { color: C.teal }, line: { color: C.teal } }));
 card(s, 0.6, 5.0, 12.15, 1.8);
 text(s, 'Tujuh strategi pelatihan ulang dibandingkan otomatis (CV 5-fold × 2): model Kaggle apa adanya · data riil saja · gabungan berbobot 1/10/50 · warm start +200/+600 pohon. MAE terendah dipakai; data mentah tidak pernah di-commit, aplikasi hanya memuat agregat.', { x: 0.9, y: 5.15, w: 11.6, h: 1.0, fontSize: 15 });
-text(s, 'Terpilih: S1 data riil saja (MAE holdout 1,11 vs 1,87 model Kaggle) · 155 uji otomatis (pytest)', { x: 0.9, y: 6.2, w: 11.6, h: 0.45, fontSize: 14, color: C.teal, bold: true });
+text(s, 'Terpilih: S1 data riil saja (MAE holdout 1,11 vs 1,87 model Kaggle) · 180 uji otomatis (pytest)', { x: 0.9, y: 6.2, w: 11.6, h: 0.45, fontSize: 14, color: C.teal, bold: true });
 footer(s, 11);
 s.addNotes('Arsitektur (±1 menit). Pemisahan pelatihan dan inferensi. Pada 304 respons riil, model Kaggle gagal (R² negatif) karena siswa SMA jauh lebih cemas dan pola faktornya berbeda; model dari data riil saja menang. Menambah data Kaggle atau warm start tidak membantu.');
 

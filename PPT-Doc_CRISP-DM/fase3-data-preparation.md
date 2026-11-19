@@ -41,7 +41,7 @@ Random Forest tidak memerlukan normalisasi fitur, sehingga fitur numerik dipakai
 
 692.545 baris dibagi **80% latih (554.036 baris)** dan **20% uji (138.509 baris)** dengan `test_size=0.2`, `random_state=42`, dan stratifikasi per usia, sehingga setiap usia 17–25 mendapat porsi yang sama (±11,1%) di kedua bagian (`data.split_full`). Rata-rata target pada data latih 2,99 dan pada data uji 2,98.
 
-Dari data uji diambil **20.000 baris** (juga distratifikasi per usia) sebagai **populasi referensi** aplikasi (`app/data/dataset.csv`): batas SMART, persentil, grafik Analisis, dan penjelasan Shapley memakai baris ini. Karena berasal dari data uji, aplikasi tidak pernah menampilkan baris yang dipakai melatih model. Dari data latih disimpan 8.000 baris untuk strategi pelatihan ulang S2 (`kaggle_retrain.csv.gz`).
+Dari data uji diambil **20.000 baris** (juga distratifikasi per usia) sebagai **populasi referensi** aplikasi (`app/data/dataset.csv`): grafik populasi di laporan teknis, latar penjelasan Shapley, median skenario "bagaimana jika", serta batas SMART dan persentil bila model Kaggle dipilih memakai baris ini. Model aktif (data riil) memakai batas SMART dan kuantil dari 292 respons riil. Karena berasal dari data uji, aplikasi tidak pernah menampilkan baris yang dipakai melatih model. Dari data latih disimpan 8.000 baris untuk strategi pelatihan ulang S2 (`kaggle_retrain.csv.gz`).
 
 ### 2.5 Pemeriksaan outlier
 

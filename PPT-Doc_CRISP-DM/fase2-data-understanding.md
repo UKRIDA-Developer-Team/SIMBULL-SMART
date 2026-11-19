@@ -15,7 +15,7 @@ Proyek memakai dua sumber data dengan peran berbeda.
 | Ukuran asli | 1.000.000 baris × 20 kolom | **304 respons** × 68 kolom (195 dari formulir awal, 109 dari formulir revisi) |
 | Yang dipakai | Rentang usia pelajar 14–25 = **692.545 baris** (berkas hanya berisi usia 17–25), dibagi 80/20 menjadi data latih dan uji | Usia 14–25 dengan jawaban Psikologis lengkap = **292 respons** |
 | Populasi | Mahasiswa, usia 17–29 | Siswa SMA/SMP akhir, usia 14–24 (median 15) |
-| Peran | Pralatih model; populasi referensi SPK | Pelatihan ulang dan pengujian model |
+| Peran | Pralatih model; pembanding model Kaggle dan latar penjelasan AI | Pelatihan ulang dan pengujian model |
 | Kerahasiaan | Publik | **Rahasia**: tidak masuk repositori |
 
 Alasan dua sumber: data Kaggle besar dan lengkap sehingga cocok untuk membangun model awal, tetapi populasinya bukan siswa SMA. Data kuesioner sesuai populasi sasaran, tetapi jumlahnya kecil. Model dilatih lebih dulu pada Kaggle, lalu disesuaikan dengan data kuesioner.

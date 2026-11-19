@@ -1,5 +1,7 @@
 // Capture the app screens for the User Manual, plus the element boxes annotate.py draws callouts on.
 //
+// Covers both zones: the app (Beranda, Nilai siswa, Nilai kelas, Bantuan) and the technical report (Bab 1-8).
+//
 // Start the app first (cd app && .venv/bin/streamlit run streamlit_app.py), then:
 //   node capture_screens.js [app_url]          (default http://localhost:8501)
 // Uses the local Google Chrome through puppeteer-core; set CHROME=/path/to/chrome to override.
@@ -98,6 +100,16 @@ async function open(page, route, waitFor) {
   await settle(page, 1500);
 }
 
+// Click the Streamlit element whose label contains text (scrolls it into view first).
+async function clickIn(page, scope, text) {
+  await clickText(page, scope, text);
+}
+
+async function waitText(page, text, timeout = 120000) {
+  await page.waitForFunction(t => document.body.innerText.includes(t), { timeout }, text);
+  await settle(page, 1200);
+}
+
 (async () => {
   const exe = CHROMES.find(p => p && fs.existsSync(p));
   if (!exe) throw new Error('Google Chrome not found; set CHROME=/path/to/chrome');
@@ -107,57 +119,71 @@ async function open(page, route, waitFor) {
   const page = await browser.newPage();
   await page.setViewport({ width: WIDTH, height: HEIGHT, deviceScaleFactor: DPR });
 
+  const bar = {
+    brand: { sel: '.spk-brand' }, nav: { sel: '.st-key-topnav' },
+    zone: { sel: '[class*="st-key-zone_"]' }, lang: { sel: '.st-key-lang_switch' },
+  };
+  const frame = { title: { sel: '[data-testid="stMainBlockContainer"] h1' }, footer: { sel: '.spk-footer' } };
+
+  // ================================================================ App zone
   // ---- Home
   await open(page, '', '.spk-preview');
   await shot(page, '01_home', {
-    nav: { sel: '[data-testid="stTopNavLinkContainer"]', all: true },
-    lang: { sel: '.st-key-lang_switch' },
+    ...bar,
     cta: { sel: '[data-testid="stButton"]', text: 'Mulai penilaian' },
     cta_batch: { sel: '[data-testid="stButton"]', text: 'Nilai satu kelas' },
     preview: { sel: '.spk-preview' },
     steps: { sel: '[class*="st-key-card_step"]', all: true },
     alts: { sel: '[class*="st-key-card_alt_"]', all: true },
-    notes: { sel: '.st-key-card_users, .st-key-card_care', all: true },
+    report: { sel: '.st-key-card_report' },
     footer: { sel: '.spk-footer' },
   });
 
-  // ---- One student: questionnaire, weight profile, result
-  await open(page, 'recommendation', '.st-key-card_q5');
-  await shot(page, '02_reco_form', {
+  // ---- One student: the empty questionnaire
+  await open(page, 'student', '.st-key-card_q5');
+  const form = {
     title: { sel: '[data-testid="stMainBlockContainer"] h1' },
-    view: { sel: '[data-testid="stButtonGroup"]', text: 'Satu siswa' },
-    profile: { sel: '[data-testid="stPopover"]' },
-    adv: { sel: '[data-testid="stCheckbox"]', text: 'Mode lanjutan' },
-    q1: { sel: '.st-key-card_q1' },
-    q2: { sel: '.st-key-card_q2' },
-    q5: { sel: '.st-key-card_q5' },
-    slider: { sel: '.st-key-card_q2 [data-testid="stSlider"]' },
+    model: { sel: '[data-testid="stPopover"]' },
+    q1: { sel: '.st-key-card_q1' }, q2: { sel: '.st-key-card_q2' }, q5: { sel: '.st-key-card_q5' },
+    select: { sel: '.st-key-card_q2 [data-testid="stSelectbox"]' },
     grade: { sel: '.st-key-card_q2 [data-testid="stNumberInput"]' },
     radio: { sel: '.st-key-card_q2 [data-testid="stRadio"]' },
     tips: { sel: '.st-key-card_tips' },
-    examples: { sel: '.st-key-card_examples' },
+    examples: { sel: '[data-testid="stButton"]', text: 'Contoh risiko', all: true },
+    clear: { sel: '.st-key-clear_answers' },
     submit: { sel: '[data-testid="stFormSubmitButton"]' },
-  });
+  };
+  await shot(page, '02_form', form);
 
+  // Submitting an empty form lists the unanswered questions
+  await clickIn(page, '[data-testid="stFormSubmitButton"] button', 'Lihat rekomendasi');
+  await waitText(page, 'belum dijawab');
+  await shot(page, '03_missing', { ...form, missing: { sel: '[data-testid="stAlert"]', text: 'belum dijawab' } });
+
+  // The model setting
   await page.click('[data-testid="stPopover"] button');
   await settle(page);
-  await shot(page, '03_profile', {
+  await shot(page, '04_model', {
     button: { sel: '[data-testid="stPopover"]' },
     body: { sel: '[data-testid="stPopoverBody"]' },
-    model: { sel: '[data-testid="stPopoverBody"] [data-testid="stRadio"]', nth: 0 },
-    radio: { sel: '[data-testid="stPopoverBody"] [data-testid="stRadio"]', nth: 1 },
+    radio: { sel: '[data-testid="stPopoverBody"] [data-testid="stRadio"]' },
     note: { sel: '[data-testid="stPopoverBody"] p', text: 'Model aktif' },
   }, { full: false });
   await page.keyboard.press('Escape');
   await settle(page);
 
-  await clickText(page, '[data-testid="stButton"] button', 'Contoh risiko tinggi');
+  // An example only fills the form
+  await clickIn(page, '[data-testid="stButton"] button', 'Contoh risiko tinggi');
+  await waitText(page, 'sudah dimuat');
+  await shot(page, '05_example', { ...form, loaded: { sel: '[data-testid="stAlert"]', text: 'sudah dimuat' } });
+
+  // ---- Result
+  await clickIn(page, '[data-testid="stFormSubmitButton"] button', 'Lihat rekomendasi');
   await page.waitForSelector('.st-key-card_hero', { timeout: 60000 });
-  await page.waitForSelector('[data-testid="stExpander"]', { timeout: 120000 });   // after the xAI card
+  await page.waitForSelector('.st-key-card_whatif_result [data-testid="stSlider"]', { timeout: 120000 });
   await settle(page, 2500);
-  await shot(page, '04_result', {
+  const result = {
     back: { sel: '[data-testid="stButton"]', text: 'Ubah jawaban' },
-    reset: { sel: '[data-testid="stButton"]', text: 'Penilaian baru' },
     safety: { sel: '[data-testid="stAlert"]' },
     hero: { sel: '.st-key-card_hero' },
     best: { sel: '.spk-hero-main' },
@@ -165,87 +191,122 @@ async function open(page, route, waitFor) {
     prio: { sel: '.spk-hero-stat', nth: 1 },
     rank: { sel: '.st-key-card_rank' },
     why: { sel: '.st-key-card_why' },
-    compare: { sel: '[data-testid="stExpander"]', text: 'Bandingkan dua model' },
-    xai: { sel: '.st-key-card_xai_single' },
-    details: { sel: '[data-testid="stExpander"]', text: 'Rincian perhitungan' },
+    factors: { sel: '.st-key-card_factors_result' },
+    whatif: { sel: '.st-key-card_whatif_result' },
+    cta: { sel: '.st-key-card_cta' },
+    next: { sel: '.st-key-next_student' },
+  };
+  await shot(page, '06_result', result);
+
+  // What-if with two factors: add sleep hours, lower burnout and raise sleep with the keyboard
+  await page.click('.st-key-card_whatif_result [data-testid="stMultiSelect"] .react-aria-ComboBox input');
+  await page.waitForSelector('[role="option"]', { timeout: 30000 });
+  for (const o of await page.$$('[role="option"]')) {
+    if ((await o.evaluate(e => e.textContent)).includes('Jam tidur')) { await o.click(); break; }
+  }
+  await settle(page);
+  await page.keyboard.press('Escape');
+  const THUMB = '.st-key-card_whatif_result input[type="range"]';   // Streamlit sliders are range inputs
+  await page.waitForFunction(sel => document.querySelectorAll(sel).length === 2, { timeout: 30000 }, THUMB);
+  await settle(page);
+  const thumbs = await page.$$(THUMB);
+  await thumbs[0].focus();
+  for (let i = 0; i < 40; i++) await page.keyboard.press('ArrowLeft');
+  await settle(page);
+  const thumbs2 = await page.$$(THUMB);
+  await thumbs2[1].focus();
+  for (let i = 0; i < 30; i++) await page.keyboard.press('ArrowRight');
+  await page.waitForSelector('.spk-whatif', { timeout: 60000 });
+  await settle(page, 1500);
+  await shot(page, '07_whatif', {
+    whatif: { sel: '.st-key-card_whatif_result' },
+    pick: { sel: '.st-key-card_whatif_result [data-testid="stMultiSelect"]' },
+    sliders: { sel: '.st-key-card_whatif_result [data-testid="stSlider"]', all: true },
+    out: { sel: '.spk-whatif' },
   });
 
-  // ---- Both model iterations side by side for this student
-  await clickText(page, '[data-testid="stExpander"] summary', 'Bandingkan dua model');
-  await shot(page, '04b_compare', { compare: { sel: '[data-testid="stExpander"]', text: 'Bandingkan dua model' } });
-  await clickText(page, '[data-testid="stExpander"] summary', 'Bandingkan dua model');
+  // ---- The same student's full calculation (report chapter 3), opened from the result
+  await clickIn(page, '.st-key-card_cta [data-testid="stButton"] button', 'Buka perhitungan');
+  await page.waitForSelector('.spk-toc', { timeout: 60000 });
+  await page.waitForSelector('.spk-footer', { timeout: 300000 });
+  await settle(page, 2500);
+  await shot(page, '08_ch3', {
+    ...bar, ...frame,
+    eyebrow: { sel: '.spk-eyebrow' }, toc: { sel: '.spk-toc' }, model: { sel: '[data-testid="stPopover"]' },
+    source: { sel: '[data-testid="stButtonGroup"]', text: 'Siswa terakhir' },
+    s1: { sel: 'h3', text: '3.1' }, s4: { sel: 'h3', text: '3.4' }, s6: { sel: 'h3', text: '3.6' },
+    s7: { sel: 'h3', text: '3.7' }, s8: { sel: 'h3', text: '3.8' }, s9: { sel: 'h3', text: '3.9' },
+    s10: { sel: 'h3', text: '3.10' }, cap: { sel: '.spk-cap', nth: 0 },
+    pager: { sel: '.st-key-ch_pager' },
+  });
 
-  // ---- Explainable AI card: one screen per tab
-  const xai = { xai: { sel: '.st-key-card_xai_single' }, tabs: { sel: '.st-key-card_xai_single [role="tablist"]' } };
-  await shot(page, '05_xai_pred', xai);
-  await clickText(page, '.st-key-card_xai_single [role="tab"]', 'Dari prediksi ke rekomendasi');
-  await shot(page, '06_xai_link', { ...xai, chart: { sel: '.st-key-card_xai_single [role="tabpanel"]:not([hidden]) img' } });
-  await clickText(page, '.st-key-card_xai_single [role="tab"]', 'Bagaimana jika?');
-  await shot(page, '07_xai_whatif', xai);
-
-  await clickText(page, '[data-testid="stExpander"] summary', 'Rincian perhitungan');
-  const det = { details: { sel: '[data-testid="stExpander"]', text: 'Rincian perhitungan' }, tabs: { sel: '[data-testid="stExpander"] [role="tablist"]' } };
-  await shot(page, '08_details_inputs', det);
-  await clickText(page, '[data-testid="stExpander"] [role="tab"]', 'Uji sensitivitas');
-  await shot(page, '09_details_sens', { ...det, verdict: { sel: '[data-testid="stExpander"] [data-testid="stAlert"]' } });
-
-  // ---- Whole class, with the Kaggle test-set demo (no real student appears in the manual)
-  await clickText(page, '[data-testid="stButtonGroup"] button', 'Satu kelas');
-  await page.waitForSelector('.st-key-card_xai_batch', { timeout: 120000 });
-  await settle(page, 2000);
-  await clickText(page, '[data-testid="stExpander"] summary', 'Opsi lanjutan');
-  await shot(page, '10_batch', {
+  // ---- Whole class: empty first, then the 30-student sample
+  await open(page, 'class', '.st-key-card_demo');
+  const cls = {
+    title: { sel: '[data-testid="stMainBlockContainer"] h1' },
     upload: { sel: '[data-testid="stFileUploader"]' },
     demo: { sel: '.st-key-card_demo' },
+    toggle: { sel: '.st-key-batch_demo' },
+    template: { sel: '[data-testid="stDownloadButton"]', text: 'template' },
+  };
+  await shot(page, '09_class_empty', { ...cls, empty: { sel: '.st-key-card_class_empty' } });
+  await page.click('.st-key-batch_demo label');
+  await page.waitForSelector('.st-key-card_one', { timeout: 120000 });
+  await settle(page, 2500);
+  await clickIn(page, '[data-testid="stExpander"] summary', 'Opsi lanjutan');
+  await shot(page, '10_class', {
+    ...cls,
+    note: { sel: '[data-testid="stAlert"]', text: 'Data contoh' },
     metrics: { sel: '[data-testid="stMetric"]', all: true },
-    list: { sel: '[data-testid="stHeading"]', text: 'Daftar prioritas' },
-    table: { sel: '[data-testid="stDataFrame"]' },
-    download: { sel: '[data-testid="stDownloadButton"]' },
-    charts: { sel: '.st-key-card_mix, .st-key-card_hist', all: true },
-    xai: { sel: '.st-key-card_xai_batch' },
+    urgent: [{ sel: '[data-testid="stHeading"]', text: 'Perlu dirujuk segera' }, { sel: '[data-testid="stDataFrame"]', nth: 0 }],
+    filters: [{ sel: '[data-testid="stMultiSelect"]' }, { sel: '.st-key-class_detail' }],
+    table: { sel: '[data-testid="stDataFrame"]', nth: 1 },
+    download: { sel: '[data-testid="stDownloadButton"]', text: 'rencana kelas' },
+    programs: { sel: '[class*="st-key-card_prog_"]', all: true },
+    one: { sel: '.st-key-card_one' },
     options: { sel: '[data-testid="stExpander"]', text: 'Opsi lanjutan' },
   });
 
-  // ---- Analysis: one screen per tab
-  await open(page, 'analysis', '.st-key-card_hists');
-  await page.waitForSelector('.spk-footer', { timeout: 300000 });
-  await settle(page, 2000);
-  const frame = { title: { sel: '[data-testid="stMainBlockContainer"] h1' }, footer: { sel: '.spk-footer' } };
-  const tabs = { ...frame, tabs: { sel: '[data-testid="stMainBlockContainer"] [role="tablist"]' },
-    profile: { sel: '[data-testid="stPopover"]' }, population: { sel: 'p, span', text: 'Populasi analisis' } };
-  await shot(page, '11_an_data', tabs);
-  for (const [i, [label, name]] of [['Model', 'model'], ['xAI', 'xai'], ['SMART', 'smart'], ['Sensitivitas', 'sens'], ['Keadilan', 'fair']].entries()) {
-    await clickText(page, '[data-testid="stMainBlockContainer"] [role="tab"]', label);
-    await settle(page, 2000);
-    await shot(page, `${12 + i}_an_${name}`, tabs);
+  // ---- Help
+  await open(page, 'help', '.st-key-card_help_read');
+  await shot(page, '11_help', {
+    ...frame, use: { sel: '.st-key-card_help_one, .st-key-card_help_class', all: true },
+    read: { sel: '.st-key-card_help_read' }, notes: { sel: '.st-key-card_users, .st-key-card_care', all: true },
+  });
+
+  // ================================================================ Report zone
+  const chapter = { ...bar, ...frame, eyebrow: { sel: '.spk-eyebrow' }, toc: { sel: '.spk-toc' },
+    model: { sel: '[data-testid="stPopover"]' }, h: { sel: 'h3', nth: 0 }, cap: { sel: '.spk-cap', nth: 0 },
+    pager: { sel: '.st-key-ch_pager' } };
+  for (const [route, name] of [['report-data', '12_ch1'], ['report-model', '13_ch2'], ['report-xai', '14_ch4'],
+                               ['report-smart', '15_ch5'], ['report-fairness', '16_ch6'],
+                               ['report-architecture', '19_ch8']]) {
+    await open(page, route, '.spk-toc');
+    await page.waitForSelector('.spk-footer', { timeout: 300000 });
+    await settle(page, 2500);
+    await shot(page, name, chapter);
   }
 
-  // ---- Data Mining: the stepper with phase 1, then phase 3 with the question-merge table open
-  await open(page, 'data-mining', '.st-key-card_dm_hero');
+  // ---- Chapter 7 (CRISP-DM): the stepper on phase 1, then phase 3 with the question-merge table open
+  await open(page, 'report-crispdm', '.st-key-card_dm_hero');
   await page.waitForSelector('.spk-footer', { timeout: 300000 });
   const dm = { ...frame, stepper: { sel: '[data-testid="stButtonGroup"]', text: 'Business Understanding' },
     hero: { sel: '.st-key-card_dm_hero' }, kpis: { sel: '[data-testid="stMetric"]', all: true },
     steps: { sel: '[class*="st-key-card_dm_step"]', all: true }, main: { sel: '.st-key-card_dm_main' },
     side: { sel: '.st-key-card_dm_side' }, next: { sel: '.st-key-dm_next' } };
-  await shot(page, '17_dm', dm);
-  await clickText(page, '[data-testid="stButtonGroup"] button', 'Data Preparation');
+  await shot(page, '17_ch7', dm);
+  await clickIn(page, '[data-testid="stButtonGroup"] button', 'Data Preparation');
   await page.waitForFunction(() => document.body.innerText.includes('FASE 3 DARI 6'), { timeout: 60000 });
   await settle(page, 1500);
-  await clickText(page, '[data-testid="stExpander"] summary', 'digabung');
-  await shot(page, '18_dm_prep', { ...dm, merge: { sel: '[data-testid="stExpander"]', text: 'digabung' } });
+  await clickIn(page, '[data-testid="stExpander"] summary', 'digabung');
+  await shot(page, '18_ch7_prep', { ...dm, merge: { sel: '[data-testid="stExpander"]', text: 'digabung' } });
 
-  // ---- About
-  await open(page, 'about', '.st-key-card_arch');
-  await page.waitForSelector('.spk-footer', { timeout: 300000 });
-  await shot(page, '19_about', frame);
-
-  // ---- English: the same Home page after switching the language
+  // ---- English: the Home page after switching the language
   await open(page, '', '.spk-preview');
-  await clickText(page, '.st-key-lang_switch button', 'EN');
+  await clickIn(page, '.st-key-lang_switch button', 'EN');
   await page.waitForFunction(() => document.body.innerText.includes('Start an assessment'), { timeout: 30000 });
   await settle(page, 1200);
-  await shot(page, '20_en', { lang: { sel: '.st-key-lang_switch' }, nav: { sel: '[data-testid="stTopNavLinkContainer"]', all: true } },
-    { full: false });
+  await shot(page, '20_en', bar, { full: false });
 
   await browser.close();
   console.log('screens ->', OUT);

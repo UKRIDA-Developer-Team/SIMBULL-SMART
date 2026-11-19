@@ -148,9 +148,9 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 3. **Skor prioritas:** `P = Σ wⱼ uⱼ` dengan bobot sama `wⱼ = 1/8`. Siswa diurutkan dengan `rank(method="dense")` dari skor tertinggi.
 4. **Skor tiap alternatif:** `Sₐ = Σ wₐⱼ uⱼ`, dengan bobot khusus alternatif a (tabel 4.2).
 5. **Rekomendasi:** alternatif dengan Sₐ tertinggi; aplikasi menampilkan tiga teratas.
-6. **Aturan pengaman:** bila prediksi kecemasan ≥ persentil 90 populasi referensi, konseling dan rujukan selalu ditampilkan.
+6. **Aturan pengaman:** bila prediksi kecemasan ≥ persentil 90 kelompok pembanding (292 responden riil untuk model aktif, ambang 6,28), konseling dan rujukan selalu ditampilkan.
 
-### 4.2 Profil bobot
+### 4.2 Bobot alternatif
 
 **Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai. Di notebook, bobot Exercise berjumlah **1,05**, padahal SMART mensyaratkan Σw = 1. Aplikasi menormalkannya dengan membagi setiap bobot Exercise dengan 1,05.
 
@@ -167,9 +167,13 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 
 \*setelah normalisasi (notebook: 0,15 / 0,05 / 0,05 / 0,05 / 0,45 / 0,05 / 0,05 / 0,20).
 
+Dua susunan bobot lain diuji sebagai pembanding, tetapi tidak dipakai aplikasi akhir:
+
 **Profil B — hampir seimbang.** Kriteria utama tiap alternatif mendapat 0,15–0,20, dan kriteria lain 0,10.
 
 **Profil C — sama rata (kontrol).** Semua bobot 1/8. Karena kelima alternatif memakai bobot yang sama, semua skor seri. `idxmax` lalu selalu memilih alternatif pertama (Sleep). Profil C hanya menjadi pembanding.
+
+Aplikasi akhir hanya memakai **profil A** (lihat Fase 5, stabilitas bobot); pengguna tidak lagi dapat memilih profil.
 
 ### 4.3 Contoh perhitungan (siswa STU00006, profil A)
 
@@ -222,4 +226,4 @@ Normalisasi menurunkan dominasi Exercise dari 47% menjadi 37%. Profil B lebih ba
 | `app/models/model_comparison.json` | perbandingan 5 algoritma |
 | `app/models/rf_tuning.json` | hasil *random search* 25 pengaturan RF |
 | `app/models/rf_real_model.joblib` + metadata + `real_summary.json` | model aktif setelah data riil (agregat saja) |
-| `app/spk/smart.py`, `config.py` | implementasi SMART dan profil bobot |
+| `app/spk/smart.py`, `config.py` | implementasi SMART dan bobot alternatif |

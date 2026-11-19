@@ -37,7 +37,7 @@ Rata-rata prediksi meleset ±0,76 poin pada skala 0–10, dan model menjelaskan 
 
 ### 2.2 Analisis galat
 
-- Grafik aktual vs prediksi (halaman Analisis) menunjukkan titik mengikuti garis diagonal. Prediksi untuk skor ekstrem cenderung **ditarik ke tengah**: rentang prediksi 0,33–7,21, sedangkan rentang aktual 0–9,63. Ini sifat umum Random Forest, yang merata-ratakan pohon.
+- Grafik aktual vs prediksi (Laporan teknis, Bab 2) menunjukkan titik mengikuti garis diagonal. Prediksi untuk skor ekstrem cenderung **ditarik ke tengah**: rentang prediksi 0,33–7,21, sedangkan rentang aktual 0–9,63. Ini sifat umum Random Forest, yang merata-ratakan pohon.
 - Konsekuensinya, siswa dengan kecemasan sangat tinggi dapat terprediksi lebih rendah dari sebenarnya. Karena itu aturan pengaman memakai **persentil** (10% prediksi tertinggi), bukan ambang absolut.
 
 ### 2.3 Perbandingan algoritma
@@ -85,7 +85,7 @@ Perubahan ±10% pada satu bobot mengubah paling banyak 3,2% rekomendasi. Kriteri
 | B | ±10% | 89,1% | 82,9% | 78,1% |
 | B | ±20% | 78,8% | 68,0% | 62,0% |
 
-Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil B hampir seimbang, sehingga lebih banyak siswa berada di dekat batas seri. Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi oleh profil A. Karena itu **profil A menjadi bawaan aplikasi**.
+Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil B hampir seimbang, sehingga lebih banyak siswa berada di dekat batas seri. Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi oleh profil A. Karena itu **profil A dipilih dan menjadi satu-satunya bobot di aplikasi**.
 
 **Per siswa.** Halaman Rekomendasi menampilkan tabel 8 kriteria × 4 perubahan untuk siswa yang sedang dinilai. Sel yang rekomendasinya berubah diwarnai, sehingga guru BK dapat melihat apakah hasil siswa tersebut kokoh atau berada di batas.
 
@@ -103,7 +103,7 @@ Profil C menunjukkan mengapa bobot khusus per alternatif diperlukan. Tanpa bobot
 
 ### 3.3 Temuan: bobot notebook tidak ternormalisasi
 
-Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap profil berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
+Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap bobot alternatif berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
 
 ### 3.4 Contoh kasus
 
@@ -155,7 +155,7 @@ Galat pada siswa perempuan 0,29 poin lebih besar, dan prediksinya sedikit lebih 
 
 ## 6. Keputusan Lanjutan
 
-1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan profil A sebagai bawaan. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
+1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan bobot profil A. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
 2. Kumpulkan respons baru dan uji dengan `scripts/evaluate.py` atau unggah di aplikasi; latih ulang bila respons bertambah banyak.
 3. Perbaiki butir tingkat stres dan tekanan ujian (α < 0,4), dan pertimbangkan butir kualitas tidur, konflik teman, dan media sosial saat belajar sebagai fitur (S4 terbaik pada CV).
 4. Validasi bobot profil A dengan guru BK atau psikolog, yaitu kesesuaian rekomendasi pertama pada 20–30 kasus.

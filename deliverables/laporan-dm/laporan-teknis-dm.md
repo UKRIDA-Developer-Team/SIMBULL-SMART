@@ -125,7 +125,7 @@ Proyek memakai dua sumber data dengan peran berbeda.
 | Ukuran asli | 1.000.000 baris × 20 kolom | **304 respons** × 68 kolom (195 dari formulir awal, 109 dari formulir revisi) |
 | Yang dipakai | Rentang usia pelajar 14–25 = **692.545 baris** (berkas hanya berisi usia 17–25), dibagi 80/20 menjadi data latih dan uji | Usia 14–25 dengan jawaban Psikologis lengkap = **292 respons** |
 | Populasi | Mahasiswa, usia 17–29 | Siswa SMA/SMP akhir, usia 14–24 (median 15) |
-| Peran | Pralatih model; populasi referensi SPK | Pelatihan ulang dan pengujian model |
+| Peran | Pralatih model; pembanding model Kaggle dan latar penjelasan AI | Pelatihan ulang dan pengujian model |
 | Kerahasiaan | Publik | **Rahasia**: tidak masuk repositori |
 
 Alasan dua sumber: data Kaggle besar dan lengkap sehingga cocok untuk membangun model awal, tetapi populasinya bukan siswa SMA. Data kuesioner sesuai populasi sasaran, tetapi jumlahnya kecil. Model dilatih lebih dulu pada Kaggle, lalu disesuaikan dengan data kuesioner.
@@ -300,7 +300,7 @@ Random Forest tidak memerlukan normalisasi fitur, sehingga fitur numerik dipakai
 
 692.545 baris dibagi **80% latih (554.036 baris)** dan **20% uji (138.509 baris)** dengan `test_size=0.2`, `random_state=42`, dan stratifikasi per usia, sehingga setiap usia 17–25 mendapat porsi yang sama (±11,1%) di kedua bagian (`data.split_full`). Rata-rata target pada data latih 2,99 dan pada data uji 2,98.
 
-Dari data uji diambil **20.000 baris** (juga distratifikasi per usia) sebagai **populasi referensi** aplikasi (`app/data/dataset.csv`): batas SMART, persentil, grafik Analisis, dan penjelasan Shapley memakai baris ini. Karena berasal dari data uji, aplikasi tidak pernah menampilkan baris yang dipakai melatih model. Dari data latih disimpan 8.000 baris untuk strategi pelatihan ulang S2 (`kaggle_retrain.csv.gz`).
+Dari data uji diambil **20.000 baris** (juga distratifikasi per usia) sebagai **populasi referensi** aplikasi (`app/data/dataset.csv`): grafik populasi di laporan teknis, latar penjelasan Shapley, median skenario "bagaimana jika", serta batas SMART dan persentil bila model Kaggle dipilih memakai baris ini. Model aktif (data riil) memakai batas SMART dan kuantil dari 292 respons riil. Karena berasal dari data uji, aplikasi tidak pernah menampilkan baris yang dipakai melatih model. Dari data latih disimpan 8.000 baris untuk strategi pelatihan ulang S2 (`kaggle_retrain.csv.gz`).
 
 ### 3.2.5 Pemeriksaan outlier
 
@@ -583,9 +583,9 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 3. **Skor prioritas:** `P = Σ wⱼ uⱼ` dengan bobot sama `wⱼ = 1/8`. Siswa diurutkan dengan `rank(method="dense")` dari skor tertinggi.
 4. **Skor tiap alternatif:** `Sₐ = Σ wₐⱼ uⱼ`, dengan bobot khusus alternatif a (tabel 4.2).
 5. **Rekomendasi:** alternatif dengan Sₐ tertinggi; aplikasi menampilkan tiga teratas.
-6. **Aturan pengaman:** bila prediksi kecemasan ≥ persentil 90 populasi referensi, konseling dan rujukan selalu ditampilkan.
+6. **Aturan pengaman:** bila prediksi kecemasan ≥ persentil 90 kelompok pembanding (292 responden riil untuk model aktif, ambang 6,28), konseling dan rujukan selalu ditampilkan.
 
-### 4.4.2 Profil bobot
+### 4.4.2 Bobot alternatif
 
 **Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai. Di notebook, bobot Exercise berjumlah **1,05**, padahal SMART mensyaratkan Σw = 1. Aplikasi menormalkannya dengan membagi setiap bobot Exercise dengan 1,05.
 
@@ -602,9 +602,13 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 
 \*setelah normalisasi (notebook: 0,15 / 0,05 / 0,05 / 0,05 / 0,45 / 0,05 / 0,05 / 0,20).
 
+Dua susunan bobot lain diuji sebagai pembanding, tetapi tidak dipakai aplikasi akhir:
+
 **Profil B — hampir seimbang.** Kriteria utama tiap alternatif mendapat 0,15–0,20, dan kriteria lain 0,10.
 
 **Profil C — sama rata (kontrol).** Semua bobot 1/8. Karena kelima alternatif memakai bobot yang sama, semua skor seri. `idxmax` lalu selalu memilih alternatif pertama (Sleep). Profil C hanya menjadi pembanding.
+
+Aplikasi akhir hanya memakai **profil A** (lihat Fase 5, stabilitas bobot); pengguna tidak lagi dapat memilih profil.
 
 ### 4.4.3 Contoh perhitungan (siswa STU00006, profil A)
 
@@ -657,7 +661,7 @@ Normalisasi menurunkan dominasi Exercise dari 47% menjadi 37%. Profil B lebih ba
 | `app/models/model_comparison.json` | perbandingan 5 algoritma |
 | `app/models/rf_tuning.json` | hasil *random search* 25 pengaturan RF |
 | `app/models/rf_real_model.joblib` + metadata + `real_summary.json` | model aktif setelah data riil (agregat saja) |
-| `app/spk/smart.py`, `config.py` | implementasi SMART dan profil bobot |
+| `app/spk/smart.py`, `config.py` | implementasi SMART dan bobot alternatif |
 
 
 [[PAGEBREAK]]
@@ -701,7 +705,7 @@ Rata-rata prediksi meleset ±0,76 poin pada skala 0–10, dan model menjelaskan 
 
 ### 5.2.2 Analisis galat
 
-- Grafik aktual vs prediksi (halaman Analisis) menunjukkan titik mengikuti garis diagonal. Prediksi untuk skor ekstrem cenderung **ditarik ke tengah**: rentang prediksi 0,33–7,21, sedangkan rentang aktual 0–9,63. Ini sifat umum Random Forest, yang merata-ratakan pohon.
+- Grafik aktual vs prediksi (Laporan teknis, Bab 2) menunjukkan titik mengikuti garis diagonal. Prediksi untuk skor ekstrem cenderung **ditarik ke tengah**: rentang prediksi 0,33–7,21, sedangkan rentang aktual 0–9,63. Ini sifat umum Random Forest, yang merata-ratakan pohon.
 - Konsekuensinya, siswa dengan kecemasan sangat tinggi dapat terprediksi lebih rendah dari sebenarnya. Karena itu aturan pengaman memakai **persentil** (10% prediksi tertinggi), bukan ambang absolut.
 
 ### 5.2.3 Perbandingan algoritma
@@ -749,7 +753,7 @@ Perubahan ±10% pada satu bobot mengubah paling banyak 3,2% rekomendasi. Kriteri
 | B | ±10% | 89,1% | 82,9% | 78,1% |
 | B | ±20% | 78,8% | 68,0% | 62,0% |
 
-Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil B hampir seimbang, sehingga lebih banyak siswa berada di dekat batas seri. Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi oleh profil A. Karena itu **profil A menjadi bawaan aplikasi**.
+Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil B hampir seimbang, sehingga lebih banyak siswa berada di dekat batas seri. Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi oleh profil A. Karena itu **profil A dipilih dan menjadi satu-satunya bobot di aplikasi**.
 
 **Per siswa.** Halaman Rekomendasi menampilkan tabel 8 kriteria × 4 perubahan untuk siswa yang sedang dinilai. Sel yang rekomendasinya berubah diwarnai, sehingga guru BK dapat melihat apakah hasil siswa tersebut kokoh atau berada di batas.
 
@@ -767,7 +771,7 @@ Profil C menunjukkan mengapa bobot khusus per alternatif diperlukan. Tanpa bobot
 
 ### 5.3.3 Temuan: bobot notebook tidak ternormalisasi
 
-Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap profil berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
+Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap bobot alternatif berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
 
 ### 5.3.4 Contoh kasus
 
@@ -819,7 +823,7 @@ Galat pada siswa perempuan 0,29 poin lebih besar, dan prediksinya sedikit lebih 
 
 ## 5.6 Keputusan Lanjutan
 
-1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan profil A sebagai bawaan. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
+1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan bobot profil A. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
 2. Kumpulkan respons baru dan uji dengan `scripts/evaluate.py` atau unggah di aplikasi; latih ulang bila respons bertambah banyak.
 3. Perbaiki butir tingkat stres dan tekanan ujian (α < 0,4), dan pertimbangkan butir kualitas tidur, konflik teman, dan media sosial saat belajar sebagai fitur (S4 terbaik pada CV).
 4. Validasi bobot profil A dengan guru BK atau psikolog, yaitu kesesuaian rekomendasi pertama pada 20–30 kasus.
@@ -851,15 +855,14 @@ Galat pada siswa perempuan 0,29 poin lebih besar, dan prediksinya sedikit lebih 
 ```
  Pelatihan offline (laptop / Colab)                    Streamlit Community Cloud
  ─────────────────────────────────                     ─────────────────────────────────────────────
- Kaggle 1M ─► 14–25 80/20 ┐                             streamlit_app.py (navigasi, bahasa, profil bobot)
-                          ├─► scripts/train.py ─► models/   │
- Google Form (rahasia) ───┘   kaggle | real |     *.joblib  ├─ Beranda
-                              compare              + meta   ├─ Rekomendasi ─► spk/gform.py  (jawaban → fitur)
-                                                  (agregat) │                 spk/model.py  (prediksi RF)
-                                                            │                 spk/smart.py  (SMART, sensitivitas)
-                                                            │                 spk/recommend.py, explain.py
-                                                            ├─ Analisis    ─► spk/plots.py
-                                                            └─ Tentang
+ Kaggle 1M ─► 14–25 80/20 ┐                             streamlit_app.py + ui.py (bilah atas: halaman,
+                          ├─► scripts/train.py ─► models/   │  sakelar Aplikasi | Laporan, ID | EN)
+ Google Form (rahasia) ───┘   kaggle | real |     *.joblib  ├─ Aplikasi: Beranda, Nilai siswa, Nilai kelas,
+                              compare              + meta   │  Bantuan ─► spk/gform.py  (jawaban → fitur)
+                                                  (agregat) │             spk/model.py  (prediksi RF)
+                                                            │             spk/smart.py  (SMART, sensitivitas)
+                                                            │             spk/recommend.py, explain.py, xai.py
+                                                            └─ Laporan teknis: Bab 1–8 ─► report.py, spk/plots.py
 ```
 
 Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline*. Aplikasi hanya memuat model `.joblib` beserta metadata (fitur, pemetaan gender, batas SMART, median imputasi, kuantil referensi) lalu melakukan inferensi. *Preprocessing* saat inferensi memakai kode dan nilai yang sama persis dengan saat pelatihan: `gform.derive`, `GENDER_MAP`, `smart_bounds`, dan `impute_medians`.
@@ -868,27 +871,30 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 
 | Berkas | Tanggung jawab |
 |---|---|
-| `app/streamlit_app.py` | titik masuk, `st.navigation`, sidebar (bahasa, profil bobot, info model, penafian) |
-| `app/app_pages/home.py` | masalah, pengguna, alur kerja, tombol mulai |
-| `app/app_pages/recommendation.py` | input satu siswa (kuesioner/lanjutan), hasil + alasan + sensitivitas; unggah banyak siswa + evaluasi data baru |
-| `app/app_pages/analysis.py` | data, model, SMART, sensitivitas, keadilan |
-| `app/app_pages/data_mining.py` | proses CRISP-DM per fase dengan angka dari data dan model |
-| `app/app_pages/about.py` | metode, arsitektur, keterbatasan, etika |
+| `app/streamlit_app.py`, `app/ui.py` | titik masuk; daftar halaman kedua bagian; bilah atas (menu, sakelar Aplikasi/Laporan, ID/EN, pilihan model); pemuat model dan data |
+| `app/app_pages/home.py`, `help.py` | Beranda dan Bantuan |
+| `app/app_pages/recommendation.py` | kuesioner satu siswa (kosong di awal, contoh hanya mengisi formulir) dan hasil ringkas |
+| `app/app_pages/batch.py` | unggah satu kelas: daftar rujukan, daftar prioritas, rencana program, evaluasi data baru |
+| `app/result_views.py` | potongan hasil yang dipakai kedua bagian: kartu hasil, faktor utama, simulasi "bagaimana jika", kartu xAI |
+| `app/report.py`, `app/app_pages/report/*.py` | Laporan teknis Bab 1–8: bab dan subbab bernomor, tabel dan gambar berkapsi, tombol bab sebelumnya/berikutnya |
 | `app/spk/*.py` | logika murni tanpa Streamlit, diuji dengan `pytest` |
 | `app/scripts/*.py` | pelatihan (`kaggle`, `tune`, `compare`, `real`), inspeksi kuesioner, evaluasi data baru, laporan penggabungan pertanyaan |
-| `app/tests/` | 155 uji otomatis (*black-box* dan *white-box*): *parsing* kuesioner, perhitungan SMART, pelatihan ulang, setiap halaman di kedua bahasa |
+| `app/tests/` | 180 uji otomatis (*black-box* dan *white-box*): *parsing* kuesioner, perhitungan SMART, pelatihan ulang, setiap halaman kedua bagian dalam kedua bahasa |
 
 ## 6.4 Fitur Aplikasi
 
-| Halaman | Fitur | Kaitan rubrik |
+Aplikasi dibagi menjadi dua bagian yang dipilih dengan sakelar **Aplikasi | Laporan** di samping tombol bahasa. Bagian **Aplikasi** ditujukan untuk guru BK dan menampilkan hasil ringkas. Bagian **Laporan teknis** ditujukan untuk dosen dan penguji dan memuat seluruh perhitungan dan evaluasi.
+
+| Bagian · halaman | Fitur | Kaitan rubrik |
 |---|---|---|
-| Beranda | rumusan masalah, pengguna, alur, metrik model | *Problem formulation* |
-| Rekomendasi — satu siswa | mode kuesioner (pertanyaan Google Form) atau 11 nilai fitur; prediksi + persentil; skor prioritas; tiga alternatif teratas; grafik kontribusi bobot × utilitas; kalimat alasan; uji sensitivitas per siswa; aturan pengaman | *Implementation*, *Explainability* |
-| Rekomendasi — banyak siswa | unggah ekspor Google Form (.csv/.xlsx) atau CSV 11 kolom; kolom pribadi dibuang otomatis; peringkat prioritas; unduh hasil; evaluasi MAE/RMSE/R² bila jawaban Psikologis tersedia | *Implementation*, *Evaluation* |
-| Analisis | statistik data Kaggle dan agregat data riil; metrik, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi; grafik SMART dari notebook; stabilitas ±10%/±20%; peta sensitivitas; keadilan per gender | *Evaluation & Sensitivity*, *Data & Criteria* |
-| Data Mining | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji | *Data Mining process* |
-| Tentang | data, *preprocessing*, pemetaan kuesioner, RF, SMART, keterbatasan, etika | *Algorithm*, *Architecture*, *Ethics* |
-| Pengaturan | ID/EN; pilihan model (iterasi 1 Kaggle atau iterasi 2 data riil) dan profil bobot A/B/C, hasil di semua halaman langsung berubah; perbandingan kedua model untuk satu siswa dan tabel iterasi model di Analisis | *Sensitivity*, *Evaluation* |
+| Aplikasi · Beranda | rumusan masalah, alur kerja, lima bentuk dukungan, tautan ke laporan teknis | *Problem formulation* |
+| Aplikasi · Nilai siswa | kuesioner 18 butir yang kosong di awal dan wajib diisi lengkap; contoh risiko tinggi/rendah yang hanya mengisi formulir; hasil: rekomendasi utama, prediksi + label posisi (dengan rentang dan kelompok pembanding), skor prioritas, urutan lima pilihan, kalimat alasan, faktor utama (Shapley), simulasi "bagaimana jika" untuk beberapa faktor sekaligus, aturan pengaman | *Implementation*, *Explainability* |
+| Aplikasi · Nilai kelas | unggah ekspor Google Form (.csv/.xlsx) atau CSV 11 kolom (ada template); data contoh 30 siswa bila diminta; kolom pribadi dibuang otomatis; daftar rujukan segera; daftar prioritas dengan filter; rencana program per bentuk dukungan; unduh CSV; evaluasi MAE/RMSE/R² bila jawaban Psikologis tersedia | *Implementation*, *Evaluation* |
+| Laporan · Bab 1–2 | statistik data Kaggle dan agregat data riil; metrik, iterasi model, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi | *Data & Criteria*, *Algorithm* |
+| Laporan · Bab 3 | perhitungan SMART langkah demi langkah untuk satu siswa: input, prediksi RF, nilai kriteria, utilitas dengan angka yang disubstitusi, matriks bobot, kontribusi w × u, peringkat, prioritas dan aturan pengaman, sensitivitas, dan xAI | *Algorithm*, *Explainability* |
+| Laporan · Bab 4–6 | xAI global (Gini vs permutasi, PDP/ICE); hasil SMART pada populasi, stabilitas ±10%/±20%, peta sensitivitas per kriteria; keadilan per gender | *Evaluation & Sensitivity*, *Ethics* |
+| Laporan · Bab 7–8 | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji; arsitektur, metode, keterbatasan, etika, tim | *Data Mining process*, *Architecture* |
+| Pengaturan | ID/EN; pilihan model (iterasi 1 Kaggle atau iterasi 2 data riil), hasil di semua halaman langsung berubah; perbandingan kedua model untuk satu siswa di Bab 3 | *Evaluation* |
 
 ## 6.5 Langkah Deployment
 
@@ -907,7 +913,7 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 |---|---|
 | Kinerja pada data baru | unggah ekspor baru di tab "Banyak siswa" atau jalankan `scripts/evaluate.py`; bandingkan model aktif dengan model Kaggle |
 | Pelatihan ulang | jalankan `scripts/train.py --stage real` saat respons bertambah; strategi terbaik dipilih ulang otomatis |
-| Versi model | metadata mencatat sumber data, strategi, jumlah baris, dan waktu pelatihan; ditampilkan di sidebar |
+| Versi model | metadata mencatat sumber data, strategi, jumlah baris, dan waktu pelatihan; ditampilkan di panel pilihan model |
 | Privasi | tidak ada penyimpanan data di aplikasi; unggahan diproses di memori; kolom pribadi dibuang; unduhan tanpa identitas; repositori privat; sel agregat < 5 orang disembunyikan; laporan berisi contoh jawaban disimpan di folder yang di-*gitignore* |
 | Keamanan penggunaan | penafian "bukan diagnosis" di setiap halaman; aturan pengaman rujukan untuk 10% prediksi tertinggi |
 

@@ -52,7 +52,7 @@ Pelaksanaan terdiri atas enam tahap berulang (Gambar 1). Hasil uji pada tahap 6 
 
 ## 3.1 Tahap 1: Pengumpulan Data
 
-**Data sekunder.** Dataset publik *Student Mental Health and Burnout* dari Kaggle (sharmajicoder, t.t.) berisi 1 juta baris. Hanya baris dalam rentang usia pelajar 14–25 yang dipakai (692.545 baris; berkas berisi usia 17–25), lalu dibagi 80% latih (554.036) dan 20% uji (138.509) dengan stratifikasi usia (`random_state` = 42). Data ini dipakai untuk pralatih model, dan 20.000 baris uji menjadi populasi pembanding SMART.
+**Data sekunder.** Dataset publik *Student Mental Health and Burnout* dari Kaggle (sharmajicoder, t.t.) berisi 1 juta baris. Hanya baris dalam rentang usia pelajar 14–25 yang dipakai (692.545 baris; berkas berisi usia 17–25), lalu dibagi 80% latih (554.036) dan 20% uji (138.509) dengan stratifikasi usia (`random_state` = 42). Data ini dipakai untuk pralatih model. Sampel 20.000 baris uji menjadi kelompok pembanding model Kaggle dan latar penjelasan AI.
 
 **Data primer.** Kuesioner Google Form disebarkan kepada siswa SMA melalui sekolah mitra, dengan izin sekolah dan persetujuan orang tua. Kuesioner memuat sekitar 50 butir dalam delapan domain: kebiasaan belajar, tidur, media sosial, tuntutan dan tekanan, aktivitas fisik, kegiatan di luar sekolah, kelelahan, pertemanan, dan pola makan. Selain itu ada lima butir psikologis pembentuk label (tujuh pada formulir revisi). Jawaban berupa rentang (mis. jam belajar), skala Likert 5 titik, dan isian angka (nilai rapor). Target minimal 200 respons valid. Telah terkumpul **304 respons**; setelah pembersihan usia 14–25 dan kelengkapan butir psikologis, 292 respons dipakai.
 
@@ -73,27 +73,25 @@ Untuk menyesuaikan model dengan siswa SMA, tujuh strategi pelatihan ulang diband
 ## 3.4 Tahap 4: Pengolahan Algoritma Keputusan SMART
 
 1. **Kriteria (8).** Prediksi kecemasan RF, jam belajar, tekanan finansial, ekspektasi keluarga, dan kelelahan bersifat *benefit* (makin tinggi makin membutuhkan perhatian). Nilai rapor, jam tidur, dan hari olahraga bersifat *cost*.
-2. **Utilitas.** Nilai dinormalisasi min–maks memakai batas populasi referensi, sehingga satu siswa pun dapat dinilai. Nilai di luar batas dipotong ke rentang 0–1.
+2. **Utilitas.** Nilai dinormalisasi min–maks memakai batas data latih (292 respons riil untuk model aplikasi), sehingga satu siswa pun dapat dinilai. Nilai di luar batas dipotong ke rentang 0–1.
 3. **Skor prioritas.** P = rata-rata utilitas kedelapan kriteria. Nilai ini menentukan urutan siswa yang ditangani lebih dahulu.
 4. **Skor alternatif.** Sₐ = Σ wₐⱼ·uⱼ, dengan bobot khusus tiap alternatif yang berjumlah 1. Contohnya, alternatif perbaikan tidur memberi bobot 0,40 pada jam tidur. Alternatif dengan Sₐ tertinggi direkomendasikan, dan tiga teratas ditampilkan.
-5. **Aturan pengaman.** Siswa dengan prediksi kecemasan di 10% teratas populasi referensi selalu mendapat rekomendasi konseling dan rujukan, apa pun hasil SMART.
+5. **Aturan pengaman.** Siswa dengan prediksi kecemasan di 10% teratas di antara 292 responden kuesioner (≥ 6,28) selalu mendapat rekomendasi konseling dan rujukan, apa pun hasil SMART.
 
 **Contoh.** Siswa dengan jam tidur 3,1 jam memperoleh utilitas jam tidur 0,979. Alternatif perbaikan tidur mendapat skor tertinggi (0,706), dengan sumbangan terbesar 0,40 × 0,979 = 0,392. Skor prioritasnya 0,580, lebih tinggi dari 93% siswa referensi.
 
 ## 3.5 Tahap 5: Konstruksi Aplikasi
 
-Aplikasi dibangun dengan Python dan Streamlit dan di-*hosting* di Streamlit Community Cloud. Arsitekturnya ada di Lampiran 5. Aplikasi memiliki empat halaman dalam dua bahasa (Indonesia/Inggris):
+Aplikasi dibangun dengan Python dan Streamlit dan di-*hosting* di Streamlit Community Cloud. Arsitekturnya ada di Lampiran 5. Aplikasi berbahasa Indonesia/Inggris dan memiliki dua bagian yang dipilih lewat sakelar di bilah atas:
 
-- **Beranda:** masalah dan alur kerja.
-- **Rekomendasi:** isian kuesioner satu siswa, atau unggah ekspor Google Form untuk satu kelas.
-- **Analisis:** kinerja model, grafik SMART, sensitivitas, dan keadilan.
-- **Tentang:** metode, keterbatasan, dan etika.
+- **Aplikasi** (untuk guru BK): **Beranda**; **Nilai siswa**, yaitu kuesioner satu siswa dengan hasil ringkas, faktor utama, dan simulasi "bagaimana jika"; **Nilai kelas**, yaitu unggah ekspor Google Form untuk daftar rujukan, daftar prioritas, dan kelompok program; serta **Bantuan**.
+- **Laporan teknis** (untuk dosen dan penguji): delapan bab, yaitu data, model, perhitungan SMART langkah demi langkah untuk satu siswa, xAI, hasil dan sensitivitas SMART, keadilan, CRISP-DM, serta arsitektur dan keterbatasan.
 
 Pelatihan berjalan terpisah dari aplikasi, sehingga aplikasi hanya melakukan inferensi dengan praproses yang sama persis dengan saat pelatihan.
 
 ## 3.6 Tahap 6: Pengujian Keandalan dan Penerimaan
 
-**Uji teknis.** Uji teknis mencakup: (1) MAE, RMSE, dan R² pada data *holdout* dan pada respons baru; (2) 155 uji otomatis yang memastikan hasil identik dengan perhitungan manual; (3) uji sensitivitas, yaitu bobot tiap kriteria diubah ±10% dan ±20%, serta seluruh bobot diacak 100 kali; dan (4) uji keadilan berupa perbandingan MAE dan sebaran rekomendasi antargender. Hasil sementara: rekomendasi utama tetap pada 94,3% siswa referensi Kaggle dan 95,5% responden riil saat bobot diacak ±10%; perubahan satu bobot ±10% mengubah paling banyak 3,2% rekomendasi; selisih MAE antargender di bawah 0,01 poin pada data Kaggle, tetapi 0,29 poin pada *holdout* riil (29 dan 30 siswa) sehingga perlu dipantau.
+**Uji teknis.** Uji teknis mencakup: (1) MAE, RMSE, dan R² pada data *holdout* dan pada respons baru; (2) 180 uji otomatis yang memastikan hasil identik dengan perhitungan manual; (3) uji sensitivitas, yaitu bobot tiap kriteria diubah ±10% dan ±20%, serta seluruh bobot diacak 100 kali; dan (4) uji keadilan berupa perbandingan MAE dan sebaran rekomendasi antargender. Hasil sementara: rekomendasi utama tetap pada 94,3% siswa referensi Kaggle dan 95,5% responden riil saat bobot diacak ±10%; perubahan satu bobot ±10% mengubah paling banyak 3,2% rekomendasi; selisih MAE antargender di bawah 0,01 poin pada data Kaggle, tetapi 0,29 poin pada *holdout* riil (29 dan 30 siswa) sehingga perlu dipantau.
 
 **Uji penerimaan.** Guru BK dan siswa di sekolah mitra mencoba aplikasi, lalu menilainya pada skala 1–5 untuk lima aspek: pemahaman fitur, kesesuaian hasil, manfaat dan efisiensi, stabilitas sistem, serta kenyamanan tampilan. Guru BK juga memeringkat alternatif penanganan secara manual untuk 20 kasus uji. Target: kesesuaian rekomendasi pertama ≥ 80% dan skor rata-rata penerimaan ≥ 4.
 

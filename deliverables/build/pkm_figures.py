@@ -63,7 +63,7 @@ def arsitektur():
     arrow(ax, 3.7, 1.6, 4.6, 3.0)
     ax.add_patch(FancyBboxPatch((7.2, 0.2), 5.5, 6.1, boxstyle="round,pad=0.02", fc="white", ec="#999999", ls="--"))
     ax.text(9.95, 6.0, "Aplikasi web (Streamlit Community Cloud)", ha="center", fontsize=8.5, style="italic")
-    layers = [("Antarmuka bilingual (ID/EN): Beranda,\nRekomendasi, Analisis, Tentang", 4.8),
+    layers = [("Antarmuka ID/EN: Aplikasi (guru BK)\n+ Laporan teknis (Bab 1–8)", 4.8),
               ("Pemetaan jawaban kuesioner → 11 fitur", 3.75),
               ("Prediksi skor kecemasan (Random Forest)", 2.7),
               ("SMART: prioritas, peringkat, sensitivitas", 1.65),

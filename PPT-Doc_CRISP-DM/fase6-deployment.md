@@ -21,15 +21,14 @@
 ```
  Pelatihan offline (laptop / Colab)                    Streamlit Community Cloud
  ─────────────────────────────────                     ─────────────────────────────────────────────
- Kaggle 1M ─► 14–25 80/20 ┐                             streamlit_app.py (navigasi, bahasa, profil bobot)
-                          ├─► scripts/train.py ─► models/   │
- Google Form (rahasia) ───┘   kaggle | real |     *.joblib  ├─ Beranda
-                              compare              + meta   ├─ Rekomendasi ─► spk/gform.py  (jawaban → fitur)
-                                                  (agregat) │                 spk/model.py  (prediksi RF)
-                                                            │                 spk/smart.py  (SMART, sensitivitas)
-                                                            │                 spk/recommend.py, explain.py
-                                                            ├─ Analisis    ─► spk/plots.py
-                                                            └─ Tentang
+ Kaggle 1M ─► 14–25 80/20 ┐                             streamlit_app.py + ui.py (bilah atas: halaman,
+                          ├─► scripts/train.py ─► models/   │  sakelar Aplikasi | Laporan, ID | EN)
+ Google Form (rahasia) ───┘   kaggle | real |     *.joblib  ├─ Aplikasi: Beranda, Nilai siswa, Nilai kelas,
+                              compare              + meta   │  Bantuan ─► spk/gform.py  (jawaban → fitur)
+                                                  (agregat) │             spk/model.py  (prediksi RF)
+                                                            │             spk/smart.py  (SMART, sensitivitas)
+                                                            │             spk/recommend.py, explain.py, xai.py
+                                                            └─ Laporan teknis: Bab 1–8 ─► report.py, spk/plots.py
 ```
 
 Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline*. Aplikasi hanya memuat model `.joblib` beserta metadata (fitur, pemetaan gender, batas SMART, median imputasi, kuantil referensi) lalu melakukan inferensi. *Preprocessing* saat inferensi memakai kode dan nilai yang sama persis dengan saat pelatihan: `gform.derive`, `GENDER_MAP`, `smart_bounds`, dan `impute_medians`.
@@ -38,27 +37,30 @@ Prinsipnya: **aplikasi tidak pernah melatih model**. Pelatihan berjalan *offline
 
 | Berkas | Tanggung jawab |
 |---|---|
-| `app/streamlit_app.py` | titik masuk, `st.navigation`, sidebar (bahasa, profil bobot, info model, penafian) |
-| `app/app_pages/home.py` | masalah, pengguna, alur kerja, tombol mulai |
-| `app/app_pages/recommendation.py` | input satu siswa (kuesioner/lanjutan), hasil + alasan + sensitivitas; unggah banyak siswa + evaluasi data baru |
-| `app/app_pages/analysis.py` | data, model, SMART, sensitivitas, keadilan |
-| `app/app_pages/data_mining.py` | proses CRISP-DM per fase dengan angka dari data dan model |
-| `app/app_pages/about.py` | metode, arsitektur, keterbatasan, etika |
+| `app/streamlit_app.py`, `app/ui.py` | titik masuk; daftar halaman kedua bagian; bilah atas (menu, sakelar Aplikasi/Laporan, ID/EN, pilihan model); pemuat model dan data |
+| `app/app_pages/home.py`, `help.py` | Beranda dan Bantuan |
+| `app/app_pages/recommendation.py` | kuesioner satu siswa (kosong di awal, contoh hanya mengisi formulir) dan hasil ringkas |
+| `app/app_pages/batch.py` | unggah satu kelas: daftar rujukan, daftar prioritas, rencana program, evaluasi data baru |
+| `app/result_views.py` | potongan hasil yang dipakai kedua bagian: kartu hasil, faktor utama, simulasi "bagaimana jika", kartu xAI |
+| `app/report.py`, `app/app_pages/report/*.py` | Laporan teknis Bab 1–8: bab dan subbab bernomor, tabel dan gambar berkapsi, tombol bab sebelumnya/berikutnya |
 | `app/spk/*.py` | logika murni tanpa Streamlit, diuji dengan `pytest` |
 | `app/scripts/*.py` | pelatihan (`kaggle`, `tune`, `compare`, `real`), inspeksi kuesioner, evaluasi data baru, laporan penggabungan pertanyaan |
-| `app/tests/` | 155 uji otomatis (*black-box* dan *white-box*): *parsing* kuesioner, perhitungan SMART, pelatihan ulang, setiap halaman di kedua bahasa |
+| `app/tests/` | 180 uji otomatis (*black-box* dan *white-box*): *parsing* kuesioner, perhitungan SMART, pelatihan ulang, setiap halaman kedua bagian dalam kedua bahasa |
 
 ## 4. Fitur Aplikasi
 
-| Halaman | Fitur | Kaitan rubrik |
+Aplikasi dibagi menjadi dua bagian yang dipilih dengan sakelar **Aplikasi | Laporan** di samping tombol bahasa. Bagian **Aplikasi** ditujukan untuk guru BK dan menampilkan hasil ringkas. Bagian **Laporan teknis** ditujukan untuk dosen dan penguji dan memuat seluruh perhitungan dan evaluasi.
+
+| Bagian · halaman | Fitur | Kaitan rubrik |
 |---|---|---|
-| Beranda | rumusan masalah, pengguna, alur, metrik model | *Problem formulation* |
-| Rekomendasi — satu siswa | mode kuesioner (pertanyaan Google Form) atau 11 nilai fitur; prediksi + persentil; skor prioritas; tiga alternatif teratas; grafik kontribusi bobot × utilitas; kalimat alasan; uji sensitivitas per siswa; aturan pengaman | *Implementation*, *Explainability* |
-| Rekomendasi — banyak siswa | unggah ekspor Google Form (.csv/.xlsx) atau CSV 11 kolom; kolom pribadi dibuang otomatis; peringkat prioritas; unduh hasil; evaluasi MAE/RMSE/R² bila jawaban Psikologis tersedia | *Implementation*, *Evaluation* |
-| Analisis | statistik data Kaggle dan agregat data riil; metrik, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi; grafik SMART dari notebook; stabilitas ±10%/±20%; peta sensitivitas; keadilan per gender | *Evaluation & Sensitivity*, *Data & Criteria* |
-| Data Mining | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji | *Data Mining process* |
-| Tentang | data, *preprocessing*, pemetaan kuesioner, RF, SMART, keterbatasan, etika | *Algorithm*, *Architecture*, *Ethics* |
-| Pengaturan | ID/EN; pilihan model (iterasi 1 Kaggle atau iterasi 2 data riil) dan profil bobot A/B/C, hasil di semua halaman langsung berubah; perbandingan kedua model untuk satu siswa dan tabel iterasi model di Analisis | *Sensitivity*, *Evaluation* |
+| Aplikasi · Beranda | rumusan masalah, alur kerja, lima bentuk dukungan, tautan ke laporan teknis | *Problem formulation* |
+| Aplikasi · Nilai siswa | kuesioner 18 butir yang kosong di awal dan wajib diisi lengkap; contoh risiko tinggi/rendah yang hanya mengisi formulir; hasil: rekomendasi utama, prediksi + label posisi (dengan rentang dan kelompok pembanding), skor prioritas, urutan lima pilihan, kalimat alasan, faktor utama (Shapley), simulasi "bagaimana jika" untuk beberapa faktor sekaligus, aturan pengaman | *Implementation*, *Explainability* |
+| Aplikasi · Nilai kelas | unggah ekspor Google Form (.csv/.xlsx) atau CSV 11 kolom (ada template); data contoh 30 siswa bila diminta; kolom pribadi dibuang otomatis; daftar rujukan segera; daftar prioritas dengan filter; rencana program per bentuk dukungan; unduh CSV; evaluasi MAE/RMSE/R² bila jawaban Psikologis tersedia | *Implementation*, *Evaluation* |
+| Laporan · Bab 1–2 | statistik data Kaggle dan agregat data riil; metrik, iterasi model, aktual vs prediksi, galat, *feature importance*, perbandingan algoritma dan strategi | *Data & Criteria*, *Algorithm* |
+| Laporan · Bab 3 | perhitungan SMART langkah demi langkah untuk satu siswa: input, prediksi RF, nilai kriteria, utilitas dengan angka yang disubstitusi, matriks bobot, kontribusi w × u, peringkat, prioritas dan aturan pengaman, sensitivitas, dan xAI | *Algorithm*, *Explainability* |
+| Laporan · Bab 4–6 | xAI global (Gini vs permutasi, PDP/ICE); hasil SMART pada populasi, stabilitas ±10%/±20%, peta sensitivitas per kriteria; keadilan per gender | *Evaluation & Sensitivity*, *Ethics* |
+| Laporan · Bab 7–8 | enam fase CRISP-DM dengan angka langsung dari data, model, dan uji; arsitektur, metode, keterbatasan, etika, tim | *Data Mining process*, *Architecture* |
+| Pengaturan | ID/EN; pilihan model (iterasi 1 Kaggle atau iterasi 2 data riil), hasil di semua halaman langsung berubah; perbandingan kedua model untuk satu siswa di Bab 3 | *Evaluation* |
 
 ## 5. Langkah Deployment
 
@@ -77,7 +79,7 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 |---|---|
 | Kinerja pada data baru | unggah ekspor baru di tab "Banyak siswa" atau jalankan `scripts/evaluate.py`; bandingkan model aktif dengan model Kaggle |
 | Pelatihan ulang | jalankan `scripts/train.py --stage real` saat respons bertambah; strategi terbaik dipilih ulang otomatis |
-| Versi model | metadata mencatat sumber data, strategi, jumlah baris, dan waktu pelatihan; ditampilkan di sidebar |
+| Versi model | metadata mencatat sumber data, strategi, jumlah baris, dan waktu pelatihan; ditampilkan di panel pilihan model |
 | Privasi | tidak ada penyimpanan data di aplikasi; unggahan diproses di memori; kolom pribadi dibuang; unduhan tanpa identitas; repositori privat; sel agregat < 5 orang disembunyikan; laporan berisi contoh jawaban disimpan di folder yang di-*gitignore* |
 | Keamanan penggunaan | penafian "bukan diagnosis" di setiap halaman; aturan pengaman rujukan untuk 10% prediksi tertinggi |
 
