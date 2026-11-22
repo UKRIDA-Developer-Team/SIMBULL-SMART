@@ -90,10 +90,10 @@ def questionnaire_form():
     with st.form("questionnaire", border=False):
         box = q_section(1, T("sec_q_identity"), T("sec_q_identity_hint"))
         c1, c2 = box.columns(2, gap="medium")
-        f["gender"] = c1.radio(i18n.question("gender", L), ["Male", "Female"], index=None, horizontal=True,
+        f["gender"] = c1.radio(i18n.question("gender", L), ["Male", "Female"], index=0, horizontal=True,
                                key=widget_key("gender"), persist_state="session",
                                format_func=lambda g: {"Male": "Laki-laki", "Female": "Perempuan"}[g] if L == "id" else g)
-        f["age"] = c2.number_input(T("age_q"), 12, 30, None, key=widget_key("age"), placeholder=T("q_type"),
+        f["age"] = c2.number_input(T("age_q"), 12, 30, "min", key=widget_key("age"), placeholder=T("q_type"),
                                    persist_state="session")
 
         box = q_section(2, T("sec_q_study"), T("sec_q_study_hint"))
@@ -101,7 +101,7 @@ def questionnaire_form():
         f["study_hours"] = c1.selectbox(i18n.question("study_hours", L), HOURS, index=None, placeholder=pick,
                                         key=widget_key("study_hours"), persist_state="session",
                                         format_func=lambda h: i18n.hours_label(h, L))
-        f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, None, 0.5,
+        f["report_grade"] = c2.number_input(i18n.question("report_grade", L), 0.0, 100.0, "min", 0.5,
                                             key=widget_key("report_grade"), placeholder=T("q_type"),
                                             persist_state="session")
         f["late_night"] = scale_input("late_night", "late_night5", box)
