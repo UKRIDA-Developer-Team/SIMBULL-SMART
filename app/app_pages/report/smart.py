@@ -31,7 +31,6 @@ ch.table(crit_table.round(3).set_index(T("criterion")),
             "SMART criteria, type, normalization bounds and priority weights."))
 ch.figure(plots.weights_heatmap(ui.weights(), L),
           tr("Bobot kriteria per alternatif.", "Criterion weights per alternative."), compact=True)
-st.caption(T("an_weights_note"))
 
 # ---------------------------------------------------------------- population results
 ch.section("results", T("an_population", n=f"{len(reference):,}"))

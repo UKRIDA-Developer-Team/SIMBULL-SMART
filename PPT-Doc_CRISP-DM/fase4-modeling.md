@@ -152,9 +152,9 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 
 ### 4.2 Bobot alternatif
 
-**Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai. Di notebook, bobot Exercise berjumlah **1,05**, padahal SMART mensyaratkan Σw = 1. Aplikasi menormalkannya dengan membagi setiap bobot Exercise dengan 1,05.
+**Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai.
 
-| Kriteria | Sleep | Exercise* | Study | Counseling | Relaxation |
+| Kriteria | Sleep | Exercise | Study | Counseling | Relaxation |
 |---|---|---|---|---|---|
 | Prediksi kecemasan | 0,15 | 0,143 | 0,10 | 0,30 | 0,20 |
 | Jam belajar | 0,10 | 0,048 | 0,40 | 0,05 | 0,05 |
@@ -164,8 +164,6 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 | Tekanan finansial | 0,05 | 0,048 | 0,05 | 0,20 | 0,15 |
 | Ekspektasi keluarga | 0,05 | 0,048 | 0,05 | 0,15 | 0,15 |
 | *Burnout* | 0,10 | 0,190 | 0,10 | 0,15 | 0,10 |
-
-\*setelah normalisasi (notebook: 0,15 / 0,05 / 0,05 / 0,05 / 0,45 / 0,05 / 0,05 / 0,20).
 
 Dua susunan bobot lain diuji sebagai pembanding, tetapi tidak dipakai aplikasi akhir:
 
@@ -208,15 +206,15 @@ Penjelasan yang dihasilkan aplikasi: *"Tidur mendapat skor tertinggi (0,623). Pe
 
 ### 4.4 Hasil pada populasi referensi (20.000 siswa)
 
-| Alternatif | Profil A (notebook, Σ=1,05) | Profil A (dinormalkan) | Profil B |
-|---|---|---|---|
-| Sleep | 4.648 | 5.238 | 5.547 |
-| Exercise | 9.338 | 7.323 | 4.941 |
-| Study | 1.637 | 1.882 | 1.394 |
-| Counseling | 1.956 | 2.337 | 7.922 |
-| Relaxation | 2.421 | 3.220 | 196 |
+| Alternatif | Profil A | Profil B |
+|---|---|---|
+| Sleep | 5.238 | 5.547 |
+| Exercise | 7.323 | 4.941 |
+| Study | 1.882 | 1.394 |
+| Counseling | 2.337 | 7.922 |
+| Relaxation | 3.220 | 196 |
 
-Normalisasi menurunkan dominasi Exercise dari 47% menjadi 37%. Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
+Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
 
 ## 5. Keluaran Fase
 

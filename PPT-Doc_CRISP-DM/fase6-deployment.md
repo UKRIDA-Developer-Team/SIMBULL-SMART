@@ -87,6 +87,6 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 
 **Yang berhasil:** integrasi RF → SMART berjalan dari satu siswa hingga 20.000 siswa referensi; perhitungan SMART identik dengan notebook. Setiap rekomendasi dapat ditelusuri ke kontribusi kriteria. Pipeline data riil siap pakai begitu ekspor tersedia.
 
-**Yang diperbaiki selama deployment:** bobot Exercise profil A yang berjumlah 1,05; *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi; pembersihan usia 14–25; pelatihan pada seluruh data (bukan sampel 8.000 baris) dengan data uji 138.509 baris; *tuning* parameter dengan validasi silang.
+**Yang diperbaiki selama deployment:** *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi; pembersihan usia 14–25; pelatihan pada seluruh data (bukan sampel 8.000 baris) dengan data uji 138.509 baris; *tuning* parameter dengan validasi silang.
 
 **Pengembangan lanjutan:** validasi bobot oleh pakar BK; segmentasi siswa (*clustering*) dan aturan asosiasi dari rancangan awal; bobot SMART yang diturunkan dari *feature importance*; pengumpulan data berkala (longitudinal).

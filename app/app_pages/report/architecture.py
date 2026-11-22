@@ -73,11 +73,11 @@ k[1].metric("RMSE", f"{m['rmse']:.4f}", border=True)
 k[2].metric("R²", f"{m['r2']:.4f}", border=True)
 k[3].metric("n_estimators", meta.get("n_estimators_total", hp.get("n_estimators")), border=True)
 st.caption(
-    f"{ui.model_note()} · {'strategi' if L == 'id' else 'strategy'}: `{meta.get('strategy', 'kaggle base')}` · "
+    f"{ui.model_note()} · "
     f"max_depth={hp.get('max_depth')}, min_samples_leaf={hp.get('min_samples_leaf')}, "
     f"max_features={hp.get('max_features')}, max_samples={hp.get('max_samples')}, "
     f"random_state={hp.get('random_state')} · "
-    f"{meta.get('metrics_note', 'Kaggle test set')} · "
+    f"{ui.metrics_source(meta)} · "
     f"Kaggle base: MAE {base_meta['metrics']['mae']:.4f}, R² {base_meta['metrics']['r2']:.4f}")
 
 ch.section("limits")

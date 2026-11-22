@@ -37,11 +37,12 @@
         {"t": "Dua sumber data", "d": "Kaggle (1 juta baris mahasiswa, publik) untuk pralatih; kuesioner Google Form siswa SMA (rahasia) untuk latih ulang."},
         {"t": "Cek kualitas", "d": "Nilai hilang, duplikat, rentang wajar; pada kuesioner juga jawaban tak dikenal dan straight-lining."},
         {"t": "Analisis korelasi", "d": "Tingkat stres dan kelelahan paling kuat berhubungan dengan skor kecemasan."},
-        {"t": "Seleksi kolom", "d": "Variabel hasil dibuang (label leakage), kolom berkorelasi hampir nol tidak dipakai."}
+        {"t": "Seleksi kolom", "d": "Variabel hasil dibuang (label leakage); kolom yang berkorelasi hampir nol dan tidak dibutuhkan SMART tidak dipakai."}
       ],
       "decisions": [
         "mental_health_index, depression_score, dropout_risk, risk_level adalah hasil, bukan penyebab: dibuang agar tidak terjadi leakage.",
         "social_support, screen_time, internet_usage hampir tidak berkorelasi: tidak dipakai.",
+        "Usia dan nilai rapor tetap dipakai walau korelasi linearnya kecil (r 0,01 dan 0,05); nilai rapor juga kriteria SMART.",
         "academic_year tidak berlaku untuk siswa SMA."
       ],
       "outputs": ["Kamus data", "Statistik deskriptif", "Keputusan per kolom"],
@@ -55,15 +56,15 @@
         {"t": "Sampling dan pembersihan", "d": "1 juta baris lengkap → hanya usia pelajar 14-25 (692.545) → dibagi 80/20 per usia: 554.036 baris latih, 138.509 baris uji, random_state 42."},
         {"t": "Encoding", "d": "Gender ke kode tetap (Female 0, Male 1, Other 2); jawaban kuesioner teks → angka."},
         {"t": "Konstruksi fitur", "d": "Butir kuesioner dipetakan ke 0-1 lalu ke skala fitur Kaggle; butir Psikologis membentuk target."},
-        {"t": "Privasi dan imputasi", "d": "Kolom pribadi dibuang setelah usia dihitung; nilai kosong diisi median data latih."}
+        {"t": "Privasi dan imputasi", "d": "Kolom pribadi dibuang setelah usia dihitung; nilai kosong diisi median respons kuesioner."}
       ],
       "decisions": [
         "Hanya baris dalam rentang usia pelajar 14-25 yang dipakai. Berkas Kaggle mencakup 17-29, sehingga tersisa usia 17-25.",
-        "20.000 baris uji menjadi populasi referensi aplikasi (dataset.csv), sehingga grafik dan persentil tidak pernah memakai baris latih.",
+        "20.000 baris uji Kaggle menjadi populasi referensi (dataset.csv). Baris ini tidak pernah dipakai melatih model mana pun, jadi grafik laporan tidak memakai baris latih. Persentil dan batas rujukan model riil dihitung dari responden kuesioner, yang juga data latih model itu.",
         "Tidak ada pembuangan outlier tambahan: data tanpa nilai hilang, duplikat, atau nilai mustahil, dan membuang baris ekstrem tidak menaikkan R².",
         "Butir kuesioner digabung menjadi 11 fitur sebelum SMART; SMART tidak pernah membaca jawaban mentah.",
-        "Butir target (P01-P07) tidak pernah menjadi fitur, sehingga tidak ada label leakage.",
-        "Batas min-maks SMART disimpan dari populasi referensi agar satu siswa pun dapat dinormalisasi.",
+        "Butir target (P01-P05, ditambah P06-P07 pada formulir revisi) tidak pernah menjadi fitur, sehingga tidak ada label leakage.",
+        "Batas min-maks SMART disimpan bersama model (model Kaggle: 20.000 baris referensi; model riil: responden kuesioner), agar satu siswa pun dapat dinormalisasi.",
         "Data kuesioner dibagi 80% pengembangan / 20% holdout, distratifikasi per versi formulir."
       ],
       "table": {
@@ -76,7 +77,7 @@
           ["financial_stress", "kebalikan \"uang saku cukup\" × 10"],
           ["family_expectation", "takut mengecewakan orang tua, tuntutan nilai keluarga × 10"],
           ["burnout_score", "sulit membagi waktu, kelelahan, kehilangan minat × 10"],
-          ["anxiety_score (target)", "butir Psikologis P01-P07, konsentrasi dibalik → 0-10"]
+          ["anxiety_score (target)", "butir Psikologis P01-P05 (+ P06-P07 formulir revisi), konsentrasi dibalik → 0-10"]
         ]
       },
       "outputs": ["554.036 baris latih / 138.509 baris uji", "dataset.csv (20.000 baris uji)", "kaggle_retrain.csv.gz (8.000 baris latih)", "11 fitur + target", "Metadata: smart_bounds, impute_medians", "reports/question_merge_report.md"],
@@ -88,15 +89,14 @@
       "question": "Algoritma apa yang memprediksi kecemasan, dan bagaimana SMART memutuskan?",
       "steps": [
         {"t": "Random Forest", "d": "Regresi 300 pohon: menangkap pola non-linear, tahan outlier, cocok untuk jawaban ordinal. Pengaturannya dituning dengan cross-validation 5-fold."},
-        {"t": "Perbandingan algoritma", "d": "RF setara regresi linear dan gradient boosting, jauh di atas baseline dan pohon tunggal."},
+        {"t": "Perbandingan algoritma", "d": "RF setara regresi linear dan gradient boosting, sedikit di atas pohon tunggal, dan jauh di atas baseline rata-rata."},
         {"t": "SMART", "d": "Utilitas min-maks → skor prioritas (rata-rata) dan skor tiap alternatif (bobot × utilitas)."},
         {"t": "Explainable AI", "d": "Nilai Shapley eksak per siswa, kontrafaktual \"bagaimana jika\", permutasi dan PDP/ICE."}
       ],
       "decisions": [
-        "RF dipakai walau regresi linear dan gradient boosting sama akuratnya di Kaggle (R² uji 0,606-0,608): data kuesioner ordinal dan latih ulang butuh warm start.",
+        "RF dipakai walau regresi linear dan gradient boosting sama akuratnya di Kaggle (R² uji 0,606-0,608): data kuesioner ordinal, dan RF memungkinkan strategi warm start (S3) diuji saat latih ulang.",
         "Hyperparameter berasal dari random search (25 pengaturan, CV 5-fold pada 50.000 baris latih): kedalaman 12, daun minimal 50 siswa, 75% fitur per pemisahan, 60% baris per pohon.",
-        "Tujuh strategi latih ulang dibandingkan dengan CV 5-fold × 2; MAE terendah yang dideploy.",
-        "Bobot dinormalisasi (bobot Olahraga di notebook berjumlah 1,05)."
+        "Tujuh strategi latih ulang dibandingkan dengan CV 5-fold × 2; MAE terendah yang dideploy."
       ],
       "table": {
         "title": "Strategi pelatihan ulang (Kaggle → data riil)",
@@ -117,25 +117,24 @@
       "icon": "fact_check",
       "question": "Apakah model akurat, keputusan stabil dan adil, dan tujuan bisnis tercapai?",
       "steps": [
-        {"t": "Akurasi model", "d": "MAE, RMSE, R² pada data uji, dibandingkan dengan 4 algoritma lain."},
+        {"t": "Akurasi model", "d": "MAE, RMSE, R² pada data uji, dibandingkan dengan 3 algoritma lain dan baseline rata-rata."},
         {"t": "Stabilitas keputusan", "d": "Bobot diubah ±10%/±20% per kriteria dan diacak 100 kali."},
         {"t": "Keadilan dan penjelasan", "d": "MAE dan sebaran rekomendasi per gender; Gini vs permutasi; Shapley per siswa."},
         {"t": "Pengujian perangkat lunak", "d": "Uji black-box (dari spesifikasi) dan white-box (dari kode), otomatis dengan pytest."}
       ],
       "decisions": [
         "Satu set bobot berbasis domain dipakai; kestabilannya diuji dengan kriteria S1.",
-        "Aturan pengaman memakai persentil, karena RF menarik prediksi ekstrem ke tengah.",
-        "Uji tabel keputusan menemukan selisih cutoff pengaman antara tampilan satu siswa dan satu kelas; sudah diperbaiki."
+        "Aturan pengaman memakai persentil, karena RF menarik prediksi ekstrem ke tengah."
       ],
       "outputs": ["Laporan evaluasi", "Status kriteria keberhasilan", "Rencana uji (TESTING.md)"],
-      "code": ["app/app_pages/analysis.py", "app/tests/", "app/scripts/coverage_report.py"]
+      "code": ["app/app_pages/report/", "app/tests/", "app/scripts/coverage_report.py"]
     },
     {
       "name": "Deployment",
       "icon": "rocket_launch",
       "question": "Bagaimana hasilnya dipakai guru BK dan dirawat?",
       "steps": [
-        {"t": "Aplikasi Streamlit", "d": "Bilingual (ID/EN), lima halaman, di-hosting di Streamlit Community Cloud dari repositori privat."},
+        {"t": "Aplikasi Streamlit", "d": "Bilingual (ID/EN), zona Aplikasi (4 halaman) dan zona Laporan (8 bab), di-hosting di Streamlit Community Cloud dari repositori privat."},
         {"t": "Tanpa pelatihan di aplikasi", "d": "Model dilatih offline; aplikasi hanya memuat .joblib dan metadata lalu melakukan inferensi."},
         {"t": "Pemantauan", "d": "Unggah respons baru untuk mengukur MAE; latih ulang saat respons bertambah."},
         {"t": "Privasi", "d": "Tidak ada data disimpan, kolom pribadi dibuang, agregat < 5 orang disembunyikan."}
@@ -143,7 +142,7 @@
       "decisions": [
         "Streamlit dipilih (bukan Gradio) karena multi-halaman, grafik lengkap, caching, dan hosting gratis.",
         "Versi pustaka dipatok agar berkas .joblib dapat dimuat di server.",
-        "Setiap rilis menjalankan pytest lebih dulu."
+        "pytest dijalankan secara manual sebelum rilis; belum ada CI otomatis."
       ],
       "outputs": ["Aplikasi daring", "Panduan pengguna", "Presentasi"],
       "code": ["app/streamlit_app.py", "app/app_pages/", "app/requirements.txt", "app/scripts/evaluate.py"]

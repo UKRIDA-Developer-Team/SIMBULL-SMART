@@ -37,11 +37,12 @@
         {"t": "Two data sources", "d": "Kaggle (1M university-student rows, public) for pretraining; the high-school Google Form (confidential) for retraining."},
         {"t": "Quality check", "d": "Missing values, duplicates, plausible ranges; for the questionnaire also unknown answers and straight-lining."},
         {"t": "Correlation analysis", "d": "Stress level and burnout relate most strongly to the anxiety score."},
-        {"t": "Column selection", "d": "Outcome variables dropped (label leakage); near-zero-correlation columns not used."}
+        {"t": "Column selection", "d": "Outcome variables dropped (label leakage); columns with near-zero correlation that SMART does not need are not used."}
       ],
       "decisions": [
         "mental_health_index, depression_score, dropout_risk and risk_level are outcomes, not causes: dropped to avoid leakage.",
         "social_support, screen_time and internet_usage barely correlate: not used.",
+        "Age and report grade stay in although their linear correlation is small (r 0.01 and 0.05); the report grade is also a SMART criterion.",
         "academic_year does not apply to high-school students."
       ],
       "outputs": ["Data dictionary", "Descriptive statistics", "Decision per column"],
@@ -55,15 +56,15 @@
         {"t": "Sampling and cleaning", "d": "Full 1M rows → student ages 14-25 only (692,545) → 80/20 split by age: 554,036 training rows, 138,509 test rows, random_state 42."},
         {"t": "Encoding", "d": "Gender to fixed codes (Female 0, Male 1, Other 2); questionnaire text answers → numbers."},
         {"t": "Feature construction", "d": "Each item maps to 0-1, then to the Kaggle feature scale; the Psikologis items form the target."},
-        {"t": "Privacy and imputation", "d": "Personal columns dropped once age is computed; blanks filled with training medians."}
+        {"t": "Privacy and imputation", "d": "Personal columns dropped once age is computed; blanks filled with the questionnaire medians."}
       ],
       "decisions": [
         "Only rows in the student age band 14-25 are used. The Kaggle file spans 17-29, so ages 17-25 remain.",
-        "20,000 test rows become the app's reference population (dataset.csv), so charts and percentiles never use training rows.",
+        "20,000 Kaggle test rows become the reference population (dataset.csv). No model is ever trained on them, so the report charts never use training rows. The real model's percentiles and referral cutoff come from the questionnaire respondents, which are also that model's training data.",
         "No extra outlier removal: the data has no missing, duplicate or impossible values, and dropping extreme rows did not raise R².",
         "Questionnaire items are merged into the 11 features before SMART; SMART never reads a raw answer.",
-        "Target items (P01-P07) are never features, so there is no label leakage.",
-        "SMART min-max bounds are saved from the reference population so a single student can be normalized.",
+        "Target items (P01-P05, plus P06-P07 on the revised form) are never features, so there is no label leakage.",
+        "SMART min-max bounds are saved with the model (Kaggle model: the 20,000 reference rows; real model: the questionnaire respondents), so a single student can be normalized.",
         "Questionnaire data splits 80% development / 20% holdout, stratified by form version."
       ],
       "table": {
@@ -76,7 +77,7 @@
           ["financial_stress", "reverse of \"enough pocket money\" × 10"],
           ["family_expectation", "fear of disappointing parents, family grade demands × 10"],
           ["burnout_score", "time-splitting trouble, exhaustion, lost interest × 10"],
-          ["anxiety_score (target)", "Psikologis items P01-P07, concentration reversed → 0-10"]
+          ["anxiety_score (target)", "Psikologis items P01-P05 (+ P06-P07 on the revised form), concentration reversed → 0-10"]
         ]
       },
       "outputs": ["554,036 training / 138,509 test rows", "dataset.csv (20,000 test rows)", "kaggle_retrain.csv.gz (8,000 training rows)", "11 features + target", "Metadata: smart_bounds, impute_medians", "reports/question_merge_report.md"],
@@ -88,15 +89,14 @@
       "question": "Which algorithm predicts anxiety, and how does SMART decide?",
       "steps": [
         {"t": "Random Forest", "d": "Regression with 300 trees: captures non-linear patterns, resists outliers, suits ordinal answers. Settings tuned by 5-fold cross-validation."},
-        {"t": "Algorithm comparison", "d": "RF is on par with linear regression and gradient boosting, far above the baseline and a single tree."},
+        {"t": "Algorithm comparison", "d": "RF is on par with linear regression and gradient boosting, slightly above a single tree, and far above the mean baseline."},
         {"t": "SMART", "d": "Min-max utility → priority score (mean) and a score per alternative (weight × utility)."},
         {"t": "Explainable AI", "d": "Exact Shapley values per student, \"what if\" counterfactuals, permutation and PDP/ICE."}
       ],
       "decisions": [
-        "RF is kept although linear regression and gradient boosting are equally accurate on Kaggle (test R² 0.606-0.608): questionnaire data is ordinal and retraining needs a warm start.",
+        "RF is kept although linear regression and gradient boosting are equally accurate on Kaggle (test R² 0.606-0.608): questionnaire data is ordinal, and RF lets the warm-start strategy (S3) be tested during retraining.",
         "Hyperparameters come from a random search (25 settings, 5-fold CV on 50,000 training rows): depth 12, leaves of 50+ students, 75% of the features per split, 60% of the rows per tree.",
-        "Seven retraining strategies are compared with 5-fold CV × 2; the lowest MAE is deployed.",
-        "The weights are normalized (the notebook's Exercise weights sum to 1.05)."
+        "Seven retraining strategies are compared with 5-fold CV × 2; the lowest MAE is deployed."
       ],
       "table": {
         "title": "Retraining strategies (Kaggle → real data)",
@@ -117,25 +117,24 @@
       "icon": "fact_check",
       "question": "Is the model accurate, the decision stable and fair, and the business goal met?",
       "steps": [
-        {"t": "Model accuracy", "d": "MAE, RMSE, R² on the test set, compared with 4 other algorithms."},
+        {"t": "Model accuracy", "d": "MAE, RMSE, R² on the test set, compared with 3 other algorithms and the mean baseline."},
         {"t": "Decision stability", "d": "Weights moved ±10%/±20% per criterion and jittered 100 times."},
         {"t": "Fairness and explanation", "d": "MAE and recommendation mix by gender; Gini vs permutation; Shapley per student."},
         {"t": "Software testing", "d": "Black-box (from the specification) and white-box (from the code) tests, automated with pytest."}
       ],
       "decisions": [
         "One domain-based weight set is used; its stability is checked by criterion S1.",
-        "The safety rule uses a percentile, because the RF pulls extreme predictions toward the middle.",
-        "A decision-table test found the safety cutoff differed between the one-student and whole-class views; fixed."
+        "The safety rule uses a percentile, because the RF pulls extreme predictions toward the middle."
       ],
       "outputs": ["Evaluation report", "Success-criteria status", "Test plan (TESTING.md)"],
-      "code": ["app/app_pages/analysis.py", "app/tests/", "app/scripts/coverage_report.py"]
+      "code": ["app/app_pages/report/", "app/tests/", "app/scripts/coverage_report.py"]
     },
     {
       "name": "Deployment",
       "icon": "rocket_launch",
       "question": "How do counselors use it, and how is it maintained?",
       "steps": [
-        {"t": "Streamlit app", "d": "Bilingual (ID/EN), five pages, hosted on Streamlit Community Cloud from a private repository."},
+        {"t": "Streamlit app", "d": "Bilingual (ID/EN), an App zone (4 pages) and a Report zone (8 chapters), hosted on Streamlit Community Cloud from a private repository."},
         {"t": "No training in the app", "d": "Models are trained offline; the app only loads the .joblib and metadata and runs inference."},
         {"t": "Monitoring", "d": "Upload new responses to measure the MAE; retrain as responses grow."},
         {"t": "Privacy", "d": "Nothing is stored, personal columns are dropped, aggregates under 5 people are hidden."}
@@ -143,7 +142,7 @@
       "decisions": [
         "Streamlit was chosen (not Gradio) for multipage navigation, rich charts, caching and free hosting.",
         "Library versions are pinned so the .joblib files load on the server.",
-        "Every release runs pytest first."
+        "pytest is run by hand before a release; there is no automated CI yet."
       ],
       "outputs": ["Online app", "User manual", "Presentation"],
       "code": ["app/streamlit_app.py", "app/app_pages/", "app/requirements.txt", "app/scripts/evaluate.py"]

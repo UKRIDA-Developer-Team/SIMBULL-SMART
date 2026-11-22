@@ -182,7 +182,7 @@ s.addChart(pres.charts.BAR, [{ name: 'Skor', labels: ex.map(e => e[0]), values: 
 card(s, 6.5, 5.4, 6.2, 1.4, C.mint);
 text(s, 'Tidur 0,623: jam tidur 4,2 jam → utilitas 0,829 × bobot 0,40 = 0,332 (penyumbang terbesar). Skor prioritas 0,563 — lebih tinggi dari 91% siswa.', { x: 6.75, y: 5.52, w: 5.8, h: 1.2, fontSize: 14 });
 footer(s, 8);
-s.addNotes('SMART (±1,5 menit). Tunjukkan rumus utilitas dan contoh nyata. Benefit di sini berarti makin tinggi makin butuh perhatian. Temuan: bobot Olahraga di notebook berjumlah 1,05; aplikasi menormalkannya menjadi 1.');
+s.addNotes('SMART (±1,5 menit). Tunjukkan rumus utilitas dan contoh nyata. Benefit di sini berarti makin tinggi makin butuh perhatian.');
 
 // 9 ── Sensitivity & fairness ──────────────────────────────
 s = pres.addSlide(); s.background = { color: C.white };

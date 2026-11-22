@@ -35,7 +35,10 @@ m = meta["metrics"]
 report.metric_row([(label, f"{m[key]:.4f}") for key, label in
                    zip(["mae", "mse", "rmse", "r2"], ["MAE", "MSE", "RMSE", "R²"])])
 if meta["data_source"] != "kaggle":
-    st.caption(T("an_metrics_real", s=meta["strategy"], n=meta["n_real"], note=meta.get("metrics_note", "")))
+    holdout = (summary or {}).get("holdout_rows", 0)
+    note = (T("an_metrics_holdout", h=holdout, n=meta["n_real"]) if meta.get("metrics_note", "").startswith("holdout")
+            else T("an_metrics_cv"))
+    st.caption(T("an_metrics_real", s=ui.strategy_label(meta["strategy"]), n=meta["n_real"], note=note))
 
 # ---------------------------------------------------------------- iterations
 if summary and summary.get("strategies"):

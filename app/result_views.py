@@ -219,10 +219,11 @@ def compare_models(features: dict, current):
         name = T(f"model_short_{kind}") + (f" ({T('cmp_in_use')})" if kind == ui.model_key() else "")
         rows.append({T("cmp_model"): name, T("cmp_pred"): f"{r.rf_score:.2f} / 10", T("cmp_pct"): f"{r.rf_percentile:.0f}",
                      T("cmp_prio"): f"{r.priority:.3f}", T("cmp_best"): i18n.alt(r.best, L),
-                     T("cmp_safety"): "✔" if r.safety else "–"})
+                     T("cmp_safety"): T("cmp_yes") if r.safety else T("cmp_no")})
     st.table(pd.DataFrame(rows).set_index(T("cmp_model")))
     a, b = results["real"].best, results["kaggle"].best
-    st.caption(T("cmp_same") if a == b else T("cmp_diff", a=i18n.alt(a, L), b=i18n.alt(b, L)))
+    st.caption((T("cmp_same") if a == b else T("cmp_diff", a=i18n.alt(a, L), b=i18n.alt(b, L)))
+               + " " + T("cmp_safety_note", p=config.SAFETY_PERCENTILE))
 
 
 

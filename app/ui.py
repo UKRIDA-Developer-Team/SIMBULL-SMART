@@ -380,6 +380,25 @@ def model_caption(kind: str) -> str:
     return text + (" " + T("model_opt_real_mae", mae=real_mae) if real_mae is not None else "")
 
 
+def strategy_label(name: str) -> str:
+    """A retraining strategy code (S1_real, S2_combined_w10, S3_warm_200) in plain words."""
+    if name.startswith("S2_combined_w"):
+        return T("strategy_S2", w=name.removeprefix("S2_combined_w"))
+    if name.startswith("S3_warm_"):
+        return T("strategy_S3", w=name.removeprefix("S3_warm_"))
+    return T(f"strategy_{name}") if f"strategy_{name}" in i18n.S else name
+
+
+def metrics_source(meta: dict) -> str:
+    """Where the active model's metrics were measured, in the reader's language."""
+    note = meta.get("metrics_note", "")
+    if note.startswith("holdout"):
+        return T("metrics_src_holdout")
+    if note.startswith("cross"):
+        return T("metrics_src_cv")
+    return T("metrics_src_kaggle")
+
+
 def model_note() -> str:
     _, meta = load_active()
     source = {"kaggle": "src_kaggle", "kaggle+gform": "src_real", "gform": "src_gform"}[meta["data_source"]]

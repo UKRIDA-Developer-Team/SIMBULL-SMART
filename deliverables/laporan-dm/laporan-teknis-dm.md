@@ -587,9 +587,9 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 
 ### 4.4.2 Bobot alternatif
 
-**Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai. Di notebook, bobot Exercise berjumlah **1,05**, padahal SMART mensyaratkan Σw = 1. Aplikasi menormalkannya dengan membagi setiap bobot Exercise dengan 1,05.
+**Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai.
 
-| Kriteria | Sleep | Exercise* | Study | Counseling | Relaxation |
+| Kriteria | Sleep | Exercise | Study | Counseling | Relaxation |
 |---|---|---|---|---|---|
 | Prediksi kecemasan | 0,15 | 0,143 | 0,10 | 0,30 | 0,20 |
 | Jam belajar | 0,10 | 0,048 | 0,40 | 0,05 | 0,05 |
@@ -599,8 +599,6 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 | Tekanan finansial | 0,05 | 0,048 | 0,05 | 0,20 | 0,15 |
 | Ekspektasi keluarga | 0,05 | 0,048 | 0,05 | 0,15 | 0,15 |
 | *Burnout* | 0,10 | 0,190 | 0,10 | 0,15 | 0,10 |
-
-\*setelah normalisasi (notebook: 0,15 / 0,05 / 0,05 / 0,05 / 0,45 / 0,05 / 0,05 / 0,20).
 
 Dua susunan bobot lain diuji sebagai pembanding, tetapi tidak dipakai aplikasi akhir:
 
@@ -643,15 +641,15 @@ Penjelasan yang dihasilkan aplikasi: *"Tidur mendapat skor tertinggi (0,623). Pe
 
 ### 4.4.4 Hasil pada populasi referensi (20.000 siswa)
 
-| Alternatif | Profil A (notebook, Σ=1,05) | Profil A (dinormalkan) | Profil B |
-|---|---|---|---|
-| Sleep | 4.648 | 5.238 | 5.547 |
-| Exercise | 9.338 | 7.323 | 4.941 |
-| Study | 1.637 | 1.882 | 1.394 |
-| Counseling | 1.956 | 2.337 | 7.922 |
-| Relaxation | 2.421 | 3.220 | 196 |
+| Alternatif | Profil A | Profil B |
+|---|---|---|
+| Sleep | 5.238 | 5.547 |
+| Exercise | 7.323 | 4.941 |
+| Study | 1.882 | 1.394 |
+| Counseling | 2.337 | 7.922 |
+| Relaxation | 3.220 | 196 |
 
-Normalisasi menurunkan dominasi Exercise dari 47% menjadi 37%. Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
+Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
 
 ## 4.5 Keluaran Fase
 
@@ -759,7 +757,7 @@ Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil 
 
 ### 5.3.2 Perbandingan profil
 
-| Alternatif | A (dinormalkan) | B | C |
+| Alternatif | A | B | C |
 |---|---|---|---|
 | Sleep | 5.238 | 5.547 | 20.000 |
 | Exercise | 7.323 | 4.941 | 0 |
@@ -769,11 +767,7 @@ Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil 
 
 Profil C menunjukkan mengapa bobot khusus per alternatif diperlukan. Tanpa bobot khusus, SMART tidak dapat membedakan alternatif.
 
-### 5.3.3 Temuan: bobot notebook tidak ternormalisasi
-
-Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap bobot alternatif berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
-
-### 5.3.4 Contoh kasus
+### 5.3.3 Contoh kasus
 
 Contoh STU00006 (Fase 4 §4.3) direkomendasikan **Sleep**. Jam tidurnya 4,2 jam, jauh di bawah rata-rata 6,5 jam (utilitas 0,829). Hasil ini masuk akal secara domain. Relaksasi hanya terpaut 0,020, dan aplikasi menyebutkannya sebagai pilihan yang juga layak. Skor prioritasnya 0,563 (persentil 91), jadi siswa ini termasuk yang perlu ditangani lebih dulu.
 
@@ -921,7 +915,7 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 
 **Yang berhasil:** integrasi RF → SMART berjalan dari satu siswa hingga 20.000 siswa referensi; perhitungan SMART identik dengan notebook. Setiap rekomendasi dapat ditelusuri ke kontribusi kriteria. Pipeline data riil siap pakai begitu ekspor tersedia.
 
-**Yang diperbaiki selama deployment:** bobot Exercise profil A yang berjumlah 1,05; *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi; pembersihan usia 14–25; pelatihan pada seluruh data (bukan sampel 8.000 baris) dengan data uji 138.509 baris; *tuning* parameter dengan validasi silang.
+**Yang diperbaiki selama deployment:** *bug* `criteria_plot` di notebook; normalisasi satu siswa dengan batas referensi; pembersihan usia 14–25; pelatihan pada seluruh data (bukan sampel 8.000 baris) dengan data uji 138.509 baris; *tuning* parameter dengan validasi silang.
 
 **Pengembangan lanjutan:** validasi bobot oleh pakar BK; segmentasi siswa (*clustering*) dan aturan asosiasi dari rancangan awal; bobot SMART yang diturunkan dari *feature importance*; pengumpulan data berkala (longitudinal).
 

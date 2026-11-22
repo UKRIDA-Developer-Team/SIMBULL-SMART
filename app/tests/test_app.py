@@ -155,7 +155,15 @@ def test_calculation_chapter_matches_smart():
     u = smart.utility(crit[config.CRITERIA], meta["smart_bounds"]).iloc[0]
     util_table = next(t.value for t in at.table if "Substitution" in t.value.columns)
     shown = [float(str(v).split()[0]) for v in util_table["u"]]
-    assert shown == pytest.approx(u.round(3).tolist(), abs=1e-9)
+    assert shown == pytest.approx(u.tolist(), abs=1e-3)       # 4-decimal worked example, same utilities
+    # The worked example redoes by hand: every cell is w x u from the shown numbers, the last row their sum.
+    weights = next(t.value for t in at.table if "Σ" in t.value.index)
+    scores_table = next(t.value for t in at.table if "Score S" in t.value.index)
+    for alt in scores_table.columns:
+        cells = [float(v) for v in scores_table[alt].iloc[:-1]]
+        assert cells == pytest.approx([round(float(w) * s + 1e-12, 4) for w, s in
+                                       zip(weights[alt].iloc[:-1], shown)], abs=1e-9)
+        assert float(scores_table[alt].iloc[-1]) == pytest.approx(sum(cells), abs=1e-9)
     ranking = next(t.value for t in at.table if "Gap to top" in t.value.columns)
     scores = smart.alternative_scores(u.to_frame().T, config.WEIGHTS_A).iloc[0].sort_values(ascending=False)
     assert [float(v) for v in ranking["S"]] == pytest.approx(scores.round(3).tolist(), abs=1e-9)

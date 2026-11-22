@@ -3,6 +3,8 @@
 Every number here comes from the same recommend.assess() call the app zone uses, so the ranking in
 3.7 matches the result page exactly. The tables only lay the intermediate values out.
 """
+from decimal import ROUND_HALF_UP, Decimal
+
 import pandas as pd
 import streamlit as st
 
@@ -39,6 +41,25 @@ def num(v: float, d: int = 2) -> str:
     return f"{float(v):.{d}f}"
 
 
+# The worked example in 3.3-3.6 carries every shown number forward rounded to 4 decimals (half up),
+# so each cell, column sum and formula can be redone by hand from the numbers on the page. The app
+# itself scores with full precision; the two differ by less than 0.001.
+STEP = Decimal("0.0001")
+
+
+def q4(v) -> Decimal:
+    return Decimal(repr(float(v))).quantize(STEP, rounding=ROUND_HALF_UP)
+
+
+def utility_4(c: str) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal]:
+    """(x, min, max, unclipped u, u) for one criterion, from the 4-decimal x, min and max."""
+    x, lo, hi = q4(a.criteria[c]), q4(bounds[c]["min"]), q4(bounds[c]["max"])
+    if hi == lo:
+        return x, lo, hi, Decimal(1), Decimal(1)
+    raw = ((x - lo) if config.CRITERIA_TYPE[c] == "benefit" else (hi - x)) / (hi - lo)
+    return x, lo, hi, q4(raw), min(max(q4(raw), Decimal(0)), Decimal(1))
+
+
 # ---------------------------------------------------------------- 3.1 input
 ch.section("input", T("calc_input_lead"))
 ch.table(pd.DataFrame({
@@ -59,13 +80,16 @@ st.markdown(f"**{T('cmp_title')}**")
 rv.compare_models(features, a)
 
 # ---------------------------------------------------------------- 3.3 criteria
-ch.section("criteria", T("calc_criteria_lead"))
+bounds_group = (ui.reference_group("kaggle") if meta.get("smart_bounds_source", "kaggle") == "kaggle"
+                else ui.reference_group())
+ch.section("criteria", T("calc_criteria_lead", group=bounds_group))
+U4 = {c: utility_4(c) for c in config.CRITERIA}
 ch.table(pd.DataFrame({
     T("criterion"): [i18n.feature(c, L) for c in config.CRITERIA],
     T("type"): [T(config.CRITERIA_TYPE[c]) for c in config.CRITERIA],
-    "x": [num(a.criteria[c]) for c in config.CRITERIA],
-    "min": [num(bounds[c]["min"]) for c in config.CRITERIA],
-    "max": [num(bounds[c]["max"]) for c in config.CRITERIA],
+    "x": [str(U4[c][0]) for c in config.CRITERIA],
+    "min": [str(U4[c][1]) for c in config.CRITERIA],
+    "max": [str(U4[c][2]) for c in config.CRITERIA],
 }).set_index(T("criterion")), T("calc_criteria_cap"))
 
 # ---------------------------------------------------------------- 3.4 utility
@@ -79,41 +103,41 @@ with c2:
     st.latex(r"u_i = \frac{\max_i - x_i}{\max_i - \min_i}")
 rows = []
 for c in config.CRITERIA:
-    x, lo, hi = float(a.criteria[c]), bounds[c]["min"], bounds[c]["max"]
-    if config.CRITERIA_TYPE[c] == "benefit":
-        raw, expr = (x - lo) / (hi - lo), f"({num(x)} − {num(lo)}) / ({num(hi)} − {num(lo)})"
-    else:
-        raw, expr = (hi - x) / (hi - lo), f"({num(hi)} − {num(x)}) / ({num(hi)} − {num(lo)})"
-    u = float(a.utility[c])
-    rows.append({T("criterion"): i18n.feature(c, L), T("calc_subst"): f"{expr} = {num(raw, 3)}",
-                 "u": num(u, 3) + ("" if abs(raw - u) < 1e-9 else f" ({T('calc_clipped')})")})
-ch.table(pd.DataFrame(rows).set_index(T("criterion")), T("calc_utility_cap"), note=T("calc_utility_note"))
+    x, lo, hi, raw, u = U4[c]
+    expr = f"({x} − {lo}) / ({hi} − {lo})" if config.CRITERIA_TYPE[c] == "benefit" else f"({hi} − {x}) / ({hi} − {lo})"
+    rows.append({T("criterion"): i18n.feature(c, L), T("calc_subst"): f"{expr} = {raw}",
+                 "u": str(u) + ("" if raw == u else f" ({T('calc_clipped')})")})
+ch.table(pd.DataFrame(rows).set_index(T("criterion")), T("calc_utility_cap"),
+         note=T("calc_utility_note") + " " + T("calc_round_note"))
 
 # ---------------------------------------------------------------- 3.5 weights
 ch.section("weights", T("calc_weights_lead"))
 W = smart.weight_matrix(ui.weights())
-w_table = W.copy()
-w_table.loc["Σ"] = W.sum()
+W4 = W.map(q4)
+w_table = W4.copy()
+w_table.loc["Σ"] = W4.sum()
 w_table.index = [i18n.feature(c, L) if c in config.CRITERIA else c for c in w_table.index]
 w_table.columns = [i18n.alt(x, L) for x in w_table.columns]
-ch.table(w_table.map(lambda v: num(v, 3)), T("calc_weights_cap"))
+ch.table(w_table.map(str), T("calc_weights_cap"))
 
 # ---------------------------------------------------------------- 3.6 alternative scores
 ch.section("scores", T("calc_scores_lead"))
 st.latex(r"S_j = \sum_{i=1}^{%d} w_{ij}\,u_i" % N)
-contrib = a.contributions.T.reindex(config.CRITERIA)[config.ALTERNATIVES]   # criteria x alternatives, w*u
+contrib = pd.DataFrame({alt: [q4(W4.loc[c, alt] * U4[c][4]) for c in config.CRITERIA] for alt in config.ALTERNATIVES},
+                       index=config.CRITERIA)                       # criteria x alternatives, w*u
 c_table = contrib.copy()
 c_table.loc[T("calc_score_row")] = contrib.sum()
 c_table.index = [i18n.feature(c, L) if c in config.CRITERIA else c for c in c_table.index]
 c_table.columns = [i18n.alt(x, L) for x in c_table.columns]
 best_col = i18n.alt(a.best, L)
 ch.caption("tab", T("calc_scores_cap"))
-st.table(c_table.map(lambda v: num(v, 3)).style.apply(
+st.table(c_table.map(str).style.apply(
     lambda col: ["background-color: #E6F0ED; font-weight: 600" if col.name == best_col else "" for _ in col], axis=0))
-terms = [r"%.3f \cdot %.3f" % (W.loc[c, a.best], a.utility[c]) for c in config.CRITERIA if W.loc[c, a.best] > 0]
+terms = [r"%s \cdot %s" % (W4.loc[c, a.best], U4[c][4]) for c in config.CRITERIA if W.loc[c, a.best] > 0]
 lines = [" + ".join(terms[i:i + 4]) for i in range(0, len(terms), 4)]      # four terms per line
 st.latex(r"\begin{aligned} S_{\text{%s}} &= %s \\ &= %s \end{aligned}" % (
-    i18n.alt(a.best, L), r" \\ &\quad + ".join(lines), num(a.ranking.iloc[0], 3)))
+    i18n.alt(a.best, L), r" \\ &\quad + ".join(lines), contrib[a.best].sum()))
+st.caption(T("calc_scores_note", alt=i18n.alt(a.best, L), s=num(a.ranking.iloc[0], 4)))
 
 # ---------------------------------------------------------------- 3.7 ranking
 ch.section("rank", T("calc_rank_lead"))

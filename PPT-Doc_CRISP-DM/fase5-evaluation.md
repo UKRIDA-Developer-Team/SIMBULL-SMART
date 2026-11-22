@@ -91,7 +91,7 @@ Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil 
 
 ### 3.2 Perbandingan profil
 
-| Alternatif | A (dinormalkan) | B | C |
+| Alternatif | A | B | C |
 |---|---|---|---|
 | Sleep | 5.238 | 5.547 | 20.000 |
 | Exercise | 7.323 | 4.941 | 0 |
@@ -101,11 +101,7 @@ Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil 
 
 Profil C menunjukkan mengapa bobot khusus per alternatif diperlukan. Tanpa bobot khusus, SMART tidak dapat membedakan alternatif.
 
-### 3.3 Temuan: bobot notebook tidak ternormalisasi
-
-Pada notebook, bobot Exercise profil A berjumlah 1,05. Akibatnya skor Exercise naik 5%, dan Exercise direkomendasikan untuk 9.338 dari 20.000 siswa referensi (47%). Setelah dinormalkan, angkanya 7.323 siswa (37%). Aplikasi memakai versi yang dinormalkan. Uji otomatis memastikan setiap bobot alternatif berjumlah 1 dan tetap dapat mereproduksi angka notebook dengan bobot aslinya.
-
-### 3.4 Contoh kasus
+### 3.3 Contoh kasus
 
 Contoh STU00006 (Fase 4 §4.3) direkomendasikan **Sleep**. Jam tidurnya 4,2 jam, jauh di bawah rata-rata 6,5 jam (utilitas 0,829). Hasil ini masuk akal secara domain. Relaksasi hanya terpaut 0,020, dan aplikasi menyebutkannya sebagai pilihan yang juga layak. Skor prioritasnya 0,563 (persentil 91), jadi siswa ini termasuk yang perlu ditangani lebih dulu.
 

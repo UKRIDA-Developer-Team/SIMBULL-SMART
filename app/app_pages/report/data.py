@@ -38,7 +38,8 @@ else:
     q = summary["quality"]
     report.metric_row([(tr("Respons", "Responses"), str(summary["n_real"])),
                        (tr("Duplikat", "Duplicates"), str(q.get("duplicate_answer_rows", 0))),
-                       ("Straight-lining", str(q.get("straight_lining_rows", 0)))])
+                       (tr("Jawaban seragam", "Straight-lining"), str(q.get("straight_lining_rows", 0)),
+                        T("an_straight_help"))])
     ch.table(pd.Series(summary["gender_counts"], name=T("count")).to_frame().T,
              tr("Jumlah responden per gender.", "Respondents per gender."))
     cols = [c for c in summary["feature_stats"] if not c.startswith("x_")]

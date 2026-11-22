@@ -17,7 +17,6 @@ comparison = ui.model_comparison() or {}
 summary = ui.real_summary()
 TEXT = json.loads(ui.content("crispdm", ".json"))
 PHASES = TEXT["phases"]
-STATUS_ICON = {"met": "✅", "not_met": "❌", "pending": "⏳"}
 
 
 # ---------------------------------------------------------------- cached facts
@@ -226,11 +225,10 @@ with main, card("main"):
         st.markdown(f"**{T('dm_success')}**")
         st.table(pd.DataFrame({
             T("dm_criterion"): [T(f"dm_crit_{c}") for c in criteria.index],
-            T("dm_result"): criteria["value"].to_list(),
-            T("dm_status"): [f"{STATUS_ICON[s]} {T('dm_pending' if s == 'pending' else 'dm_' + s)}"
-                             for s in criteria["status"]],
+            T("dm_result"): [T("dm_no_result") if v in ("", "-") else v for v in criteria["value"]],
+            T("dm_status"): [T(f"dm_{s}") for s in criteria["status"]],
         }).set_index(T("dm_criterion")))
-        st.caption(T("dm_stability_note", n=f"{len(reference):,}"))
+        st.caption(T("dm_stability_note", n=f"{len(reference):,}") + " " + T("dm_s4_note"))
         tests = crispdm.count_tests(config.APP_DIR / "tests")
         st.markdown(f"**{T('dm_testing')}**")
         t = st.columns(3, gap="small")

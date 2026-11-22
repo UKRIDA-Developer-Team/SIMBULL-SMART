@@ -33,9 +33,11 @@ class Chapter:
         st.html(f"<p class='spk-lead'>{html.escape(T(f'ch{self.n}_lead'))}</p>")
         with st.container(horizontal=True, vertical_alignment="center", gap="small", key="ch_meta"):
             if self.sections:
-                links = " · ".join(f"<a href='#{self._anchor(i)}'>{self.n}.{i} {html.escape(t)}</a>"
-                                   for i, (_, t) in enumerate(self.sections, start=1))
-                st.html(f"<p class='spk-toc'><span>{T('report_toc')}</span> {links}</p>")
+                items = "".join(f"<li><a href='#{self._anchor(i)}'><span class='spk-toc-n'>{self.n}.{i}</span>"
+                                f"{html.escape(t)}</a></li>"
+                                for i, (_, t) in enumerate(self.sections, start=1))
+                st.html(f"<nav class='spk-toc'><p class='spk-toc-title'>{T('report_toc')}</p>"
+                        f"<ol>{items}</ol></nav>")
             if settings:
                 st.space("stretch")
                 ui.model_picker()
@@ -115,7 +117,8 @@ def _pdp_curves(features: tuple, kind: str):
     return [xai.partial_dependence(rf, sample, f) for f in features]
 
 
-def metric_row(items: list[tuple[str, str]]):
+def metric_row(items: list[tuple]):
+    """Metric tiles: (label, value) or (label, value, help text shown behind a (?))."""
     cols = st.columns(len(items), gap="small")
-    for col, (label, value) in zip(cols, items):
-        col.metric(label, value, border=True)
+    for col, (label, value, *help_text) in zip(cols, items):
+        col.metric(label, value, border=True, help=help_text[0] if help_text else None)

@@ -11,11 +11,15 @@ h3 { scroll-margin-top: 5rem; margin-top: 1.75rem !important; padding-top: 0 !im
 .spk-para { margin: 0 0 0.5rem; max-width: 72ch; color: var(--spk-ink); font-size: 0.9375rem; line-height: 1.65; }
 .spk-rule { margin: 0.5rem 0 0; border: 0; border-top: 1px solid var(--spk-line); }
 
-/* Contents line under the chapter title. */
-.spk-toc { margin: 0; font-size: 0.8125rem; line-height: 1.8; color: var(--spk-muted); }
-.spk-toc span { font-weight: 600; color: var(--spk-ink); margin-right: 0.25rem; }
-.spk-toc a { color: var(--spk-primary); text-decoration: none; white-space: nowrap; }
+/* Table of contents under the chapter title: one numbered section per line. */
+.spk-toc { margin: 0; font-size: 0.875rem; line-height: 1.5; }
+.spk-toc-title { margin: 0 0 0.375rem; font-weight: 600; color: var(--spk-ink); }
+.spk-toc ol { list-style: none; margin: 0; padding: 0; }
+.spk-toc li { margin: 0; padding: 0.125rem 0; }
+.spk-toc a { display: inline-flex; gap: 0.75rem; color: var(--spk-primary); text-decoration: none; }
 .spk-toc a:hover { text-decoration: underline; }
+.spk-toc-n { min-width: 2.25rem; color: var(--spk-muted); font-variant-numeric: tabular-nums; }
+.st-key-ch_meta { align-items: flex-start !important; }
 .st-key-ch_meta > div:first-child { flex: 1 1 24rem; }
 
 /* Captions: tables above, figures below. */
