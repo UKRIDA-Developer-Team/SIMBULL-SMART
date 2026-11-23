@@ -6,7 +6,7 @@
 
 Laporan ini mendokumentasikan teknik Data Mining pada proyek akhir **Sistem Pendukung Keputusan Rekomendasi Penanganan Kecemasan Siswa**. Laporan ini bukan proyek baru. Fokusnya adalah validasi teknis *pipeline* Data Mining dengan metodologi **CRISP-DM** (*Cross-Industry Standard Process for Data Mining*): pemahaman masalah, pemahaman dan persiapan data, pemodelan Random Forest, evaluasi, dan integrasi model ke aplikasi web **SI SMART** berbasis Streamlit. Aplikasi tersebut menggabungkan prediksi Data Mining dengan metode SPK SMART.
 
-Laporan memakai dua sumber data: dataset publik Kaggle (1 juta baris) untuk pralatih, dan **304 respons kuesioner riil** siswa SMA yang bersifat rahasia untuk pelatihan ulang dan pengujian. Semua angka data riil adalah agregat yang dihasilkan otomatis oleh `scripts/train.py --stage real`; tidak ada baris individu yang ditampilkan. Bagian bertanda ⟦ISI …⟧ yang tersisa hanya URL aplikasi dan hasil uji pengguna.
+Laporan memakai dua sumber data: dataset publik Kaggle (1 juta baris) untuk pralatih, dan **304 respons kuesioner riil** siswa SMA yang bersifat rahasia untuk pelatihan ulang dan pengujian. Semua angka data riil adalah agregat yang dihasilkan otomatis oleh `scripts/train.py --stage real`; tidak ada baris individu yang ditampilkan. Bagian bertanda ⟦ISI …⟧ yang tersisa hanya hasil uji pengguna.
 
 [[PAGEBREAK]]
 # 1. Business Understanding
@@ -89,7 +89,7 @@ Dalam proyek ini, **benefit** berarti nilai tinggi menaikkan utilitas, sehingga 
 
 | Kode | Kriteria | Target | Hasil |
 |---|---|---|---|
-| S1 | Stabilitas terhadap perubahan bobot | ≥ 90% rekomendasi utama tetap saat bobot diubah acak ±10% | Kaggle: profil A 94,3%, profil B 89,1%; data riil: profil A 95,5%, profil B 87,7% |
+| S1 | Stabilitas terhadap perubahan bobot | ≥ 90% rekomendasi utama tetap saat bobot diubah acak ±10% | Kaggle 94,3%; data riil 95,5% |
 | S2 | Setiap rekomendasi dapat dijelaskan | 100% hasil disertai kontribusi kriteria dan alasan | Tercapai di aplikasi |
 | S3 | Aturan pengaman | Siswa berisiko tinggi selalu mendapat rujukan konseling | Tercapai (10% prediksi tertinggi) |
 | S4 | Kebergunaan | Skor rata-rata evaluasi pengguna (Google Form, skala 1–5) ≥ 4 | ⟦ISI setelah uji pengguna⟧ |
@@ -587,7 +587,7 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 
 ### 4.4.2 Bobot alternatif
 
-**Profil A — berbasis domain.** Setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai.
+Bobot ditetapkan berbasis domain: setiap alternatif menekankan kriteria yang paling relevan dengannya. Contohnya, Sleep menekankan jam tidur dan Study menekankan jam belajar serta nilai.
 
 | Kriteria | Sleep | Exercise | Study | Counseling | Relaxation |
 |---|---|---|---|---|---|
@@ -600,15 +600,7 @@ Berbeda dengan model Kaggle (stres 75%), model riil membagi kepentingan lebih me
 | Ekspektasi keluarga | 0,05 | 0,048 | 0,05 | 0,15 | 0,15 |
 | *Burnout* | 0,10 | 0,190 | 0,10 | 0,15 | 0,10 |
 
-Dua susunan bobot lain diuji sebagai pembanding, tetapi tidak dipakai aplikasi akhir:
-
-**Profil B — hampir seimbang.** Kriteria utama tiap alternatif mendapat 0,15–0,20, dan kriteria lain 0,10.
-
-**Profil C — sama rata (kontrol).** Semua bobot 1/8. Karena kelima alternatif memakai bobot yang sama, semua skor seri. `idxmax` lalu selalu memilih alternatif pertama (Sleep). Profil C hanya menjadi pembanding.
-
-Aplikasi akhir hanya memakai **profil A** (lihat Fase 5, stabilitas bobot); pengguna tidak lagi dapat memilih profil.
-
-### 4.4.3 Contoh perhitungan (siswa STU00006, profil A)
+### 4.4.3 Contoh perhitungan (siswa STU00006)
 
 Siswa laki-laki, 19 tahun, dari populasi referensi. Batas min/maks dari 20.000 siswa referensi.
 
@@ -641,15 +633,15 @@ Penjelasan yang dihasilkan aplikasi: *"Tidur mendapat skor tertinggi (0,623). Pe
 
 ### 4.4.4 Hasil pada populasi referensi (20.000 siswa)
 
-| Alternatif | Profil A | Profil B |
+| Alternatif | Jumlah siswa | Porsi |
 |---|---|---|
-| Sleep | 5.238 | 5.547 |
-| Exercise | 7.323 | 4.941 |
-| Study | 1.882 | 1.394 |
-| Counseling | 2.337 | 7.922 |
-| Relaxation | 3.220 | 196 |
+| Sleep | 5.238 | 26,2% |
+| Exercise | 7.323 | 36,6% |
+| Study | 1.882 | 9,4% |
+| Counseling | 2.337 | 11,7% |
+| Relaxation | 3.220 | 16,1% |
 
-Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20 pada prediksi kecemasan dan 0,15 pada tekanan finansial serta ekspektasi keluarga. Ekspektasi keluarga rata-rata tinggi pada populasi ini (6,0 dari 10), sehingga skor Counseling ikut terangkat.
+Exercise paling sering direkomendasikan, diikuti Sleep; Study paling jarang.
 
 ## 4.5 Keluaran Fase
 
@@ -676,7 +668,7 @@ Profil B lebih banyak merekomendasikan Counseling. Counseling memberi bobot 0,20
 | Lapis | Pertanyaan | Metode |
 |---|---|---|
 | Teknis (Data Mining) | Seberapa akurat prediksi skor kecemasan? | MAE, MSE, RMSE, R², perbandingan algoritma, analisis galat |
-| Keputusan (SPK) | Apakah rekomendasi stabil dan masuk akal? | Uji sensitivitas bobot, perbandingan profil, contoh kasus |
+| Keputusan (SPK) | Apakah rekomendasi stabil dan masuk akal? | Uji sensitivitas bobot, contoh kasus |
 | Etika | Apakah hasil adil antar kelompok? | MAE dan sebaran rekomendasi per gender |
 | Bisnis | Apakah tujuan Fase 1 tercapai? | Kriteria keberhasilan, evaluasi pengguna |
 
@@ -729,7 +721,7 @@ Per versi formulir (*holdout*): formulir awal MAE 1,000 (39 respons), formulir r
 
 **Per kriteria.** Bobot satu kriteria diubah −20%, −10%, +10%, dan +20% pada semua alternatif. Bobot lain dinormalkan ulang agar Σw = 1. Yang dihitung adalah porsi siswa (dari 20.000) yang rekomendasi utamanya berubah.
 
-| Kriteria (profil A) | −20% | −10% | +10% | +20% |
+| Kriteria | −20% | −10% | +10% | +20% |
 |---|---|---|---|---|
 | Prediksi kecemasan | 1,5% | 0,8% | 0,7% | 1,4% |
 | Jam belajar | 2,1% | 1,0% | 0,9% | 1,8% |
@@ -744,48 +736,34 @@ Perubahan ±10% pada satu bobot mengubah paling banyak 3,2% rekomendasi. Kriteri
 
 **Acak menyeluruh.** Semua bobot dikalikan faktor acak U(1 − p, 1 + p) sebanyak 100 kali.
 
-| Profil | p | Rekomendasi utama tetap | Tiga besar tetap | Iterasi terburuk |
-|---|---|---|---|---|
-| A | ±10% | **94,3%** | 95,3% | 90,7% |
-| A | ±20% | 89,0% | 90,6% | 82,5% |
-| B | ±10% | 89,1% | 82,9% | 78,1% |
-| B | ±20% | 78,8% | 68,0% | 62,0% |
+| p | Rekomendasi utama tetap | Tiga besar tetap | Iterasi terburuk |
+|---|---|---|---|
+| ±10% | **94,3%** | 95,3% | 90,7% |
+| ±20% | 89,0% | 90,6% | 82,5% |
 
-Profil A lebih stabil karena bobotnya lebih tegas membedakan alternatif. Profil B hampir seimbang, sehingga lebih banyak siswa berada di dekat batas seri. Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi oleh profil A. Karena itu **profil A dipilih dan menjadi satu-satunya bobot di aplikasi**.
+Kriteria S1 (≥ 90% tetap pada ±10%) terpenuhi.
 
 **Per siswa.** Halaman Rekomendasi menampilkan tabel 8 kriteria × 4 perubahan untuk siswa yang sedang dinilai. Sel yang rekomendasinya berubah diwarnai, sehingga guru BK dapat melihat apakah hasil siswa tersebut kokoh atau berada di batas.
 
-### 5.3.2 Perbandingan profil
-
-| Alternatif | A | B | C |
-|---|---|---|---|
-| Sleep | 5.238 | 5.547 | 20.000 |
-| Exercise | 7.323 | 4.941 | 0 |
-| Study | 1.882 | 1.394 | 0 |
-| Counseling | 2.337 | 7.922 | 0 |
-| Relaxation | 3.220 | 196 | 0 |
-
-Profil C menunjukkan mengapa bobot khusus per alternatif diperlukan. Tanpa bobot khusus, SMART tidak dapat membedakan alternatif.
-
-### 5.3.3 Contoh kasus
+### 5.3.2 Contoh kasus
 
 Contoh STU00006 (Fase 4 §4.3) direkomendasikan **Sleep**. Jam tidurnya 4,2 jam, jauh di bawah rata-rata 6,5 jam (utilitas 0,829). Hasil ini masuk akal secara domain. Relaksasi hanya terpaut 0,020, dan aplikasi menyebutkannya sebagai pilihan yang juga layak. Skor prioritasnya 0,563 (persentil 91), jadi siswa ini termasuk yang perlu ditangani lebih dulu.
 
-### 5.3.5 Hasil SPK pada siswa SMA (data riil)
+### 5.3.3 Hasil SPK pada siswa SMA (data riil)
 
 Model aktif (S1) dan batas SMART dari 292 respons riil, dihitung untuk setiap responden:
 
-| Alternatif | Profil A | Profil B |
-|---|---|---|
-| Sleep | 92 | 38 |
-| Exercise | 159 | 140 |
-| Study | 6 | 5 |
-| Counseling | 18 | 30 |
-| Relaxation | 17 | 79 |
+| Alternatif | Jumlah responden |
+|---|---|
+| Sleep | 92 |
+| Exercise | 159 |
+| Study | 6 |
+| Counseling | 18 |
+| Relaxation | 17 |
 
-- Olahraga paling sering direkomendasikan (54% pada profil A): median aktivitas fisik responden hanya 1,5 hari per minggu.
+- Olahraga paling sering direkomendasikan (54%): median aktivitas fisik responden hanya 1,5 hari per minggu.
 - Strategi belajar jarang muncul (2%), karena jam belajar di luar sekolah rendah (median 1,5 jam) sehingga utilitasnya kecil.
-- **Stabilitas** pada data riil (100 kali bobot diacak ±10%): profil A 95,5% rekomendasi utama tetap (iterasi terburuk 91,8%), profil B 87,7%. Kriteria S1 tetap terpenuhi oleh profil A.
+- **Stabilitas** pada data riil (100 kali bobot diacak ±10%): 95,5% rekomendasi utama tetap (iterasi terburuk 91,8%). Kriteria S1 tetap terpenuhi.
 - **Aturan pengaman:** batas persentil 90 prediksi riil adalah 6,28; 30 dari 292 responden (10%) mendapat rekomendasi konseling dan rujukan.
 
 ## 5.4 Keadilan (*Fairness*)
@@ -796,7 +774,7 @@ Model aktif (S1) dan batas SMART dari 292 respons riil, dihitung untuk setiap re
 | Male | 66.303 | 0,756 |
 | Other | 5.529 | 0,765 |
 
-Selisih MAE antar gender < 0,01 poin. Sebaran rekomendasi profil A per gender pada 20.000 siswa referensi juga hampir sama: Exercise 35–37%, Sleep 26–27%, Counseling 10–12%. Jadi tidak ditemukan bias gender yang berarti. Pada *holdout* data riil:
+Selisih MAE antar gender < 0,01 poin. Sebaran rekomendasi per gender pada 20.000 siswa referensi juga hampir sama: Exercise 35–37%, Sleep 26–27%, Counseling 10–12%. Jadi tidak ditemukan bias gender yang berarti. Pada *holdout* data riil:
 
 | Gender | n (*holdout*) | MAE | Rata-rata prediksi | Rata-rata sebenarnya |
 |---|---|---|---|---|
@@ -817,10 +795,10 @@ Galat pada siswa perempuan 0,29 poin lebih besar, dan prediksinya sedikit lebih 
 
 ## 5.6 Keputusan Lanjutan
 
-1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan bobot profil A. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
+1. **Lanjut ke deployment** dengan model data riil (S1) sebagai model aktif dan bobot berbasis domain. Model Kaggle tetap tersedia sebagai pembanding (`SPK_MODEL=base`).
 2. Kumpulkan respons baru dan uji dengan `scripts/evaluate.py` atau unggah di aplikasi; latih ulang bila respons bertambah banyak.
 3. Perbaiki butir tingkat stres dan tekanan ujian (α < 0,4), dan pertimbangkan butir kualitas tidur, konflik teman, dan media sosial saat belajar sebagai fitur (S4 terbaik pada CV).
-4. Validasi bobot profil A dengan guru BK atau psikolog, yaitu kesesuaian rekomendasi pertama pada 20–30 kasus.
+4. Validasi bobot dengan guru BK atau psikolog, yaitu kesesuaian rekomendasi pertama pada 20–30 kasus.
 5. Pengembangan lanjutan (dari rancangan awal): segmentasi siswa (*clustering*), aturan asosiasi kebiasaan, dan bobot yang diturunkan dari *feature importance*.
 
 
@@ -899,7 +877,7 @@ Aplikasi dibagi menjadi dua bagian yang dipilih dengan sakelar **Aplikasi | Lapo
 
 Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan versi pembuat model) agar berkas `.joblib` dapat dimuat di server.
 
-⟦ISI: URL aplikasi setelah deploy⟧
+Aplikasi daring: https://si-smart.streamlit.app/
 
 ## 6.6 Pemantauan, Pemeliharaan, Privasi
 
@@ -930,7 +908,7 @@ Versi pustaka dipatok di `app/requirements.txt` (scikit-learn 1.9.1 sama dengan 
 |---|---|
 | Repositori GitHub | https://github.com/UKRIDA-Developer-Team/SIMBULL-SMART (privat; akses diberikan kepada penilai) |
 | Cabang pengembangan | `future` (digabung ke `main` untuk deployment) |
-| Aplikasi daring | ⟦ISI: URL Streamlit Community Cloud⟧ |
+| Aplikasi daring | https://si-smart.streamlit.app/ |
 | Notebook Colab | `code/Copy of EskulSPK2026_SMART_Final.ipynb` |
 | Kode aplikasi | `app/` (lihat `app/README.md`) |
 

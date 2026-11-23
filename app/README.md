@@ -147,7 +147,7 @@ The theme lives in `.streamlit/config.toml` (colors, Plus Jakarta Sans from Goog
 1. Push the repo to GitHub. It is private; give Streamlit access when prompted.
 2. On share.streamlit.io, click Create app. Pick the repo, branch `main`, and main file `app/streamlit_app.py`.
 3. Under Advanced settings, pick Python 3.12 or newer. The app needs no secrets.
-4. Open the URL. Check each page in ID and EN, submit one student, and open the whole-class view and switch on the sample data (30 Kaggle test rows; nothing is scored until you upload or switch it on).
+4. Open the URL (the live app: https://si-smart.streamlit.app/). Check each page in ID and EN, submit one student, and open the whole-class view and switch on the sample data (30 Kaggle test rows; nothing is scored until you upload or switch it on).
 
 ## Things that changed vs the notebook
 

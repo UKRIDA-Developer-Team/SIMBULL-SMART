@@ -19,6 +19,8 @@ Two model iterations ship with the app and can be switched in its settings: iter
 | `rubricGuide/` | Course rubrics, report formats, and the questionnaire context (`context_ori.pdf`, `context_new.pdf`) |
 | `sosok-sosok-misterius/` | Team photos used below |
 
+Live app: https://si-smart.streamlit.app/
+
 Quick start: `cd app && pip install -r requirements.txt && streamlit run streamlit_app.py`.
 
 ## Meet the member Kelompok 1- Anxiety Detection SMART Method

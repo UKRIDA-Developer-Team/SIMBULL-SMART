@@ -2,27 +2,72 @@
 
 ## Lampiran 1. Biodata Ketua, Anggota, dan Dosen Pendamping
 
-Isi satu tabel untuk setiap anggota (Steven Feryanta, Steven Iwan, Triemas Putra, Davidson Rafael) dan satu untuk dosen pendamping. Bagian bertanda ⟦ISI⟧ dilengkapi sendiri oleh yang bersangkutan.
+Tim terdiri atas empat mahasiswa. Bagian bertanda ⟦ISI⟧ dilengkapi sendiri oleh yang bersangkutan.
 
-**A. Identitas Diri (contoh format, ulangi untuk setiap anggota)**
+**Daftar anggota tim**
+
+| No | Nama Lengkap | NIM | Angkatan | Jabatan dalam Tim | Program Studi | Perguruan Tinggi |
+|---|---|---|---|---|---|---|
+| 1 | Steven Feryanta | 412025028 | 2025 | ⟦ISI: ketua/anggota⟧ | ⟦ISI⟧ | Universitas Kristen Krida Wacana |
+| 2 | Steven Iwan | 412024008 | 2024 | ⟦ISI: ketua/anggota⟧ | ⟦ISI⟧ | Universitas Kristen Krida Wacana |
+| 3 | Triemas Putra | 412024018 | 2024 | ⟦ISI: ketua/anggota⟧ | ⟦ISI⟧ | Universitas Kristen Krida Wacana |
+| 4 | Davidson Rafael | 412024030 | 2024 | ⟦ISI: ketua/anggota⟧ | ⟦ISI⟧ | Universitas Kristen Krida Wacana |
+
+**A.1 Identitas Diri: Steven Feryanta**
 
 | No | Identitas | Isian |
 |---|---|---|
-| 1 | Nama Lengkap | ⟦ISI⟧ |
+| 1 | Nama Lengkap | Steven Feryanta |
 | 2 | Jenis Kelamin | ⟦ISI⟧ |
 | 3 | Program Studi | ⟦ISI⟧ |
-| 4 | NIM | ⟦ISI⟧ |
+| 4 | NIM | 412025028 |
 | 5 | Tempat dan Tanggal Lahir | ⟦ISI⟧ |
 | 6 | Alamat Surel | ⟦ISI⟧ |
 | 7 | Nomor Telepon/HP | ⟦ISI⟧ |
 
-**B. Kegiatan Kemahasiswaan yang Sedang/Pernah Diikuti**
+**A.2 Identitas Diri: Steven Iwan**
+
+| No | Identitas | Isian |
+|---|---|---|
+| 1 | Nama Lengkap | Steven Iwan |
+| 2 | Jenis Kelamin | ⟦ISI⟧ |
+| 3 | Program Studi | ⟦ISI⟧ |
+| 4 | NIM | 412024008 |
+| 5 | Tempat dan Tanggal Lahir | ⟦ISI⟧ |
+| 6 | Alamat Surel | ⟦ISI⟧ |
+| 7 | Nomor Telepon/HP | ⟦ISI⟧ |
+
+**A.3 Identitas Diri: Triemas Putra**
+
+| No | Identitas | Isian |
+|---|---|---|
+| 1 | Nama Lengkap | Triemas Putra |
+| 2 | Jenis Kelamin | ⟦ISI⟧ |
+| 3 | Program Studi | ⟦ISI⟧ |
+| 4 | NIM | 412024018 |
+| 5 | Tempat dan Tanggal Lahir | ⟦ISI⟧ |
+| 6 | Alamat Surel | ⟦ISI⟧ |
+| 7 | Nomor Telepon/HP | ⟦ISI⟧ |
+
+**A.4 Identitas Diri: Davidson Rafael**
+
+| No | Identitas | Isian |
+|---|---|---|
+| 1 | Nama Lengkap | Davidson Rafael |
+| 2 | Jenis Kelamin | ⟦ISI⟧ |
+| 3 | Program Studi | ⟦ISI⟧ |
+| 4 | NIM | 412024030 |
+| 5 | Tempat dan Tanggal Lahir | ⟦ISI⟧ |
+| 6 | Alamat Surel | ⟦ISI⟧ |
+| 7 | Nomor Telepon/HP | ⟦ISI⟧ |
+
+**B. Kegiatan Kemahasiswaan yang Sedang/Pernah Diikuti** (ulangi untuk setiap anggota)
 
 | No | Jenis Kegiatan | Status dalam Kegiatan | Waktu dan Tempat |
 |---|---|---|---|
 | 1 | ⟦ISI⟧ | ⟦ISI⟧ | ⟦ISI⟧ |
 
-**C. Penghargaan yang Pernah Diterima**
+**C. Penghargaan yang Pernah Diterima** (ulangi untuk setiap anggota)
 
 | No | Jenis Penghargaan | Pihak Pemberi Penghargaan | Tahun |
 |---|---|---|---|
