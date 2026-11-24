@@ -250,8 +250,9 @@ function coverPage({ kicker, title, subtitle, members, footer, logo }) {
   const out = [
     P([T(kicker, { size: 26, bold: true, color: '2E74B5' })], { spacing: { before: 1800, after: 240 } }),
     P([T(title, { size: 40, bold: true, color: '1F3864' })], { spacing: { after: 240 } }),
-    P([T(subtitle, { size: 24, italics: true, color: '404040' })], { spacing: { after: 1400 } }),
   ];
+  if (subtitle) out.push(P([T(subtitle, { size: 24, italics: true, color: '404040' })], { spacing: { after: 1400 } }));
+  else out[out.length - 1] = P([T(title, { size: 40, bold: true, color: '1F3864' })], { spacing: { after: 1400 } });
   if (logo) out.push(...image(logo.src, '', logo.baseDir));
   out.push(P([T('Disusun oleh: Kelompok 1', { size: 24, bold: true })], { spacing: { before: 400, after: 200 } }));
   members.forEach(([name, nim]) => out.push(P([T(`${name}`, { size: 22 }), T(`  —  ${nim}`, { size: 22, color: '555555' })], { spacing: { after: 60 } })));

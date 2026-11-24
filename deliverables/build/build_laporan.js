@@ -93,13 +93,12 @@ if (process.argv.includes('--from-md')) {
 }
 
 const cover = coverPage({
-  kicker: 'LAPORAN TEKNIS DATA MINING (UAS)',
+  kicker: 'LAPORAN TEKNIS DATA MINING',
   title: 'Prediksi Kecemasan Siswa dengan Random Forest dan Rekomendasi Penanganan dengan Metode SMART',
-  subtitle: 'Dokumentasi pipeline Data Mining dengan metodologi CRISP-DM',
   members: MEMBERS,
-  footer: ['Universitas Kristen Krida Wacana', '2026'],
+  footer: ['PROGRAM STUDI INFORMATIKA', 'FAKULTAS TEKNOLOGI CERDAS', 'UNIVERSITAS KRISTEN KRIDA WACANA', 'JAKARTA', '2026'],
 });
 
-buildWithToc({ markdown: md, baseDir: SRC, out: path.join(OUT_DIR, 'Laporan-Teknis-Data-Mining.docx'),
+buildWithToc({ markdown: md, baseDir: process.argv.includes('--from-md') ? OUT_DIR : SRC, out: path.join(OUT_DIR, 'Laporan-Teknis-Data-Mining.docx'),
   title: 'Laporan Teknis Data Mining — Kelompok 1', cover })
   .then(f => console.log('->', f));
